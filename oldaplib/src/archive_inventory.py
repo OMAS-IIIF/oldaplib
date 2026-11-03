@@ -234,16 +234,16 @@ class ArchiveInventory:
             )
         catalogues = " ".join(f"<{iri}>" for iri in policy.media_classes)
         query = (
-            policy.context.sparql_context + f"""SELECT DISTINCT ?kind ?media WHERE {{
+            policy.context.sparql_context + f"""SELECT DISTINCT ?kind ?media {self.repository._schema_dataset()} WHERE {{
           {{ GRAPH {graph} {{ ?media a ?class ; shared:inStagingFolder {folder_term} ; shared:inStagingArea {area_term} }}
-             ?class rdfs:subClassOf* shared:StagingMediaObject . BIND("stagingMedia" AS ?kind) }}
+             {self.repository._class_pattern('shared:StagingMediaObject')} BIND("stagingMedia" AS ?kind) }}
           UNION
           {{ GRAPH {graph} {{ {folder_term} shared:referencedMediaObject ?media . ?media a ?class }}
-             VALUES ?catalogue {{ {catalogues} }} ?class rdfs:subClassOf* ?catalogue . BIND("archiveReference" AS ?kind) }}
+             VALUES ?catalogue {{ {catalogues} }} {self.repository._class_pattern('?catalogue')} BIND("archiveReference" AS ?kind) }}
           FILTER EXISTS {{
             {{ GRAPH {graph} {{ ?media oldap:createdBy {self._con.userIri.toRdf} }} }} UNION
             {{ GRAPH oldap:admin {{ {self._con.userIri.toRdf} oldap:hasRole ?role . ?permission oldap:permissionValue ?value . FILTER (?value >= 2) }}
-               GRAPH {graph} {{ ?media oldap:attachedToRole ?role . <<?media oldap:attachedToRole ?role>> oldap:hasDataPermission ?permission }} }}
+               GRAPH {graph} {{ ?media oldap:attachedToRole ?role . {self.repository._permission_pattern('?media', '?role', '?permission')} }} }}
           }}
           {after}
         }} ORDER BY ?kind STR(?media) LIMIT {limit}"""

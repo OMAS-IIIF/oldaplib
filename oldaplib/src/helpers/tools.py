@@ -161,7 +161,7 @@ class RdfModifyProp:
             sparql += f'{blank:{indent * indent_inc}}}}\n'
 
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {pclass_iri} .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?prop (sh:path|oldap:field) {pclass_iri} .\n'
         if owlclass_iri:
             if shacl:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
@@ -258,7 +258,7 @@ class RdfModifyProp:
         blank = ''
 
         where_lines = [
-            f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {pclass_iri} .'
+            f'{blank:{(indent + 1) * indent_inc}}?prop (sh:path|oldap:field) {pclass_iri} .'
         ]
         if owlclass_iri is not None:
             where_lines.append(f'{blank:{(indent + 1) * indent_inc}}BIND({owlclass_iri}Shape as ?property)')

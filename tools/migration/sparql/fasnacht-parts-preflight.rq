@@ -1,0 +1,33 @@
+# Must return zero rows before applying fasnacht-parts.ru.
+# Run on an isolated migration target, with writers stopped.
+PREFIX fasnacht: <http://fasnacht.digital/ns/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT DISTINCT ?issue ?resource WHERE {
+  { GRAPH fasnacht:data {
+      ?parent dcterms:hasPart ?resource .
+      FILTER(!isIRI(?parent) || !isIRI(?resource) || ?parent = ?resource)
+    }
+    BIND("Invalid legacy endpoints" AS ?issue)
+  }
+  UNION
+  { GRAPH fasnacht:data {
+      ?parent dcterms:hasPart ?resource .
+      ?annotation rdf:reifies <<( ?parent dcterms:hasPart ?resource )>> .
+    }
+    BIND("Legacy relation has RDF 1.2 annotations requiring explicit migration" AS ?issue)
+  }
+  UNION
+  { { SELECT ?resource WHERE {
+        GRAPH fasnacht:data { ?resource a ?type . }
+        FILTER(?type = fasnacht:Place || EXISTS {
+          GRAPH fasnacht:onto { ?type rdfs:subClassOf+ fasnacht:Place }
+        })
+        { GRAPH fasnacht:data { ?resource dcterms:isPartOf ?parent } }
+        UNION { GRAPH fasnacht:data { ?parent dcterms:hasPart ?resource } }
+      } GROUP BY ?resource HAVING(COUNT(DISTINCT ?parent) > 1)
+    }
+    BIND("Place would have multiple parents" AS ?issue)
+  }
+}

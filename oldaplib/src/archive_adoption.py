@@ -13,7 +13,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 import rfc8785
 
-from oldaplib.src.archive_domain import DEFAULT, PARENT, is_a, single, audit_command
+from oldaplib.src.archive_domain import DEFAULT, PARENT, is_a, single, audit_command, _archive_level_query
 from oldaplib.src.archive_policy import canonical_iri
 from oldaplib.src.archive_repository import ArchiveRepository, _conflict
 from oldaplib.src.enums.adminpermissions import AdminPermission
@@ -144,10 +144,18 @@ class ArchiveAdoption(ArchiveRepository):
         ]["bindings"]
 
     def _visibility(self, subject):
-        return f"""FILTER EXISTS {{
+        """Join visible identities; all callers select/count DISTINCT identities.
+
+        Jena uses direct joins: the nested correlated EXISTS/UNION form used
+        with hierarchy filters admitted unrelated media in the owned fixture.
+        Joining on the subject keeps both authorization paths explicitly bound.
+        GraphDB retains its established correlated-filter query.
+        """
+        guard = '' if getattr(self._con, '_resource_permissions_rdf12', False) is True else 'FILTER EXISTS '
+        return f"""{guard}{{
           {{ GRAPH {self.project.projectShortName}:data {{ {subject} oldap:createdBy {self._con.userIri.toRdf} }} }} UNION
           {{ GRAPH oldap:admin {{ {self._con.userIri.toRdf} oldap:hasRole ?accessRole . ?accessPermission oldap:permissionValue ?accessValue . FILTER(?accessValue >= 2) }}
-             GRAPH {self.project.projectShortName}:data {{ {subject} oldap:attachedToRole ?accessRole . <<{subject} oldap:attachedToRole ?accessRole>> oldap:hasDataPermission ?accessPermission }} }}
+             GRAPH {self.project.projectShortName}:data {{ {subject} oldap:attachedToRole ?accessRole . {self._permission_pattern(subject, '?accessRole', '?accessPermission')} }} }}
         }}"""
 
     def _states(self, iris, policy):
@@ -161,7 +169,7 @@ class ArchiveAdoption(ArchiveRepository):
           GRAPH {self.project.projectShortName}:data {{
             {{ BIND(?resource AS ?s) ?resource ?p ?o }} UNION
             {{ ?s shared:inStagingFolder ?resource . BIND(shared:inStagingFolder AS ?p) BIND(?resource AS ?o) }} UNION
-            {{ <<?resource oldap:attachedToRole ?s>> oldap:hasDataPermission ?o . BIND(oldap:hasDataPermission AS ?p) }}
+            {{ {self._permission_pattern('?resource', '?s', '?o')} BIND(oldap:hasDataPermission AS ?p) }}
           }} }}""",
             policy,
         )
@@ -219,11 +227,11 @@ class ArchiveAdoption(ArchiveRepository):
         ids = {source_iri}
         if not blocked:
             rows = self._query(
-                f"""SELECT DISTINCT ?folder WHERE {{
+                f"""SELECT DISTINCT ?folder {self._schema_dataset()} WHERE {{
               GRAPH {self.project.projectShortName}:data {{
                 ?folder shared:inStagingFolder* {self._term(source_iri)} ; a ?class ; shared:inStagingArea {self._term(area)} .
                 FILTER NOT EXISTS {{ ?folder shared:inStagingFolder* ?system . ?system schema:name ?name . FILTER(LCASE(STR(?name)) IN ("trash","mobile")) }}
-              }} ?class rdfs:subClassOf* shared:StagingFolder . {self._visibility('?folder')}
+              }} {self._class_pattern('shared:StagingFolder')} {self._visibility('?folder')}
             }} LIMIT {MAX_FOLDERS+1}""",
                 policy,
             )
@@ -269,9 +277,9 @@ class ArchiveAdoption(ArchiveRepository):
             visible_targets = {
                 row["target"]["value"]
                 for row in self._query(
-                    f"""SELECT DISTINCT ?target WHERE {{
+                    f"""SELECT DISTINCT ?target {self._schema_dataset()} WHERE {{
                 VALUES ?target {{ {terms} }} GRAPH {self.project.projectShortName}:data {{ ?target a ?class }}
-                ?class rdfs:subClassOf* shared:ArchiveUnit . {self._visibility('?target')} }}""",
+                {self._class_pattern('shared:ArchiveUnit')} {self._visibility('?target')} }}""",
                     policy,
                 )
             }
@@ -424,16 +432,16 @@ class ArchiveAdoption(ArchiveRepository):
         catalogues = " ".join(self._term(iri) for iri in policy.media_classes)
         graph = f"{self.project.projectShortName}:data"
         rows = self._query(
-            f"""SELECT ?folder (COUNT(DISTINCT ?media) AS ?count) WHERE {{
+            f"""SELECT ?folder (COUNT(DISTINCT ?media) AS ?count) {self._schema_dataset()} WHERE {{
               VALUES ?folder {{ {terms} }}
               {{ GRAPH {graph} {{ ?media shared:inStagingFolder ?folder ;
                    shared:inStagingArea {self._term(area)} ; a ?class . }}
-                 ?class rdfs:subClassOf* shared:StagingMediaObject . }}
+                 {self._class_pattern('shared:StagingMediaObject')} }}
               UNION
               {{ GRAPH {graph} {{ ?folder shared:referencedMediaObject ?media .
                    ?media a ?class . }}
                  VALUES ?catalogue {{ {catalogues} }}
-                 ?class rdfs:subClassOf* ?catalogue . }}
+                 {self._class_pattern('?catalogue')} }}
               {self._visibility('?media')}
             }} GROUP BY ?folder""",
             policy,
@@ -507,9 +515,9 @@ class ArchiveAdoption(ArchiveRepository):
                 visible = {
                     row["target"]["value"]
                     for row in self._query(
-                        f"SELECT DISTINCT ?target WHERE {{ VALUES ?target {{ {terms} }} "
+                        f"SELECT DISTINCT ?target {self._schema_dataset()} WHERE {{ VALUES ?target {{ {terms} }} "
                         f"GRAPH {self.project.projectShortName}:data {{ ?target a ?class }} "
-                        f"?class rdfs:subClassOf* shared:ArchiveUnit . {self._visibility('?target')} }}",
+                        f"{self._class_pattern('shared:ArchiveUnit')} {self._visibility('?target')} }}",
                         policy,
                     )
                 }
@@ -630,8 +638,7 @@ class ArchiveAdoption(ArchiveRepository):
             for level in {unit["archiveLevel"] for unit in ordered}:
                 if not resource_query(
                     self._con,
-                    policy.context.sparql_context
-                    + f"ASK {{ {self._term(canonical_iri(policy.context, level))} a shared:ArchiveLevel }}",
+                    _archive_level_query(policy, level),
                 )["boolean"]:
                     raise OldapErrorValue(
                         "An archive unit requires a valid shared:ArchiveLevel."
@@ -706,8 +713,9 @@ class ArchiveAdoption(ArchiveRepository):
     def _unit_grants(self, plan, units, states, policy):
         """Compute source-scoped grants once for the complete reviewed creation tree.
 
-        Each folder's RDF roles are parsed once, then propagated to its new target
-        and new ancestors. Structure grants retain at most DELETE, other roles
+        Each folder's asserted RDF roles and their grants are parsed once, then
+        propagated to its new target and new ancestors. Orphan annotations remain
+        revision state only. Structure grants retain at most DELETE, other roles
         UPDATE, and Unknown VIEW. Explicit project creation policy may additionally
         grant structure roles DELETE on every new unit, without changing folders.
         The returned grants belong to this review and are reused only inside its
@@ -717,16 +725,24 @@ class ArchiveAdoption(ArchiveRepository):
         if not units:
             return grants
         permission_predicate = canonical_iri(policy.context, "oldap:hasDataPermission")
+        membership_predicate = canonical_iri(policy.context, "oldap:attachedToRole")
         unknown_role = canonical_iri(policy.context, "oldap:Unknown")
         permissions = {}
         for mapping in plan["mappings"]:
             if mapping["action"] != "set" or "key" not in mapping["target"]:
                 continue
             folder_grants = {}
-            for row in states[mapping["folderIri"]]:
+            source = mapping["folderIri"]
+            # Snapshots retain orphan annotations for revision checks. They are
+            # not active rights and must never be revived on a newly created unit.
+            memberships = {row["o"]["value"] for row in states[source]
+                           if row["s"]["value"] == source and row["p"]["value"] == membership_predicate}
+            for row in states[source]:
                 if row["p"]["value"] != permission_predicate:
                     continue
                 role = row["s"]["value"]
+                if role not in memberships:
+                    continue
                 permission_iri = row["o"]["value"]
                 if permission_iri not in permissions:
                     permissions[permission_iri] = DP.from_qname(

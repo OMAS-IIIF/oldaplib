@@ -7,10 +7,11 @@ All datasets, bearer identities and fixture resource grants belong to this probe
 import argparse
 import json
 import os
+import yaml
 from pathlib import Path
 from unittest.mock import patch
 
-from rdflib import Graph
+from rdflib import Graph, URIRef, BNode
 import probe_http_sessions as sessions
 from probe_fuseki_identity import IdentityPeer
 from oldaplib.src.cachesingleton import CacheSingletonRedis
@@ -26,12 +27,23 @@ from oldaplib.src.objectfactory import (ResourceInstanceFactory, _build_resource
 from oldaplib.src.project import Project
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
+from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 
 
-def run(java, jar, output):
+def run(java, jar, output, *, relationship_growth=False):
     """Seed fresh TDB2 with real model files and check one complete read path."""
     output.mkdir(parents=True, exist_ok=False)
     root = Path(__file__).resolve().parents[2]
+    from oldaplib.src.helpers.jena_fulltext import jena_fulltext_fields
+    text_source = yaml.safe_load(Path(__file__).with_name('fulltext-fixture.yaml').read_text())
+    text_fields = {project: jena_fulltext_fields(config['fulltext'], Context(name='JENA_TEXT_CONFIG'))
+                   for project, config in text_source.items()}
+    index_config = output / 'text-config.json'
+    index_config.write_text(json.dumps([
+        {'graph': text_source[project]['graph'],
+         'predicates': sorted({str(path[-1]) for path in fields.values()})}
+        for project, fields in text_fields.items()
+    ]))
     peer = IdentityPeer()
     original = sessions.TOKENS
     sessions.TOKENS = ('Bearer ' + peer.token('actor'), 'Bearer ' + peer.token('other'))
@@ -39,6 +51,9 @@ def run(java, jar, output):
     count = 0
 
     class ReadConnection(sessions.HttpProbeConnection):
+        # The optional traversal performs many requests in one rollback-only
+        # transaction. Keep its lease separate from the per-request timeout.
+        lifetime_ms = 120000 if relationship_growth else 10000
         _resource_search_rdf12 = True
         server_source = 'FusekiSessionProbe.java'
         route_prefix = '/tx'
@@ -47,7 +62,8 @@ def run(java, jar, output):
             environment = {key: value for key, value in os.environ.items()
                            if not (key.startswith('OLDAP_') and key.endswith('JWT_SECRET'))}
             return dict(environment, PROBE_IDENTITY_URL=peer.url, PROBE_IDENTITY_SECRET=peer.secret,
-                        PROBE_TRANSPORT_SECRET=peer.transport_secret,
+                        PROBE_TRANSPORT_SECRET=peer.transport_secret, PROBE_TEXT_FIXTURE="yes",
+                        PROBE_TEXT_CONFIG=str(index_config),
                         PROBE_SEED_FILES='\n'.join(str(root / path) for path in (
                             'oldaplib/ontologies/oldap.trig', 'oldaplib/ontologies/shared.trig',
                             'oldaplib/testdata/objectfactory_test.trig')))
@@ -64,6 +80,22 @@ def run(java, jar, output):
             if format != SparqlResultFormat.JSON:
                 raise NotImplementedError('Probe supports JSON and JSON-LD')
             return json.loads(result)
+
+        def transaction_query(self, query, result_format=SparqlResultFormat.JSON):
+            """Decode native transactional CONSTRUCTs as well as SELECT/ASK."""
+            result = self._request('QUERY', query)
+            if result_format == SparqlResultFormat.JSONLD:
+                return Graph().parse(data=result, format='json-ld')
+            if result_format != SparqlResultFormat.JSON:
+                raise NotImplementedError('Probe supports JSON and JSON-LD')
+            return json.loads(result)
+
+        def _resource_fulltext_pattern(self, graph, filters, score_var):
+            from oldaplib.src.helpers.jena_fulltext import jena_fulltext_pattern
+            if str(graph) not in text_fields:
+                raise OldapErrorValue('No text index configured for this project.')
+            return jena_fulltext_pattern(Iri(text_source[str(graph)]['graph']).toRdf, filters,
+                                         text_fields[str(graph)], score_var)
 
         def _resource_read_query(self, graph, iri, user_iri, *, include_creator):
             return _build_resource_read_query(self, graph, iri, user_iri,
@@ -195,6 +227,22 @@ WHERE { GRAPH test:data { test:cat ?p ?o . FILTER(?p NOT IN (oldap:attachedToRol
                   and summaries[Iri('test:secondCat')].data[Xsd_QName('oldap:attachedToRole')] == {
                       Xsd_QName('oldap:Reader'): DataPermission.DATA_UPDATE,
                       Xsd_QName('oldap:Stranger'): DataPermission.DATA_VIEW})
+            # Inspect the RDF graph itself: property/type joins must not allocate
+            # duplicate permission-pair nodes, even though the public map would
+            # silently collapse those duplicates during hydration.
+            summary_graph = con.query(_build_resource_summaries_query(
+                con, Xsd_NCName('test'), [Iri('test:cat'), Iri('test:secondCat')],
+                {Xsd_QName('test:name')}, rdf12=True), format=SparqlResultFormat.JSONLD)
+            binding_pred = URIRef('http://oldap.org/base#_readPermBinding')
+            role_pred = URIRef('http://oldap.org/base#_readRole')
+            permission_pred = URIRef('http://oldap.org/base#_readDataPermission')
+            bindings = list(summary_graph.triples((None, binding_pred, None)))
+            check('Summary materializes one node per grant before property/type joins',
+                  len(bindings) == 4 and len({node for _, _, node in bindings}) == 4
+                  and all(isinstance(node, BNode)
+                          and len(list(summary_graph.objects(node, role_pred))) == 1
+                          and len(list(summary_graph.objects(node, permission_pred))) == 1
+                          for _, _, node in bindings))
             check('Summary retains explicit creator access without a role grant',
                   summaries[Iri('test:creatorOnly')].data[Xsd_QName('oldap:attachedToRole')] == {})
             check('Summary with no properties still returns types and role metadata',
@@ -222,10 +270,23 @@ WHERE { GRAPH test:data { test:cat ?p ?o . FILTER(?p NOT IN (oldap:attachedToRol
             maximum = factory.read_summaries(['test:cat'] + [f'test:absent{i}' for i in range(MAX_RESOURCE_SUMMARY_BATCH - 1)])
             check('Maximum-size summary batch remains one query with no phantom resources',
                   list(maximum) == [Iri('test:cat')] and count == before_maximum + 1)
+            from probe_archive_assignment_checks import run_archive_assignment_checks
+            run_archive_assignment_checks(con, project, context, check)
+            from probe_semantics_checks import run_semantics_checks
+            run_semantics_checks(con, project, context, factory, check)
             from probe_search_checks import run_search_checks
             run_search_checks(con, project, context, check)
+            if relationship_growth:
+                from probe_relationship_growth import run_relationship_growth
+                run_relationship_growth(con, project, context, check, output)
             from probe_hlist_checks import run_hlist_checks
             run_hlist_checks(con, project, context, check)
+            from probe_fulltext_checks import run_fulltext_checks
+            run_fulltext_checks(con, project, context, check)
+            from probe_fulltext_config_checks import run_fulltext_config_checks
+            run_fulltext_config_checks(con, project, context, check)
+            from probe_fulltext_language import run_fulltext_language
+            run_fulltext_language(con, project, context, check, output)
             con.transaction_start()
             con.transaction_update(context.sparql_context + 'DELETE DATA { GRAPH oldap:admin { <https://example.org/callback/actor> oldap:hasRole oldap:Reader } }')
             con.transaction_commit()
@@ -247,6 +308,10 @@ WHERE { GRAPH test:data { test:cat ?p ?o . FILTER(?p NOT IN (oldap:attachedToRol
             check('List-filter results and counts honor current role removal',
                   ResourceInstance.search(con, project, hlfilter=subtree) == []
                   and int(ResourceInstance.search(con, project, hlfilter=subtree, countOnly=True)) == 0)
+            from oldaplib.src.objectfactory import FTSearchFilter
+            check('Full-text results and counts honor current role removal',
+                  ResourceInstance.search(con, project, ftfilter=[FTSearchFilter('name', 'fox')]) == []
+                  and int(ResourceInstance.search(con, project, ftfilter=[FTSearchFilter('name', 'fox')], countOnly=True)) == 0)
             check('Plain Jena does not silently infer superclass rdf:type',
                   not con.query(context.sparql_context + 'ASK { GRAPH test:data { test:cat a test:Mammal } }')['boolean'])
             check('Explicit subclass path derives membership from model graph',
@@ -265,5 +330,7 @@ if __name__ == '__main__':
     parser.add_argument('--java', default='java')
     parser.add_argument('--jar', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--relationship-growth', action='store_true',
+                        help='Also check 1,000 synthetic children with paging and permissions')
     args = parser.parse_args()
-    run(args.java, args.jar, args.output.resolve())
+    run(args.java, args.jar, args.output.resolve(), relationship_growth=args.relationship_growth)

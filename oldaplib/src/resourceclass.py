@@ -1,9 +1,12 @@
+from oldaplib.src.helpers.property_path import decode_property_path
 import logging
 import textwrap
 from copy import deepcopy
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime
-from functools import partial
+from functools import partial, wraps
+from inspect import signature
 from pprint import pprint
 from typing import Union, List, Dict, Callable, Self, Any, TypeVar
 
@@ -55,6 +58,38 @@ AttributeParams = LangString | Xsd_boolean | SuperclassParam
 @dataclass
 class ResourceClassPropertyChange(AttributeChange):
     test_in_use: bool
+
+
+_resource_class_reads: ContextVar[tuple[IConnection, dict] | None] = ContextVar(
+    "oldap_resource_class_reads", default=None
+)
+
+
+def reuse_resource_class_reads(method):
+    """Reuse superclass reconstruction within one synchronous model load only.
+
+    Follow the project-read scope: nested loads on the same connection share
+    private snapshots; every read returns an independent model. Never retain
+    snapshots across calls, mutations or transactions. Cleanup runs on failure.
+    The decorated method must receive con immediately after self/cls.
+    """
+    parameters = signature(method)
+
+    @wraps(method)
+    def wrapped(receiver, con, *args, **kwargs):
+        active = _resource_class_reads.get()
+        bypass = parameters.bind(receiver, con, *args, **kwargs).arguments.get('ignore_cache', False)
+        if con.in_transaction() or bypass:
+            token = _resource_class_reads.set(None)
+        elif active is not None and active[0] is con:
+            return method(receiver, con, *args, **kwargs)
+        else:
+            token = _resource_class_reads.set((con, {}))
+        try:
+            return method(receiver, con, *args, **kwargs)
+        finally:
+            _resource_class_reads.reset(token)
+    return wrapped
 
 
 #@strict
@@ -576,9 +611,18 @@ class ResourceClass(Model, Notify):
 
         cache = CacheSingletonRedis()
         if not ignore_cache:
+            active = _resource_class_reads.get()
+            snapshots = active[1] if active is not None and active[0] is con else None
+            key = (str(project_inst.projectIri), str(resclass_iri))
+            if snapshots is not None and key in snapshots:
+                # Keep mutable properties/notifiers caller-owned. The live
+                # connection is shared deliberately, never copied or cached.
+                return deepcopy(snapshots[key], {id(con): con})
             tmp = cache.get(owl_class_iri, connection=con)
             if tmp is not None:
                 tmp.update_notifier()
+                if snapshots is not None:
+                    snapshots[key] = deepcopy(tmp, {id(con): con})
                 return tmp
 
         shape = Xsd_QName(resclass_iri) + 'Shape'
@@ -620,6 +664,7 @@ class ResourceClass(Model, Notify):
         if not isinstance(tmp, list):
             tmp = [tmp]
         for propobj in tmp:
+            propobj = decode_property_path(propobj)
             if propobj.get(Xsd_QName("sh:path"), None) is None:
                 raise OldapErrorInconsistency(f'Resource shape "{shape}" has invalid property without "sh:path"!')
             prop_iri = Xsd_QName(propobj[Xsd_QName("sh:path")])

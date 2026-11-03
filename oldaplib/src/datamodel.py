@@ -1,3 +1,4 @@
+from oldaplib.src.helpers.property_path import decode_property_path
 import io
 import logging
 from copy import deepcopy
@@ -27,7 +28,7 @@ from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.propertyclass import PropertyClass
-from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.resourceclass import ResourceClass, reuse_resource_class_reads
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
 
@@ -326,6 +327,7 @@ class DataModel(Model):
             raise OldapErrorInconsistency(f'No resclass or property "{what}" in datamodel.')
 
     @classmethod
+    @reuse_resource_class_reads
     @reuse_project_reads
     def read(cls,
              con: IConnection,
@@ -453,6 +455,7 @@ class DataModel(Model):
                 if not isinstance(propclasses, list):
                     propclasses = [propclasses]
                 for propshape in propclasses:
+                    propshape = decode_property_path(propshape)
                     property_class_iri = propshape[Xsd_QName("sh:path")]
                     del propshape[Xsd_QName("sh:path")]
                     attributes = {attr.fragment: value for attr, value in propshape.items()}

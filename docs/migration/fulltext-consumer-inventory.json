@@ -1,0 +1,55 @@
+{
+  "scope": "Read-only local source/export snapshot, not live GraphDB connector inventory",
+  "sources": [
+    {
+      "path": "/Users/rosenth/ProgDev/OLDAP/oldap-tools/export/fasnacht/ontology.yaml",
+      "sha256": "b71f036f6ea700a7d068e8ef06e07039809d287b26e281fded7ece1fdeb10ff0"
+    },
+    {
+      "path": "/Users/rosenth/ProgDev/OLDAP/oldap-tools/src/oldap_tools/ontology.py",
+      "sha256": "948385501cfb87ce106640973fbb1c75730e0b5c30f2ff2db9247c19d3ce4741"
+    },
+    {
+      "path": "/Users/rosenth/ProgDev/OLDAP/FasnachtsPage/src/lib/archive/search.ts",
+      "sha256": "e9b57f36f0f0d023f4bffdf7df89dc5329f2759c287e8b46b036edc2dbad306c"
+    },
+    {
+      "path": "/Users/rosenth/ProgDev/OLDAP/FasnachtsPage/src/lib/stories/archive-images.ts",
+      "sha256": "0358400bf210dce04888b8d974996c72e264dacf40ebff94cf3f0ea1b8508bb5"
+    },
+    {
+      "path": "/Users/rosenth/ProgDev/OLDAP-Jena/oldap-api/oldap_api/views/instance_views.py",
+      "sha256": "17f49997455189fb686fefc44c3f0b9fe0778bd6f0571c0bcb453b90926377a7"
+    }
+  ],
+  "exported_fields": {
+    "storyContent": [
+      "http://fasnacht.digital/ns/storyContent"
+    ],
+    "abstract": [
+      "https://schema.org/abstract"
+    ],
+    "archiveObjectTitle": [
+      "https://schema.org/name"
+    ],
+    "archiveObjectDescription": [
+      "https://schema.org/description"
+    ],
+    "archiveMediaObjectTitle": [
+      "https://schema.org/name"
+    ],
+    "archiveMediaObjectDescription": [
+      "https://schema.org/description"
+    ],
+    "representedArchiveObjectTitle": [
+      "http://fasnacht.digital/ns/archiveMediaObjectOf",
+      "https://schema.org/name"
+    ],
+    "representedArchiveObjectDescription": [
+      "http://fasnacht.digital/ns/archiveMediaObjectOf",
+      "https://schema.org/description"
+    ]
+  },
+  "consumer_field_missing_from_export": "archiveMediaObjectText",
+  "consumer_query_gap": "FasnachtsPage passes normalized/trimmed unrestricted user text; unquoted multiword inputs remain unsupported by the current Jena subset."
+}

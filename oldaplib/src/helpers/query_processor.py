@@ -57,6 +57,11 @@ RowType = Dict[str, RowElementType]
 #@dataclass
 #@strict
 class QueryProcessor:
+    """Decode trusted SPARQL results without repeating write-time validation.
+
+    Datatypes use fromRdf (validate=False); lexical decoding remains necessary.
+    Query authorization is independent of datatype validation.
+    """
     __names: List[str]
     __context: Context
     __rows: List[Dict[str, RowElementType]]

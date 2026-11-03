@@ -14,6 +14,7 @@ store for each read. If these classes are modified, the `update()`-method will a
 classes is being deleted from the triple store, the class instance will also be deleted from the cache. The
 cache is implemented using a metaclass based singleton and uses locking to be compatible in a threaded environment.
 """
+from oldaplib.src.helpers.property_path import decode_property_path
 import logging
 import textwrap
 from copy import deepcopy
@@ -90,7 +91,7 @@ class PropertyClass(Model, Notify):
     __slots__ = ('subPropertyOf', 'type', 'toClass', 'datatype', 'name', 'description', 'languageIn', 'uniqueLang',
                  'inSet', 'minCount', 'maxCount', 'order', 'pattern',
                  'minExclusive', 'maxExclusive', 'minInclusive', 'maxInclusive', 'minLength', 'maxLength',
-                 'lessThan', 'lessThanOrEquals', 'inverseOf', 'equivalentProperty')
+                 'lessThan', 'lessThanOrEquals', 'inversePath', 'inverseOf', 'equivalentProperty')
 
 
     def __init__(self, *,
@@ -144,6 +145,7 @@ class PropertyClass(Model, Notify):
             kwargs['inSet'] = {Iri(x) for x in kwargs['inSet']}
 
         self.set_attributes(kwargs, PropClassAttr)
+        self._validate_inverse_path()
 
         if toClass:
             if self._attributes.get(PropClassAttr.DATATYPE) or \
@@ -508,6 +510,7 @@ class PropertyClass(Model, Notify):
         CONSTRUCT {{
             ?shape ?p ?o .
             ?prop ?pp ?oo .
+            ?path sh:inversePath ?inverse .
             ?listnode rdf:first ?item .
             ?listnode rdf:rest ?rest .
         }}
@@ -518,6 +521,9 @@ class PropertyClass(Model, Notify):
                 OPTIONAL {{
                     ?shape sh:property ?prop .
                     ?prop ?pp ?oo .
+                    OPTIONAL {{
+                        ?prop sh:path ?path . ?path sh:inversePath ?inverse .
+                    }}
                     OPTIONAL {{
                         ?prop ?pp ?list .
                         ?list rdf:rest* ?listnode .
@@ -592,7 +598,7 @@ class PropertyClass(Model, Notify):
 
         obj = PropertyClass.read_shacl(con, proj, prop_iri)
 
-        attributes = {attr.fragment: value for attr, value in obj[Xsd_QName("sh:property")].items()}
+        attributes = {attr.fragment: value for attr, value in decode_property_path(obj[Xsd_QName("sh:property")]).items()}
         if attributes.get("path") is not None:
             del attributes["path"]
 
@@ -627,7 +633,7 @@ class PropertyClass(Model, Notify):
         sparql += f"{blank:{indent * indent_inc}}WHERE {{\n"
         if owlclass_iri: # TODO: check if "if" is necessary....
             sparql += f"{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n"
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {self._property_class_iri} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop (sh:path|oldap:field) {self._property_class_iri} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self._property_class_iri}Shape as ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'
@@ -638,6 +644,21 @@ class PropertyClass(Model, Notify):
             return None
         return res[0].get('modified')
 
+    def _validate_inverse_path(self):
+        """Require a typed, read-only link with unambiguous field semantics."""
+        inverse = self._attributes.get(PropClassAttr.INVERSE_PATH)
+        if inverse is None:
+            return
+        from oldaplib.src.helpers.jena_entailment import ASSERTED_ONLY
+        if not self._attributes.get(PropClassAttr.CLASS) or self._attributes.get(PropClassAttr.DATATYPE):
+            raise OldapErrorValue('inversePath requires toClass and cannot have a datatype.')
+        if self._appliesToProperty:
+            raise OldapErrorValue('Assertion properties cannot have inversePath.')
+        if any(self._attributes.get(a) for a in (PropClassAttr.INVERSE_OF, PropClassAttr.EQUIVALENT_PROPERTY, PropClassAttr.SUBPROPERTY_OF)):
+            raise OldapErrorValue('inversePath cannot be combined with OWL inverse/equivalence or subPropertyOf.')
+        if str(inverse) in ASSERTED_ONLY or str(self._property_class_iri) in ASSERTED_ONLY:
+            raise OldapErrorValue('Protected OLDAP fields cannot be inverse paths or field identifiers.')
+
     def property_node_shacl(self, *,
                             bnode: Xsd_QName | None = None,
                             indent: int = 0, indent_inc: int = 4) -> str:
@@ -647,7 +668,13 @@ class PropertyClass(Model, Notify):
             sparql += f'\n{blank:{indent * indent_inc}} {bnode} sh:path {self._property_class_iri.toRdf}'
         else:
             sparql += f'\n{blank:{indent * indent_inc}}sh:path {self._property_class_iri.toRdf}'
+        self._validate_inverse_path()
+        if self.inversePath is not None:
+            sparql = sparql.replace(f'sh:path {self._property_class_iri.toRdf}',
+                f'oldap:field {self._property_class_iri.toRdf} ; sh:path [ sh:inversePath {self.inversePath.toRdf} ]')
         for prop, value in self._attributes.items():
+            if prop == PropClassAttr.INVERSE_PATH:
+                continue
             if not prop.in_shacl:
                 continue
             if not value and not isinstance(value, bool):
@@ -812,7 +839,25 @@ class PropertyClass(Model, Notify):
                      indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql_list = []
+        self._validate_inverse_path()
         for prop, change in self._changeset.items():
+            if prop == PropClassAttr.INVERSE_PATH:
+                # Path changes are model changes, not writes to instance links.
+                # Refuse to reinterpret existing asserted values silently.
+                if self.in_use:
+                    raise OldapErrorValue('Cannot change inversePath while the field has asserted data; migrate its links first.')
+                path = (f'[ sh:inversePath {self.inversePath.toRdf} ]'
+                        if self.inversePath is not None else self._property_class_iri.toRdf)
+                field = (f'?prop oldap:field {self._property_class_iri.toRdf} .'
+                         if self.inversePath is not None else '')
+                sparql_list.append(f'''WITH {self._graph}:shacl
+                    DELETE {{ ?prop sh:path ?oldPath ; oldap:field ?oldField . ?oldPath sh:inversePath ?oldInverse . }}
+                    INSERT {{ ?prop sh:path {path} . {field} }}
+                    WHERE {{ {owlclass_iri}Shape sh:property ?prop .
+                        ?prop (sh:path|oldap:field) {self._property_class_iri.toRdf} ; sh:path ?oldPath .
+                        OPTIONAL {{ ?prop oldap:field ?oldField }}
+                        OPTIONAL {{ ?oldPath sh:inversePath ?oldInverse }} }}''')
+                continue
             sparql = ''
             if change.action == Action.MODIFY:
                 if prop.datatype == LangString:
@@ -1098,7 +1143,7 @@ class PropertyClass(Model, Notify):
         }}
         WHERE {{
             {shacl_node}Shape sh:property ?prop .
-            ?prop sh:path {self._property_class_iri} .
+            ?prop (sh:path|oldap:field) {self._property_class_iri} .
             ?prop ?listprop ?list .
             ?list rdf:rest* ?z .
             ?z rdf:first ?head ;
@@ -1117,7 +1162,7 @@ class PropertyClass(Model, Notify):
         }}
         WHERE {{
             {shacl_node}Shape sh:property ?prop .
-            ?prop sh:path {self._property_class_iri} .
+            ?prop (sh:path|oldap:field) {self._property_class_iri} .
             ?prop ?listprop ?list .
             ?list rdf:rest* ?z .
             ?z rdf:first ?head ;
@@ -1165,7 +1210,7 @@ class PropertyClass(Model, Notify):
             }}
             WHERE {{
                 {self.inResourceClass}Shape sh:property ?prop .
-                ?prop sh:path {self._property_class_iri} .
+                ?prop (sh:path|oldap:field) {self._property_class_iri} .
                 ?prop ?p ?o .
             }}
             """)
@@ -1299,7 +1344,7 @@ class PropertyClass(Model, Notify):
         ASK {{
             GRAPH test:shacl {{
                 ?shape sh:property ?prop .
-                ?prop sh:path {self._property_class_iri} .
+                ?prop (sh:path|oldap:field) {self._property_class_iri} .
             }}
         }}
         """)

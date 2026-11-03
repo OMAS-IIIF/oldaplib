@@ -60,9 +60,39 @@ class IConnection(ABC):
         # without introducing stale process-global cache state.
         self._list_node_context_projects = set()
 
-    # Experimental search dialect selection. This does not activate a backend
-    # or alter public search arguments; production connections remain GraphDB.
+    # Internal RDF dialect capabilities, explicitly enabled by the Jena adapter.
+    # These do not select a backend or change public method arguments.
+    _resource_permissions_rdf12: bool = False
+    _user_permissions_rdf12: bool = False
     _resource_search_rdf12: bool = False
+
+    _managed_fulltext: bool = False
+
+    def _fulltext_admin(self, operation: str, payload: dict) -> dict:
+        """Private backend-bound administration hook; no GraphDB fallback.
+
+        Jena adapters must send once through their authenticated service transport,
+        map conflict to OldapErrorAlreadyExists and uncertain/unavailable results
+        to OldapErrorConfiguration. Never select an unrelated dataset by URL.
+        """
+        from oldaplib.src.helpers.oldaperror import OldapErrorConfiguration
+        raise OldapErrorConfiguration('Managed Jena fulltext is unavailable on this connection.')
+
+    def _user_read_query(self, context, user_id):
+        """Select backend user-read syntax without changing User.read callers."""
+        from oldaplib.src.userdataclass import UserData
+        return UserData.sparql_query(context, user_id)
+
+    def _resource_fulltext_pattern(self, graph: Xsd_NCName, filters: list,
+                                   score_var: str) -> str:
+        """Build a Jena text match only when an indexed field map is configured.
+
+        Alternate connections override this internal boundary. The default
+        refuses an unconfigured index instead of reporting misleading no-hits.
+        GraphDB search continues to use its existing connector query directly.
+        """
+        from oldaplib.src.helpers.oldaperror import OldapErrorValue
+        raise OldapErrorValue('Jena full-text index is not configured for this connection.')
 
     def _resource_read_query(self, graph: Xsd_NCName, iri: Iri, user_iri: Iri,
                              *, include_creator: bool) -> str:

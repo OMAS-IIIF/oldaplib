@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>org.oldap.jena</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/ABSOLUTE/PATH/TO/DISTRIBUTION/start</string>
+        <string>/ABSOLUTE/PRIVATE/PATH/service.properties</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>JAVA_HOME</key><string>/ABSOLUTE/PATH/TO/JDK25/Contents/Home</string>
+        <key>JAVA_HEAP_MB</key><string>8192</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+    <key>ThrottleInterval</key><integer>5</integer>
+    <key>ExitTimeOut</key><integer>90</integer>
+    <key>StandardOutPath</key><string>/ABSOLUTE/PRIVATE/PATH/service.stdout.log</string>
+    <key>StandardErrorPath</key><string>/ABSOLUTE/PRIVATE/PATH/service.stderr.log</string>
+</dict>
+</plist>

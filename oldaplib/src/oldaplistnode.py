@@ -1402,11 +1402,14 @@ class OldapListNode(Model):
         # target node may not be below moving node!
         #
         if (target_lindex >= moving_lindex) and (target_rindex <= moving_rindex):
+            self._con.transaction_abort()
             raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
 
         #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
         #
+        # Scope every update read to this list graph; do not rely on a
+        # backend-specific union default graph.
         update1 = context.sparql_context
         update1 += f"""
         DELETE {{
@@ -1421,6 +1424,7 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
@@ -1432,100 +1436,47 @@ class OldapListNode(Model):
         """
         self.safe_update(update1)
 
-        #
-        # set the new left index
-        #
-        diff1 = moving_rindex - moving_lindex + 1
-        if moving_rindex < target_lindex:
-            # moving to the right
-            filter = f'FILTER (?oldLeftIndex > {int(moving_rindex)} && ?oldLeftIndex <= {int(target_lindex)})'
-        else:
-            # moving to the left
-            diff1 = -diff1
-            filter = f'FILTER (?oldLeftIndex > {int(target_rindex)} && ?oldLeftIndex <= {int(moving_rindex)})'
+        # Remove the old interval, then open an equally sized gap immediately
+        # before the target's closing index. This also handles moving a node
+        # back to an ancestor, where the target encloses the original interval.
+        width = int(moving_rindex - moving_lindex + 1)
+        destination = int(target_rindex)
+        if destination > int(moving_rindex):
+            destination -= width
+        for boundary, delta, comparison in (
+                (int(moving_rindex), -width, '>'),
+                (destination, width, '>=')):
+            for predicate in ('oldap:leftIndex', 'oldap:rightIndex'):
+                self.safe_update(context.sparql_context + f"""
+                DELETE {{ GRAPH {self.__graph}:lists {{ ?node {predicate} ?oldIndex }} }}
+                INSERT {{ GRAPH {self.__graph}:lists {{ ?node {predicate} ?newIndex }} }}
+                USING {self.__graph}:lists
+                WHERE {{
+                    ?node {predicate} ?oldIndex ; skos:inScheme {self.__oldapListIri.toRdf} .
+                    FILTER (?oldIndex {comparison} {boundary})
+                    BIND (?oldIndex + ({delta}) AS ?newIndex)
+                }}
+                """)
 
-        update2 = context.sparql_context
-        update2 += f"""
-        DELETE {{
-            GRAPH {self.__graph}:lists {{
-                ?subject oldap:leftIndex ?oldLeftIndex .
-            }}
-        }}
-        INSERT {{
-            GRAPH {self.__graph}:lists {{
-                ?subject oldap:leftIndex ?newLeftIndex .
-            }}
-        }}
+        # Negative indices identify the detached subtree. Restore its relative
+        # ordering inside the newly opened gap, scoped to this one list.
+        offset = destination - int(moving_lindex)
+        self.safe_update(context.sparql_context + f"""
+        DELETE {{ GRAPH {self.__graph}:lists {{
+            ?node oldap:leftIndex ?oldLeft ; oldap:rightIndex ?oldRight .
+        }} }}
+        INSERT {{ GRAPH {self.__graph}:lists {{
+            ?node oldap:leftIndex ?newLeft ; oldap:rightIndex ?newRight .
+        }} }}
+        USING {self.__graph}:lists
         WHERE {{
-            ?subject oldap:leftIndex ?oldLeftIndex ;
+            ?node oldap:leftIndex ?oldLeft ; oldap:rightIndex ?oldRight ;
                 skos:inScheme {self.__oldapListIri.toRdf} .
-            {filter}
-            BIND(?oldLeftIndex - {int(diff1)} AS ?newLeftIndex)
+            FILTER (?oldLeft < 0)
+            BIND (-?oldLeft + ({offset}) AS ?newLeft)
+            BIND (-?oldRight + ({offset}) AS ?newRight)
         }}
-        """
-        self.safe_update(update2)
-
-        #
-        # set the right index
-        #
-        if moving_rindex < target_lindex:
-            # moving to the right
-            filter = f'FILTER (?oldRightIndex > {int(moving_rindex)} && ?oldRightIndex < {int(target_rindex)})'
-        else:
-            # moving to the left
-            filter = f'FILTER (?oldRightIndex >= {int(target_rindex)} && ?oldLeftIndex < {int(moving_lindex)})'
-        update3 = context.sparql_context
-        update3 += f"""
-        DELETE {{
-            GRAPH {self.__graph}:lists {{
-                ?subject oldap:rightIndex ?oldRightIndex .
-            }}
-        }}
-        INSERT {{
-            GRAPH {self.__graph}:lists {{
-                ?subject oldap:rightIndex ?newRightIndex .
-            }}
-        }}
-        WHERE {{
-            ?subject oldap:rightIndex ?oldRightIndex ;
-                oldap:rightIndex ?oldLeftIndex ;
-                skos:inScheme {self.__oldapListIri.toRdf} .
-            {filter}
-            BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
-        }}
-        """
-        self.safe_update(update3)
-
-        #
-        # Correct leftIndex and rightIndex of the moved nodes
-        #
-        if moving_rindex < target_lindex:
-            diff2 = target_rindex - moving_lindex -diff1
-        else:
-            diff2 = target_rindex - moving_lindex
-        update4 = context.sparql_context
-        update4 += f"""
-        DELETE {{
-            GRAPH {self.__graph}:lists {{
-                ?subject oldap:leftIndex ?oldLeftIndex .
-                ?subject oldap:rightIndex ?oldRightIndex .
-            }}
-        }}
-        INSERT {{
-            GRAPH {self.__graph}:lists {{
-                ?subject oldap:leftIndex ?newLeftIndex .
-                ?subject oldap:rightIndex ?newRightIndex .
-            }}
-        }}
-        WHERE {{
-            ?subject oldap:leftIndex ?oldLeftIndex ;
-                oldap:rightIndex ?oldRightIndex .
-            FILTER(?oldLeftIndex < 0)
-            BIND(-?oldLeftIndex + {int(diff2)} AS ?newLeftIndex)
-            BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
-        }}
-        """
-        self.safe_update(update4)
+        """)
 
         #
         # update parent (skos:broader)
@@ -1545,6 +1496,7 @@ class OldapListNode(Model):
                 ?subject skos:broader {target.__iri.toRdf} .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
             OPTIONAL {{
@@ -1643,7 +1595,7 @@ class OldapListNode(Model):
             }}
         }}
         """
-        self._con.transaction_start()
+        # Read both node bounds inside the same transaction.
         jsonobj = self.safe_query(query1)
         res = QueryProcessor(context, jsonobj)
         left_lindex: int = 0
@@ -1661,11 +1613,14 @@ class OldapListNode(Model):
         # target node may not be below moving node!
         #
         if (left_lindex >= moving_lindex) and (left_rindex <= moving_rindex):
+            self._con.transaction_abort()
             raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
 
         #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
         #
+        # Scope every update read to this list graph; do not rely on a
+        # backend-specific union default graph.
         update1 = context.sparql_context
         update1 += f"""
         DELETE {{
@@ -1680,6 +1635,7 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
@@ -1715,6 +1671,7 @@ class OldapListNode(Model):
                 ?subject oldap:leftIndex ?newLeftIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 skos:inScheme {self.__oldapListIri.toRdf} .
@@ -1745,9 +1702,10 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
-                oldap:rightIndex ?oldLeftIndex ;
+                oldap:leftIndex ?oldLeftIndex ;
                 skos:inScheme {self.__oldapListIri.toRdf} .
             {filter}
             BIND(?oldRightIndex - {int(diff1)} AS ?newRightIndex)
@@ -1776,9 +1734,11 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
-                oldap:rightIndex ?oldRightIndex .
+                oldap:rightIndex ?oldRightIndex ;
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER(?oldLeftIndex < 0)
             BIND(-?oldLeftIndex + {int(diff2)} AS ?newLeftIndex)
             BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
@@ -1804,6 +1764,7 @@ class OldapListNode(Model):
             }}
         """
         update5 += f"""
+        USING {self.__graph}:lists
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
             ?subject skos:broader ?parent .
@@ -1916,11 +1877,14 @@ class OldapListNode(Model):
         # target node may not be below moving node!
         #
         if (right_lindex >= moving_lindex) and (right_rindex <= moving_rindex):
+            self._con.transaction_abort()
             raise OldapErrorInconsistency(f"Cannot move node to target node that is part of the tree to be moved!")
 
         #
         # Set oldap:leftIndex and oldap:rightIndex of all nodes to be moved to the negative value
         #
+        # Scope every update read to this list graph; do not rely on a
+        # backend-specific union default graph.
         update1 = context.sparql_context
         update1 += f"""
         DELETE {{
@@ -1935,6 +1899,7 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
@@ -1970,6 +1935,7 @@ class OldapListNode(Model):
                 ?subject oldap:leftIndex ?newLeftIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
                 oldap:rightIndex ?oldRightIndex ;
@@ -2001,6 +1967,7 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:rightIndex ?oldRightIndex ;
                 oldap:leftIndex ?oldLeftIndex ;
@@ -2032,9 +1999,11 @@ class OldapListNode(Model):
                 ?subject oldap:rightIndex ?newRightIndex .
             }}
         }}
+        USING {self.__graph}:lists
         WHERE {{
             ?subject oldap:leftIndex ?oldLeftIndex ;
-                oldap:rightIndex ?oldRightIndex .
+                oldap:rightIndex ?oldRightIndex ;
+                skos:inScheme {self.__oldapListIri.toRdf} .
             FILTER(?oldLeftIndex < 0)
             BIND(-?oldLeftIndex + {int(diff2)} AS ?newLeftIndex)
             BIND(-?oldRightIndex + {int(diff2)} AS ?newRightIndex)
@@ -2060,6 +2029,7 @@ class OldapListNode(Model):
             }}
         """
         update5 += f"""
+        USING {self.__graph}:lists
         WHERE {{
             BIND({self.__iri.toRdf} AS ?subject)
             ?subject skos:broader ?parent .

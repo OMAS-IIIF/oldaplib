@@ -16,6 +16,7 @@ from oldaplib.src.archive_domain import (
 )
 from oldaplib.src.archive_policy import ArchiveConflict, canonical_iri
 from oldaplib.src.enums.datapermissions import DataPermission
+from oldaplib.src.helpers.jena_entailment import CLASS_PATH, schema_dataset
 from oldaplib.src.helpers.oldaperror import (
     OldapErrorNotFound,
     OldapErrorNoPermission,
@@ -69,6 +70,39 @@ class ArchiveRepository:
             raise OldapErrorNoPermission("Archive repository operations are disabled.")
         return policy
 
+    def _permission_pattern(self, subject, role, permission):
+        """Read resource grant values in the caller's explicit data graph.
+
+        Arguments are serialized RDF terms/variables, never raw user strings.
+        Callers checking access must also require the asserted membership;
+        revision snapshots intentionally include orphaned annotations as state.
+        """
+        if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+            return (f'?archiveGrant rdf:reifies <<( {subject} oldap:attachedToRole {role} )>> ; '
+                    f'oldap:hasDataPermission {permission} .')
+        return f'<<{subject} oldap:attachedToRole {role}>> oldap:hasDataPermission {permission} .'
+
+    def _schema_dataset(self):
+        """Select project/shared/base schemas and registered external vocabularies.
+
+        The default graph is their union, so inheritance can cross schema graphs.
+        Data and administration remain named graphs for explicit access checks.
+        GraphDB retains its established dataset/inference configuration.
+        """
+        if getattr(self._con, '_resource_permissions_rdf12', False) is not True:
+            return ''
+        project = self.project.projectShortName
+        return (schema_dataset(self._con, project) + ' '
+                f'FROM NAMED {project}:data FROM NAMED oldap:admin')
+
+    def _class_pattern(self, target):
+        """Match bound ?class directly or through the selected schema hierarchy."""
+        if getattr(self._con, '_resource_permissions_rdf12', False) is not True:
+            return f'?class rdfs:subClassOf* {target} .'
+        # Equality also covers classes absent from the schema graphs. A zero-
+        # length path alone can otherwise lose such exact asserted types.
+        return f'FILTER (?class = {target} || EXISTS {{ ?class {CLASS_PATH} {target} }})'
+
     def folder_revision(self, folder, policy=None):
         """Hash canonical RDF state and folder ACL/membership, including hidden edges.
 
@@ -82,7 +116,7 @@ class ArchiveRepository:
             + f"""SELECT ?s ?p ?o WHERE {{ GRAPH {self.project.projectShortName}:data {{
             {{ BIND({iri} AS ?s) {iri} ?p ?o }} UNION
             {{ ?s shared:inStagingFolder {iri} . BIND(shared:inStagingFolder AS ?p) BIND({iri} AS ?o) }} UNION
-            {{ <<{iri} oldap:attachedToRole ?s>> oldap:hasDataPermission ?o . BIND(oldap:hasDataPermission AS ?p) }}
+            {{ {self._permission_pattern(iri, '?s', '?o')} BIND(oldap:hasDataPermission AS ?p) }}
         }} }}"""
         )
         rows = resource_query(self._con, query)["results"]["bindings"]

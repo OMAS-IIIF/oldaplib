@@ -16,6 +16,7 @@ PREFIX oldap: <urn:oldap:>
 class MediaCountsTest(unittest.TestCase):
     def setUp(self):
         self.repo = ArchiveAdoption.__new__(ArchiveAdoption)
+        self.repo._con = SimpleNamespace(_resource_permissions_rdf12=False)
         self.repo.project = SimpleNamespace(projectShortName="ex")
         self.policy = SimpleNamespace(media_classes=["urn:example:ArchiveMedia"])
         self.data = Dataset(default_union=True)

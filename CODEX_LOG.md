@@ -1,3 +1,484 @@
+### Update 2026-11-03 22:27
+- Decisions: Checkpoint the outstanding library migration on migration/jena before coordinated 1.0 packaging. Preserve public signatures and existing version; no merge, tag, push or deployment.
+- Implementation: Reviewed candidate file inventory, backend/query/permission boundaries and explicit Java build sources; AST comparison found no changed existing public argument lists. Corrected PropertyClass module-docstring placement and marked historical semantics status. Retained source/tests/service/conversion tools and evidence, with a merge-readiness record.
+- Open: Standalone pytest dev dependency, 1.x consumer constraints, final versioned artifacts and complete home/recovery acceptance. Existing broad GraphDB suites require an explicitly disposable database.
+- Risks/Assumptions: 198 focused tests + 14 subtests, 25 targeted rechecks, eight real converter checks, fresh Java service acceptance including 300 commits and crash/fulltext recovery pass. Wheel contents/imports, Poetry and diff checks pass. Additional XSD run passed 47 tests but included 44 GraphDB tests that clear/rewrite test:test on localhost:7200; no production endpoint selected. Library venv lacks pytest, so tests used sibling API environment. RDFLib deprecations remain. This checkpoint is not production release approval.
+
+### Update 2026-11-03 19:33
+- Decisions: Accept and deploy RC4 bounded BEGIN-only retry on home. No public signature, GraphDB, worker event, lease or uncertain-write semantics change.
+- Implementation: Library retries explicit BEGIN 409 with fresh journaled IDs, at most five attempts and 50/100/200/400 ms backoff. Published isolated API/tools RC4 fingerprint e3903e70a220, stable/latest unchanged; bounded client playbook updated API/identity, retained Jena/Redis/data/policy and timestamped environment backup. Real contender test passes on both local architectures and isolated native home before/after replacement, with exactly one UPDATE and COMMIT. Public home checks pass; 30-story response equals RC3, fulltext/media unchanged, 3 IMPORTED/1 INVALID and no active claims, normal worker polling.
+- Open: User may run a ZIP practice test. Persistent contention and other failures still surface normally; worker lease recovery remains a separate policy. The original unlogged validation callback cause cannot be proven retroactively.
+- Risks/Assumptions: Explicit BEGIN 409 proves no admission; every other admission failure retains uncertain ownership and is not retried. No UPDATE/COMMIT replay. Tests: 61 library + 3 subtests, 54 API, 29 packaged transport; native acceptance used temporary separate data and cleaned its containers/storage. Two stale resource test doubles gained the existing resolved_properties method; no resource runtime change. Evidence: sibling setup docs/jena-begin-retry-rc4-home-results.json. Production and media image unchanged.
+
+### Update 2026-11-03 19:00
+- Decisions: Retry only explicit HTTP 409 refusal of BEGIN, at most five attempts with 50/100/200/400 ms backoff. Keep public signatures and GraphDB unchanged; never replay UPDATE/COMMIT or uncertain admission.
+- Implementation: Jena transaction_start closes ownership after each known refusal, clears the rejected ID, and journals a fresh ID before retrying. All other transport failures retain uncertain ownership. Twenty-nine offline transport tests pass, covering exhausted admission, unique IDs, journal balance, timeout/connection/401/403/500/503 after zero/one refusal, nested start, UPDATE conflict and lost commit/abort replies. Added synchronized real-service admission recovery to sibling setup network acceptance.
+- Open: Build RC4, complete both-architecture packaged acceptance, then deploy bounded home client update. No current claim of deployed behavior.
+- Risks/Assumptions: Backoff totals 750 ms plus HTTP round trips; persistent contention still fails normally. Worker five-minute lease/recovery policy remains unchanged. Server BEGIN 409 contract refuses admission before application writes; each attempt uses a new identifier.
+
+### Update 2026-11-03 18:35
+- Decisions: Retain migration knowledge from the import diagnostic investigation; no library behavior changes.
+- Implementation: Cutover guide records RC3 private-safe diagnostics, observed BEGIN refusal, confirmed five-minute worker lease wait and safe future retry boundaries. User confirmed corrected ZIP import and browser export download.
+- Open: Historical callback exception is not recoverable; admission contention is confirmed on current home but not proven for that earlier request.
+- Risks/Assumptions: No automatic replay of uncertain writes or lease-policy change. See sibling setup diagnostic evidence.
+
+### Update 2026-11-03 14:54
+- Decisions: Complete the existing stalled home export, without cancellation/recreation; keep worker JWTs and public/library signatures unchanged. Production and stable/latest image tags untouched.
+- Implementation: Deployed narrow Caddy Jena-only matcher and API RC2 service-account access tokens. Separate API/tools AMD64/ARM64 images use fingerprint 95c8b339149f; bounded playbook updated identity/API only, preserving Jena storage/Redis/policy. Fixed network acceptance to use the independent identity sidecar and remove both consumers before namespace replacement. Existing worker claimed the original job and reached READY: 13 files, 12,724,905 ZIP bytes, CRC/integrity and SHA256 match; build ~0.37 s, claim-to-worker completion ~1.84 s. Evidence: sibling setup docs/jena-service-rc2-home-results.json.
+- Open: User downloads the ready artifact in the browser; delivery itself has not been exercised as the owner. Full import/mobile workflows remain separate acceptance work. Frozen story hash differs; RC1 and RC2 read-only requests against current data return identical 30-story responses, so no exact frozen-source parity is claimed.
+- Risks/Assumptions: Original delay was queue blockage, not ZIP compression throughput. Public login/upload-auth/fulltext/media/frontend checks pass; 43 focused API tests and both-architecture packaged transport acceptance pass. New access tokens stay inside API. Caddy recreation is required after atomic bind-file replacement; reload alone sees the old inode.
+
+### Update 2026-11-03 14:42
+- Decisions: Repair stalled home ZIP export without replacing/cancelling the user's queued job. Narrow proxy isolation to the Jena namespace; service-authenticated import/export/mobile routes must remain reachable. Keep GraphDB non-token service behavior; API-owned Jena service connections issue an internal transport token using existing API signing access.
+- Implementation: Corrected Caddy matcher/template and added home proxy repair playbook; atomically replaced bind-mounted configuration requires Caddy recreation, not in-container reload of its old inode. Live unauthenticated export claims now return 401 instead of proxy 404; Jena callback remains blocked. Corrected four API service-connection constructors and added both-backend regression coverage (43 focused tests pass). Preparing new isolated RC2 API/tools images and a bounded home client-update playbook; no library API/signature or worker credentials changed.
+- Open: RC2 build/accept/publication/deployment running; verify existing job reaches READY and ZIP integrity/download afterwards. Extend acceptance to worker-authenticated paths, not only public read/upload probes.
+- Risks/Assumptions: Original job remained QUEUED, 13 files / 12,721,419 bytes, no attempt progress. Two independent blockers: broad /internal/* proxy rule and explicit issue_access_token=False incompatible with Jena. Production and normal image tags remain untouched; internal API tokens are never returned to media workers.
+
+### Update 2026-11-03 14:18
+- Decisions: User requested enabling archive structure management on home. Activate only Fasnacht structure policy using established ArchiveStructureEditor/ArchiveMediaEditor roles; do not enable the separate publication policy or assign users new roles.
+- Implementation: Added reviewed structure-only policy, optional read-only Compose policy mount for API and future direct clients, and home-scoped enable playbook. Validated every referenced role/class/property against the live Jena model before activation, retained original environment, then recreated only API. Runtime capabilities report enabled/manage/create for admin, enabled but no manage/create for anonymous; user's existing structure role confirmed. Evidence: setup docs/jena-archive-policy-results.json.
+- Open: User reloads archive management and exercises actual edits/creation in home testing. No test archive records were created and no end-to-end structure mutation is claimed. Production unchanged; direct writer release gates remain.
+- Risks/Assumptions: Home had no OLDAP_ARCHIVE_POLICY_FILE, so the disabled message was accurate. Policy preserves existing data-level permission checks; role membership alone does not replace them. API, tools and harvester configuration share the read-only policy; only API runs/recreated. Fifteen focused setup tests and playbook syntax pass. Policy deployment and Jena overlay selection must be preserved on future updates.
+
+### Update 2026-11-03 14:00
+- Decisions: Synchronize the active API access-token verification key/issuer/audience to existing home media consumers after cutover rotation; never distribute refresh/admin secrets or introduce new access-token consumers.
+- Implementation: Added shared home media-access tasks and a bounded repair playbook. Inventoried five environment files; only mediahelper-access.env contains the access key. Privately backed up and updated its three settings; Compose recreated the helper to load the new environment, other workers remained unchanged. First activation now synchronizes media before reopening and uses Compose recreation instead of docker start. Added valid/missing/invalid-token upload checks to the public acceptance runner.
+- Open: User retries the real image upload. Acceptance intentionally omits project/file fields and verifies the exact form-validation response, proving authentication without creating data; it is not an end-to-end conversion/storage test. Production release/recovery gates remain. Any future full provisioning must use coherent signing keys for API, identity verifier and mediahelper.
+- Risks/Assumptions: The initial activation rotated API access/refresh keys but omitted the media access verifier, causing HTTP 401 for newly issued valid tokens. Runtime verification settings now match exactly; media-token key and all images/data remain unchanged. Fresh admin-token upload reaches HTTP 400 Missing projectId field, missing/invalid tokens return 401. Full public smoke passes: 30-story digest unchanged, fulltext AND search, signed IIIF/JPEG and frontend availability. Evidence: setup docs/jena-media-access-results.json. No credentials/token bodies are retained in repository evidence.
+
+### Update 2026-11-03 00:41
+- Decisions: Accept the separate private identity pool after native home parallel/browser tests; retain access verification semantics and public API signatures. No data import, cache clearing, credential rotation or registry publication.
+- Implementation: Home repair completed with oldap-jena-identity healthy on loopback 8001; API/backend/identity namespace recreated together and media resumed. Public smoke rerun passes including exact 30-story baseline, fulltext and signed image. Browser shows archive 665 media/422 objects/15 events and populated stories. Final parallel test: all 48 responses HTTP 200 at concurrency 16 and equivalent complete content. Updated lifecycle, templates, README, master context and evidence. Fourteen focused tests, four playbook syntax checks and both diff checks pass.
+- Open: Production gates from the preceding activation remain. API workers can emit full list IRIs or equivalent QNames depending on loaded prefixes; deterministic serialization can be addressed separately. Native/non-container deployments must also avoid sharing a bounded public worker pool with callbacks.
+- Risks/Assumptions: Initial strict parallel hashes differed solely for known list IRI/QName spellings; retained those reports and added property-scoped normalization using the frozen export's namespaces, with a regression ensuring changed resources/literal text are still detected. Successful evidence: setup docs/jena-concurrency-semantic-results.json and docs/jena-home-after-identity-results.json. Private callback startup works with network disabled; no admin/database secrets are distributed to it. Existing mobile shutdown delay remains unchanged.
+
+### Update 2026-11-03 00:36
+- Decisions: Isolate private identity callbacks from the public API worker pool; increasing public worker counts cannot remove the cyclic capacity dependency. Public API signatures, data and published images remain unchanged.
+- Implementation: Added a minimal deployment WSGI entry point reusing the installed identity blueprint and TokenCodec, in a separate loopback-only container on port 8001 with only access-token/callback credentials. Updated Compose, preparation and activation lifecycle; added a coordinated home repair playbook and representative sequential/parallel archive acceptance runner. Added topology assertions; installed-image verifier passes with networking disabled.
+- Open: Home repair is running; complete 16-way archive/story/taxonomy acceptance and browser verification, then record final evidence.
+- Risks/Assumptions: Original 16-way Agent burst reproduced nine HTTP 503 responses at roughly 2/4 seconds while Jena remained running. Sequential initial cutover checks missed this capacity cycle. Namespace owner and all persistent consumers must be recreated together; no GraphDB rollback or data import is involved.
+
+### Update 2026-11-03 00:30
+- Decisions: Activate only home.org; retain GraphDB data/backups and preserve normal DockerHub tags. User-approved DATA_PERMISSIONS correction and inactive orphan memberships are applied. Rotate access/refresh keys; passwords are unchanged.
+- Implementation: Completed two-host frozen backup and public Jena activation with pinned images. First private activation rolled back successfully after detecting missing explicit staging Redis configuration in the legacy Compose base; fixed API/tools/harvester settings, retested the exact base privately, then repeated freeze/backup and activated successfully. Removed stopped rehearsal containers/network, retaining all bind data. Added public acceptance runner and scalar-preservation regression; recorded sanitized evidence in setup docs/jena-home-results.json. Final 12 deployment/image/content-verifier tests and both repository diff checks pass.
+- Open: Production-specific writer/harvester releases, reviewed mediahelper authorization fix, graceful mobile-worker shutdown, independent off-host backup/restore and coordinated Jena routine updates. Canonical ontology cleanup and other projects' fulltext field inventory remain separate. No production deployment or Git commit/push.
+- Risks/Assumptions: Final source SHA matches rehearsal; 65,376 target application quads, 16 users; synthetic write-test user removed. All 30 story responses match GraphDB; fulltext AND search yields 10 equal hits in either word order; real login, signed IIIF/JPEG and frontends pass, local HTTPS status passes. New verifier initially dropped scalar values; corrected and exact baseline hash now matches. Source GraphDB had no fulltext connectors, so no fulltext parity claim. Backup directories dated 20261103 on API/media; earlier 20261102 copies retained. Mobile worker required forced stop after 90s with no queued operation files; all media workers now run. Reopened target writes prevent blind GraphDB rollback.
+
+### Update 2026-11-03 00:01
+- Decisions: User selected DATA_PERMISSIONS for the duplicate WriterRecoveryOperator default; four orphan annotations remain inactive. Preserve the original source export. Target API rotates access/refresh keys at cutover so stale claims cannot survive.
+- Implementation: Added target-only guarded SPARQL correction and applied it to the candidate. Corrected Redis durability to appendfsync=always/noeviction after the library rejected default configuration. Candidate API create/login/update/delete acceptance passes; synthetic user removed. Added home-only freeze/backup and rollback-protected activation playbooks; documented operator sequence.
+- Open: Media backup is running with source API/GraphDB/Redis and media writers stopped; activate only after successful two-host manifest. Final public endpoint/media verification and production-specific release/update gates remain.
+- Risks/Assumptions: Final frozen RDF hash equals the initial source export exactly. Source coordination DB 1 empty; two imports IMPORTED, one export DELETED; no application timers found. Jena and GraphDB story responses match (30). Source GraphDB has zero Lucene connectors; Jena has nine configured fields and positive search results, so no fulltext parity claim. Installed mediahelper auth functions differ from reviewed local fixes; media release acceptance remains a production gate.
+
+### Update 2026-11-02 23:45
+- Decisions: Add an offline, checksum-bound whole-dataset first import; keep domain/account remediation separate from syntax conversion.
+- Implementation: Packaged JenaInitialImport reuses cross-graph RDF verification, refuses existing targets and reserved receipts, and publishes the service marker only after persisted-data comparison. Narrow comparison allowance covers insignificant dateTimeStamp fractional zeros. Real home.org read-only export converted/imported locally and natively on server: 23 graphs, 65377 converted quads, 16 users. Added executable importer acceptance checks.
+- Open: Source has four orphan admin membership annotations and one conflicting role default (DATA_VIEW/DATA_PERMISSIONS). User decision pending; full cutover backup, model migrations, worker reconciliation and public activation remain open.
+- Risks/Assumptions: Initial snapshot is a live rehearsal, not a consistent cutover backup. Existing GraphDB/API remain active. Full candidate API starts and accepts real admin/anonymous login. 15/16 users and all 6 projects/models match after RDF array-order normalization; one role-map difference awaits remediation.
+
+### Update 2026-11-02 23:25
+- Decisions: Package the migration library privately into source-matched API/tools candidate images; leave normal library versions and PyPI untouched.
+- Implementation: Sibling setup builds an exact local-version wheel 0.7.29+jena.rc1.c1cb0919375a from an allowlisted source snapshot. Both client wheels pin that version. No library runtime/source/version-file changes; packaging provenance and immutable image digests are retained in setup release evidence.
+- Open: Full API startup with real accounts/data, migration and coordinated activation/update; harvester release remains separate. Preserve source snapshots because these checkouts contain uncommitted work.
+- Risks/Assumptions: Ten publication/deployment tests, wheel inspection, both-architecture imports/dependency/CLI/UID checks and packaged real-Jena transport acceptance pass. Published API digest also passes on native x86_64 api.home.org. Registry multiarch indexes verified; current normal version/latest digests unchanged. Initial candidates superseded to preserve runtime UID contracts; only final c1cb0919375a candidates published. Existing GraphDB/API unchanged; owned test resources removed. No Git/PyPI publication. Evidence: oldap-setup/docs/jena-images-results.json.
+
+### Update 2026-11-02 22:58
+- Decisions: Retain production migration/deployment knowledge in sibling oldap-setup migration/jena and the central cutover guide.
+- Implementation: Linked the tested shared container namespace, candidate preparation and explicit migration/activation lifecycle. Updated central cutover status in oldaplib; no API/library runtime code changes.
+- Open: Matched application/writer releases, full API and source/account migration, coordination recovery and automated activation/update acceptance.
+- Risks/Assumptions: Bounded real identity/transaction/isolation/recreation tests pass on local ARM and remote x86_64 with synthetic data; not full application certification. Remote GraphDB stack unchanged; owned test resources cleaned up. Evidence: ../oldap-setup/docs/jena-network-results.json.
+
+### Update 2026-11-02 22:46
+- Decisions: Proceed with both user-resized VMs at 16 GB assigned for initial testing.
+- Implementation: Read-only SSH verification: both guests report 15 GiB total, zero swap use; API/media have 12/14 GiB available. All inventoried containers running, API healthy. Updated cutover guide and master context.
+- Open: Private Docker/loopback topology, JDK 25, consistent source backup and deployment acceptance; Proxmox ballooning settings were not inspected.
+- Risks/Assumptions: Idle post-restart observation, not load sizing or full application acceptance. No remote changes or runtime code changes; documentation-only update.
+
+### Update 2026-11-02 22:24
+- Decisions: Inventory home.org read-only over SSH as rosenth before deployment; preserve the synchronized GraphDB baseline.
+- Implementation: Recorded both Ubuntu/Docker VMs, image/runtime versions, persistent mounts, live disk usage and guest memory in the cutover guide; updated master context. No runtime code changes.
+- Open: Proxmox allocation/ballooning (both guests expose 1.60 GiB), compatible Docker API/loopback Jena topology, Linux JDK 25, consistent source backup and remote acceptance.
+- Risks/Assumptions: API already uses about 1 GiB swap; 8 GiB heap cannot fit current visible RAM. Data volumes have space; media root is 82% used. User-reported production synchronization is not independently verified. No remote mutations, secret reads, deployments or service restarts; no tests needed for this documentation-only inventory.
+
+### Update 2026-11-02 12:18
+- Decisions: First remote test target is home.org; no remote access in this step. Use an explicitly quiesced offline bundle, preserving admin RDF and private receipts while rebuilding derived text indexes. Restore remains isolated until operator reconciliation.
+- Implementation: Added packaged backup.py with five required component directories, native TDB lock exclusion, private copy/hash/fsync/manifest verification, new-target restore and generation handoff. Extended owned service fixture for backup checks; recorded instructions and sanitized evidence in oldaplib/docs/migration/jena-backup-results.json.
+- Open: Actual source/media/config inventory, home.org topology and restore acceptance, real worker fencing/coordinator reconciliation, cache isolation, matching API/tools/media releases and production cutover. Handoff metadata alone is not runtime enforcement.
+- Risks/Assumptions: 40 owned service/recovery checks and seven offline tests pass. Real bcrypt user/admin-role grants, complete application/admin RDF, receipts/reservations, folded text, media/config hashes and Redis AOF recovered; post-backup commit intentionally absent. Redis pending record is a synthetic marker, not an executable production command. First harness run corrected userdata accessor; successful reruns retained. No production data/service change; owned processes stopped. Existing source generation must never be reused blindly after restore.
+
+### Update 2026-11-02 12:01
+- Decisions: Retain the private /tx protocol and single owner-thread writer; reserve each transaction UUID durably before application BEGIN. Only the separate atomic commit receipt proves success; no automatic replay or receipt expiry.
+- Implementation: Shared servlet separates production from probe fault/timing hooks; built JenaService adds private strict config, fixed loopback endpoint, explicit initialization/reopen, health and signal shutdown. Pinned offline JDK25/Fuseki6.2.0 build, manifest/hashes, launcher and uninstalled systemd/launchd templates. Query execution bounded to 60 s; fulltext unavailability is visible across threads. Context/operator docs updated.
+- Open: Full backup/restore including reservations/receipts, actual account/data migration, supervisor/worker deployment acceptance and sustained mixed-write load. Receipts/admissions grow on disk; no pruning policy. Service initialization is empty and is not a production switch.
+- Risks/Assumptions: 22 packaged checks incl. 300 commits and fulltext/crash restart; 20 identity, 20 session, 11 callback, 50 managed-text checks and 18 offline tests pass. Two identical builds verified. Initial reservation-conflict cleanup corrected and suites rerun; library-only environment lacked pytest/API fixture dependencies, so tests used sibling API environment. Evidence: oldaplib/docs/migration/jena-service-results.json. Existing GraphDB/API/Redis untouched; owned processes stopped. No public signatures changed.
+
+### Update 2026-11-02 11:38
+- Decisions: Jena/Fuseki is the production target; prioritize deployment and recovery readiness over marginal benchmark gains.
+- Implementation: Reviewed migration/service/deployment sources and retained acceptance evidence; added ordered launch gates, acceptance criteria and next service slice to the shared cutover index; linked stable context in all three migration repositories.
+- Open: Persistent service/identifier lifecycle, full restore rehearsal, actual accounts and source migration, versioned artifacts including mediahelper, production worker/write/soak acceptance and controlled cutover.
+- Risks/Assumptions: Documentation/source review only; no tests rerun, services changed or production migration performed. Java probe stops admitting new transactions after 256 identifiers, uses stdin lifecycle and retains test hooks. Historical evidence is not current release acceptance; initial project scope remains to be confirmed.
+
+### Update 2026-11-02 01:34
+- Decisions: Repeat the unchanged six-case read-only GraphDB/Jena workload after Python/model/payload optimizations, with 8 GiB Jena and 1/4/8 reader waves. Repeat once more because GraphDB run 1 had slow tails; retain both runs.
+- Implementation: Measurement/documentation only, existing harness unchanged. 624 timed requests pass; all six cross-backend cases agree and complete per-backend responses stay stable. Evidence: ../oldap-api/doc/graphdb-jena-python-comparison.md.
+- Open: Counts and dated searches still favor GraphDB; larger paired data, authenticated roles, equal-deployment and write/soak studies. No engine-only or production-capacity conclusion.
+- Risks/Assumptions: Confirming GraphDB/Jena medians 57/73, 117/139, 203/250 ms at 1/4/8 readers; Jena ~19–28% slower versus prior ~2–2.5×. Jena repeats stable; GraphDB run-1 p95 outliers did not recur. Source unchanged; owned services stopped, original GraphDB/deployment untouched. No runtime changes; diff checks pass.
+
+### Update 2026-11-02 01:27
+- Decisions: Keep JSON-LD/decoder: exploratory format switching was not faster. Reduce redundant graph data instead; materialize Jena summary role/permission nodes in a bounded independent subquery before property/type joins. Preserve GraphDB expression and all outer authorization checks.
+- Implementation: Commented summary builder change; native regression checks four independent grant nodes for two multi-role resources. Evidence: ../oldap-api/doc/jena-summary-payload.md; no public signatures, stored RDF or transport changes.
+- Open: Concurrent performance, optional single-resource payload optimization and deferred GraphDB countercheck. The former date UNION rewrite remains rejected; no general decoder/format machinery introduced.
+- Risks/Assumptions: Two ABBA runs preserve 120 complete API responses; dated pages 306→231 / 320→241 ms (~24–25%). Graph 4799→1799 triples; response 575509→195509 bytes. Larger copied 12000-extra-record fixture remains faster (~48→39 ms bounded native summary). 209 native and 29 focused checks pass; missing test import corrected and native suite rerun. Source unchanged; owned services stopped; original GraphDB/deployment untouched. Compilation/diff checks pass.
+
+### Update 2026-11-02 01:18
+- Decisions: Fresh post-validation profile identifies repeated superclass/model reconstruction; per-result class/property resolution is too small to optimize. Reuse independent copies of Redis-loaded ResourceClass snapshots only during synchronous factory/model construction, following the existing project-read scope.
+- Implementation: Context-local connection/project/class scope, copy isolation/current connection, exception cleanup and forced-reload/transaction bypass; three behavioral tests. Test-only previous-reader ABBA control and sanitized evidence: ../oldap-api/doc/jena-model-read-reuse.md.
+- Open: JSON-LD transport/decoding and native dispatch remain larger costs; concurrent performance and later GraphDB countercheck. No public signatures, SPARQL or API runtime changes; original GraphDB/deployments untouched.
+- Risks/Assumptions: Two ABBA runs preserve 120 full responses; dated page medians 322→281 and 300→271 ms (~10–13%), other cases broadly unchanged. 42 profiling requests, 208 native checks, 32 library tests and six API tests pass. Scope copies mutable models, never authorization/resource results; only successful Redis hits retained. Source unchanged; owned services stopped. No production-capacity claim.
+
+### Update 2026-11-02 01:08
+- Decisions: Trust database RDF after write-time validation; use existing validate=False/fromRdf on reads, preserving new-input/token validation and authorization. Retain bounded compiled datatype schemas, never values or access results. Reject both count EXISTS and date UNION query experiments; original objectfactory fully restored.
+- Implementation: Explicit trusted CONSTRUCT decoding, gMonthDay honors validate, date expansion preserves typed RDF class names; finite XMLSchema reuse and focused tests. Same-target profiler controls and sanitized evidence: ../oldap-api/doc/jena-validation-performance.md.
+- Open: Concurrent/load measurement of retained changes and later GraphDB countercheck; comprehensive repository-wide validation-boundary audit. Legacy datatype integration requires missing GraphDB oldap-test fixture (44 setup errors).
+- Risks/Assumptions: 208 native PASS checks (including growth/revocation), 41 library tests, six API tests and 60 equal HTTP responses pass. Serial count 82→60 ms; date page 367→278 ms; timings isolate schema reuse, not read-path changes. EXISTS regresses at 12000 records; UNION regresses date HTTP. Source unchanged; no public signature, original GraphDB or deployment change.
+
+### Update 2026-11-02 00:43
+- Decisions: Repeat the unchanged six-case GraphDB/Jena comparison after dating precheck, using 8 GiB Jena and fresh measurements of both backends. No runtime changes in this step.
+- Implementation: Retained 312 successful measured requests with six-case equivalence and exact per-backend stability. GraphDB/Jena medians at 1/4/8 readers: 57/118, 132/270, 199/488 ms. See ../oldap-api/doc/graphdb-jena-precheck-comparison.md.
+- Open: Actual dated hydration/count-query costs; larger/role/write/soak and equal-deployment studies. Jena medians are 14–22% below the previous 8 GiB run, but GraphDB also varied; backend ratio does not improve uniformly.
+- Risks/Assumptions: Same small real-data source; two serial samples/case, empirical p95. Unequal deployments, no production-capacity claim. Source hash unchanged; owned services stopped; no deployed changes. Diff checks pass.
+
+### Update 2026-11-02 00:39
+- Decisions: Use a conservative live SHACL eligibility ASK before constructing the dating factory. Match requested direct/inverse fields across project/shared/base shapes regardless of owning class; preserve all positive-case hydration and permission checks.
+- Implementation: API helper/early return, focused model/batch/permission tests, same-target ABBA profiler mode and retained evidence: ../oldap-api/doc/jena-dating-precheck.md. Library runtime unchanged; migration index updated.
+- Open: Actual date model reconstruction/hydration and dated queries remain. Serial metadata median 157→119 ms (~24%), text 162→118 ms (~27%); dates ~361→357 ms, not an established improvement and now one extra ASK. No concurrent capacity claim.
+- Risks/Assumptions: 60 full-response-equal API requests, 23 native fixture checks, ten focused tests and two read-only GraphDB ASK compatibility checks pass. Future/removed/inverse declarations verified on live owned model. Source unchanged; owned services stopped; no public signature or deployment change. Compilation/diff checks pass.
+
+### Update 2026-11-02 00:33
+- Decisions: Decompose the same six searches without changing application behavior. Measure private Java token verification/dispatch, backend HTTP, API processing and nested hydration separately; cProfile runs are excluded from timing medians.
+- Implementation: Shared benchmark case definitions, owned sequential profiler and opt-in timing headers on all successful private probe routes. 42 full-response-stable requests, 23 fixture checks; source hash unchanged, owned services stopped. Evidence: ../oldap-api/doc/jena-backend-profile.md.
+- Open: First remove model/factory/list preparation for searches without Dating-valued requested fields (~54–56 ms inclusive). Preserve inherited/future field support. Then model hydration and dated SELECT/CONSTRUCT profiling; no optimization applied yet.
+- Risks/Assumptions: Five timing samples/case, 8 GiB local fixture. API-other includes Redis/instrumentation; dispatch includes parsing/serialization; nested spans cannot be added. Token verification ~6 ms/call, transport residual ~2–8 ms/request. GraphDB internals not profiled. Compilation/native fixture/diff checks pass; no public signature/security behavior change.
+
+### Update 2026-11-02 00:12
+- Decisions: Establish a bounded read-only GraphDB/current-Jena real-data baseline before further optimization. Compare all projected values and page order; exclude engine-specific relevance scores only across title-sorted backends, never within backend stability checks.
+- Implementation: New owned comparison runner, six public ArchiveObject cases, warm alternating 1/4/8-reader waves, source export fingerprints and sanitized results. 312 timed HTTP requests pass; all six cases agree. See doc/graphdb-jena-performance.md (API repository).
+- Open: Equal deployment/heap comparison, authenticated roles, media/linked text, larger paired datasets, soak/writes; profile measured API/transport/query costs next. GraphDB/Jena mixed medians: 61/164, 128/315, 205/579 ms.
+- Risks/Assumptions: Existing GraphDB/API versus disposable 512 MiB Jena/threaded API; only two serial samples/case, empirical p95, no engine-only or production-capacity claim. Source byte-stable; owned services stopped. No application runtime/signature/deployment change.
+
+### Update 2026-11-02 00:03
+- Decisions: Rehearse optimized queries at 1/4/8 simultaneous requests with 100-row pages, readable dates and complete fulltext candidates. Preserve the old load report as historical evidence, not a controlled A/B comparison.
+- Implementation: Test-only harness updates: explicit date grants/independent serialized-year validation, 100-row workload, fulltext total/tail assertions and help handling. Retained aggregate evidence in ../oldap-api/doc/jena-search-load-optimized.md; no application runtime changes.
+- Open: Production CPU/memory/multi-process load, soak/concurrent writers, frontend grouped paging and GraphDB comparison. Medians 1.25/1.88/2.99 s; eight-request maximum 5.33 s. No production-capacity claim.
+- Risks/Assumptions: 211 checks/209 measured HTTP requests pass, including all 130 reader-wave responses and post-wave revocation; 30 fulltext/23 API fixture checks pass. Local 512 MiB Java, two identities, unchanged timeouts. Source hash unchanged; owned services stopped. No public signature, shared-service or deployment change.
+
+### Update 2026-11-01 01:31
+- Decisions: Resolve schema relationships before instance joins uniformly; preserve every inverse/subproperty rule, scope and permission check. No schema cache or field-specific query branches.
+- Implementation: Reordered modeled-inverse definitions, legacy inverse joins and subproperty branches in the shared Jena property pattern. Extended owned paging probe with trusted pre-edit helper comparison, ABBA order, full-response equality and private query plans. See ../oldap-api/doc/jena-search-candidates.md.
+- Open: Production memory/concurrency, frontend grouped pagination and deferred GraphDB comparison. Local public metadata/date/text HTTP medians improve 3.31→0.53 / 5.59→1.27 / 3.34→0.77 s at the same 100 rows; production capacity is not established.
+- Risks/Assumptions: 198 assertions/64 HTTP requests, 30 fulltext/23 API fixture checks, 208 native/growth and 24 focused offline tests pass. Two samples per plan/shape on owned 512 MiB Java. Shared helper also serves reads/summaries; no public signature or GraphDB query change. Source unchanged; owned services stopped.
+
+### Update 2026-11-01 01:20
+- Decisions: Keep this step in API/oldaplib; retain 100 as the existing default, with larger explicit limits supported. Fix correctness before tuning broad queries further.
+- Implementation: Counts omit sort-value joins. Jena text requests explicitly cover the Lucene document domain: omitted/nonpositive limits silently capped candidates at 10000 before ACL checks. Added 12000-resource page-size/deep-page/count/revocation rehearsal; shared fixture seeding. See ../oldap-api/doc/jena-search-pagination.md.
+- Open: Candidate/property/date joins before LIMIT dominate; frontend grouping/pagination, production memory/concurrency and GraphDB countertest remain separate. 214 checks/76 HTTP requests, 30 fulltext/23 API fixture checks, 189 native and 83 offline checks pass. Date pages public 8.83→5.25 s, audit 14.29→7.20 s at LIMIT 100 versus 5000; ordinary metadata/text latency changes little.
+- Risks/Assumptions: Legacy control counts only 5000/7500 versus corrected 6000/9000. Full-index text candidates/collector remain memory-sensitive; no streaming claim. Two sequential timing samples per shape on local 512 MiB Java. No signature, ontology, index rebuild or frontend change. Source unchanged; owned services stopped.
+
+### Update 2026-11-01 01:00
+- Decisions: Test bounded growth and concurrent readers before further optimization; retain functional success and latency limits separately. Do not raise test-server limits or introduce a cache.
+- Implementation: Owned API load harness with 1000/4000/12000 synthetic records, independent expected visibility/order, complete traversal, 5000 window and 1/4/8 concurrent requests. Evidence: ../oldap-api/doc/jena-search-load.md. Pilot setup exhausted the 256 completed-transaction budget; fixed fixture insertion to one transaction per stage.
+- Open: All 207 load checks and 130 concurrent requests pass; 6000 public/9000 audit IDs traverse completely and revocation is immediate. Median broad-query latency 4.32/9.01/18.03 s at 1/4/8 requests. Frontend paging/completeness and broad date/property query profiling are next; production/soak/writes/GraphDB remain open.
+- Risks/Assumptions: Local 512 MiB Java fixture and development API, two authorization profiles, broad synthetic matches. Pre-growth 30 fulltext/23 API checks pass. No runtime/public contract changes. Source hash unchanged; owned services stopped.
+
+### Update 2026-11-01 00:42
+- Decisions: Retain end-to-end browser acceptance after metadata and dating hydration changes.
+- Implementation: Linked unchanged-frontend evidence in the cutover index; no runtime changes.
+- Open: Per-request critical-path tracing, growth/concurrency, 5000-row cap and production/GraphDB gates.
+- Risks/Assumptions: Two-word searches 2.73–3.31 s; combined date/text 2.65–2.91 s on owned export. Correct counts/order/visibility and 30 fulltext/23 API checks. Metadata-only, narrow viewport; source unchanged and owned services stopped.
+
+### Update 2026-11-01 00:33
+- Decisions: Reduce repeated namespace resolution inside one CONSTRUCT graph, without changing queries, permissions or batch limits. Keep fresh QName instances and discard the lookup after each graph.
+- Implementation: Local known/unknown URI memoization plus processor documentation; new context/mutability regressions. Extended metadata profiler with a trusted pre-edit processor comparison and separate decoding timings. Evidence: ../oldap-api/doc/jena-dating-hydration.md.
+- Open: Remaining transport/JSON-LD and model/date conversion costs; production/browser load and deferred GraphDB comparison. 188 native, 30 fulltext API, 23 export and 49 offline checks pass; all 24 comparative responses equal.
+- Risks/Assumptions: Two local samples per shape; hydration ~1.00→0.76 s, whole object request ~1.60→1.36 s. Common processor affects both backends; no public contract change. Source hash unchanged; owned services stopped.
+
+### Update 2026-11-01 00:27
+- Decisions: Use whole-triple grant extraction for broad Jena searches; retain direct lookup for text/relationship candidates. Reject grouping-only plan and the growth regression from applying extraction to relationship searches.
+- Implementation: Local ACL branch with shared relationship-candidate selection; six date boundary/operator checks and adversarial grant validation. Added owned six-case profiler, response equality and retained evidence in ../oldap-api/doc/jena-metadata-performance.md.
+- Open: Broad object-list date hydration remains ~1 s; production load, browser timing and deferred GraphDB comparison remain open. 207 native/growth, 30 fulltext API, 23 export and 40 offline checks pass; 24 comparative responses agree.
+- Risks/Assumptions: Local two-sample timing, uncontrolled host load; no production capacity claim. Public signatures, GraphDB path and source export unchanged. Owned services stopped; no deployment.
+
+### Update 2026-11-01 00:07
+- Decisions: Retain frontend end-to-end archive acceptance in the central cutover knowledge index.
+- Implementation: Linked combined-filter, relevance, PDF/permissions and pagination evidence; no library runtime changes.
+- Open: Browser metadata performance, 5000-row growth limit, PDF exact-page offsets and production/GraphDB gates.
+- Risks/Assumptions: Acceptance uses the owned real-export stack; internal PDF query uses a synthetic fixture marker. Public contracts unchanged.
+
+### Update 2026-10-31 23:55
+- Decisions: User approved accent/umlaut/ß tolerance while keeping word forms distinct. Normalize canonical Unicode on both index/query paths; no stemming, compound splitting or ue transliteration.
+- Implementation: Shared Lucene analyzer uses lowercase, NFC and ASCII folding for tokens and wildcard normalization. Python validates NFC input. Extended native language matrix and grammar regression.
+- Open: 181 native, 50 managed lifecycle, 30 fulltext API, 23 real-export and 41 offline checks pass. Production load and deferred GraphDB comparison remain open.
+- Risks/Assumptions: Existing managed indexes must rebuild on service startup; unchanged YAML alone does not trigger a rebuild. Stored RDF and public API signatures unchanged. Source SHA-256 unchanged; owned services stopped. Stored decomposed text survives indexing and restart unchanged; no deployment or shared-service changes.
+
+### Update 2026-10-31 23:49
+- Decisions: Characterize language behavior before choosing accent folding/stemming. Accept ordinary hyphenated/apostrophe words while preserving explicit AND semantics and rejecting Lucene operators.
+- Implementation: Added disposable language matrix to native acceptance; extended query grammar and offline punctuation tests. Baseline records 27 cases including case, inflection, accents, compounds, phrases, Unicode representation and private text.
+- Open: 175 native integration checks and 40 offline tests pass; user preference for accent/ß folding is pending. Canonically decomposed text and German word forms remain explicit findings.
+- Risks/Assumptions: No index/analyzer or stored RDF change; current StandardAnalyzer semantics remain. Tests use synthetic disposable text, not a production corpus; fixture cleanup and owned process shutdown completed.
+
+### Update 2026-10-31 23:43
+- Decisions: Evaluate Jena text candidates before root ACL/property/list joins, after independent class selection. Preserve all permissions, scores, ordering and paging; use the simple reorder rather than an extra grouping layer.
+- Implementation: Updated shared result/count query order with comments; added owned six-shape, three-plan HTTP profiler and retained timings. All 54 comparative responses are equal; per-shape medians improve from 1671–3303 ms to 56–143 ms. Updated native multiword expectations to the agreed AND semantics.
+- Open: Production load and analyzer/language behavior; GraphDB countertest remains deferred. Browser timing also includes metadata requests/rendering.
+- Risks/Assumptions: 169 native, 26 fulltext, 23 export and 27 offline checks pass. Final normal-adapter run: median 76 ms across 22 timed searches, maximum 493 ms. Browser confirms the same 20 matches. Source SHA-256 unchanged; owned services stopped. Public contracts and GraphDB query placement unchanged.
+
+### Update 2026-10-31 23:28
+- Decisions: Ordinary multiword fulltext uses AND within each configured field; quoted phrases remain single-value matches. Require DATA_VIEW for every referenced text source; preserve public signatures.
+- Implementation: Added separate indexed word joins and asserted-role/reifier guards to the Jena fulltext adapter. FULLTEXT_STATE now reads owner-thread configuration without the exclusive rebuild lock; index apply and revision checks retain existing protection.
+- Open: 26 fulltext and 23 real-export checks, 46 index lifecycle checks, and 61 offline tests pass. Browser confirms 20 matches (14 media, five objects, one event) with both word orders. Production performance/analyzer acceptance and GraphDB comparison remain open.
+- Risks/Assumptions: API/lib/tools offline checks: 27/13/21 passed. Internal PDF text was absent in the export and was tested with a synthetic marker only in the disposable target. Source SHA-256 unchanged; owned API/Jena/Redis and Vite stopped. No live services or public signatures changed.
+
+### Update 2026-10-31 22:59
+- Decisions: Match existing SIPI minimum DATA_RESTRICTED=1; require valid numeric permission and asset binding. Only absent credentials may use public lookup; keep public API signatures unchanged.
+- Implementation: Updated central cutover index: mediahelper source defect fixed and tested; rebuilt release/deployment still required. No library runtime changes. Full mediahelper suite: 374 passed, 20 skipped, four subtests; owned HTTP: 23 API, ten image and nine grouped asset checks pass. Black/Poetry/diff pass (existing Poetry deprecations).
+- Open: Rebuild/version and explicitly deploy mediahelper to activate; no live service changed. Automatic token expiry renewal and uploads remain separate migration gates.
+- Risks/Assumptions: Existing capabilities keep their bounded lifetime. Formerly tolerated malformed capabilities now return 403; callers must omit credentials for public lookup or obtain valid tokens. Source hashes unchanged; owned services stopped.
+
+### Update 2026-10-31 22:49
+- Decisions: Rehearse PDF/original delivery through unchanged installed Caddy/mediahelper using owned copies and keys; report policy differences separately from transport success.
+- Implementation: Updated cutover index with PDF/original evidence and explicit mediahelper authorization blockers; no library runtime changes. Frontend local non-IIIF capability omission fixed; authorized PDF page navigation verified. 23 API, ten image and two offline checks pass; source hashes unchanged; owned services stopped.
+- Open: Mediahelper accepts correctly signed permval=0 and falls back to public lookup for invalid supplied tokens. Enforce agreed permission threshold and fail-closed handling before cutover; automatic expiry renewal/uploads remain untested.
+- Risks/Assumptions: No API signatures or live services changed. Existing frontend Map lint error reproduced before/after; production build passes. macOS Docker Desktop and installed image tags required.
+
+### Update 2026-10-31 22:42
+- Decisions: Validate signed image delivery using one copied real derivative and an owned loopback-only SIPI container; preserve public contracts.
+- Implementation: Updated the migration cutover index with signed-image/browser evidence and remaining delivery gates; no library runtime changes. 23 API, ten media and two offline checks pass; browser image/zoom/reset verified; source hash unchanged and owned services stopped.
+- Open: PDF/original downloads/uploads, anonymous fallback, automatic expiry renewal, production cache/load and remaining browser workflows.
+- Risks/Assumptions: Requires installed SIPI 0.1.3 and the known Fasnacht derivative; issued capabilities remain valid until expiry. Private source/output stay outside Git.
+
+### Update 2026-10-31 00:50
+- Decisions: Verify existing FasnachtsPage against an owned real-export Jena/Redis target; retain public versus audit identity separation and leave source/live systems untouched.
+- Implementation: Added bounded --browser-preview acceptance support, public fixture role, source Chama namespace registration and one private synthetic child. Browser verified overview counts, 48→96 expansion, title sorting, parent/child navigation, anonymous denial, audit access and logout isolation. No frontend/application runtime change.
+- Open: Media binaries/capability integration, fulltext activation, direct archive-unit assignment UI fixture, real accounts and production acceptance. Denied detail wording is raw HTTP 404.
+- Risks/Assumptions: Missing source-role namespace initially caused fresh audit-token rejection; disposable admin namespace provisioning fixes it without changing token format. Source has 20 readable units but zero direct archiveUnit assignments. Screenshots/evidence retained; owned processes are stopped after testing. No commit, push or production mutation.
+
+### Update 2026-10-31 00:36
+- Decisions: Check warm-cache reads across acknowledged permission mutations with four independent HTTP clients. Allow either committed snapshot only for overlapping requests; require fresh authorization for every post-acknowledgment request.
+- Implementation: Extended owned --cache-only acceptance with barrier-started search/count/detail phases, distinct per-worker sessions, object/user-role revocation and restoration, and aggregate overlap evidence. No runtime or public API changes.
+- Open: Production load capacity, multi-process/browser acceptance and real-user migration parity remain open. Existing stateless access-token deactivation policy is unchanged.
+- Risks/Assumptions: All 26 focused HTTP checks pass, including 168 concurrent-phase requests. Mutation windows overlap 16 object-grant and 13 role-change requests; all 48 post-revocation requests deny visibility. This proves client-request overlap, not database internal parallel execution. Owned services stopped; no shared Redis access, commit or push. Syntax and whitespace checks pass.
+
+### Update 2026-10-31 00:33
+- Decisions: Accept warm-cache relationship search/detail authorization with actual isolated Redis; preserve the documented stateless access-token policy instead of introducing immediate account revocation silently.
+- Implementation: API runner adds --cache-only using existing socket-only owned Redis (cache DB 0, coordination DB 1), with no mocked cache methods. New checks cover identity isolation, values, object grants, orphan annotations, existing-token role removal/restoration, login/refresh deactivation and documented access-token lifetime. No application runtime/signature changes.
+- Open: Production cache/browser/concurrency and representative-user migration acceptance remain open; immediate account-wide access-token revocation remains outside the current authentication contract.
+- Risks/Assumptions: 17 focused HTTP checks and 16 offline tests pass. Warm-cache phase records 45 Redis hits, 19 final cache keys. Existing access tokens remain valid until expiry (default 15 minutes) after account deactivation; login/refresh are refused. Initial fixture restored independent owner rights and corrected token-policy expectations. All services/data were owned and stopped; no shared Redis access, commit or push.
+
+### Update 2026-10-31 00:28
+- Decisions: Validate larger relationship result sets before further optimization. Keep independent class-set selection before relationship candidates, then preserve all original ACL/filter checks; no public signature changes.
+- Implementation: Corrected query order after a 1,000-child count exceeded the 10-second timeout. Added opt-in --relationship-growth fixture with chunked rollback-only updates, 120-second test transaction lease (request timeout unchanged), complete tied-name paging, subproperties, orphan/restricted grants, AND order, revocation and rollback checks. Recorded aggregate timings and documentation.
+- Open: Production concurrency, real identities and cache/browser acceptance remain open.
+- Risks/Assumptions: All 185 native checks, 27 offline tests and 24 real-export API checks pass. Real Fasnacht HTTP medians remain 452 ms project-wide / 946 ms class/name/sorted; all five parent comparisons match. Synthetic median count 339 ms, first page 452 ms, ten-page traversal 477 ms/page; library transport, not HTTP API. Initial fixture request-size and total transaction-lease limits were corrected without changing production limits. No live data mutation, commit or push.
+
+### Update 2026-10-31 00:21
+- Decisions: Optimize mandatory root EQ-IRI/QName searches by selecting distinct relationship candidates before class/ACL joins; retain original filters, property semantics and permission checks. Skip candidate selection for expressions containing OR. No public signature or GraphDB behavior change.
+- Implementation: Added one documented local query-builder function and ten native regression checks for permissions, subproperties, duplicate paths, Boolean filters, paging/counts, graph scope, revocation and rollback. Retained diagnostic profiling helpers/native benchmark, aggregate evidence and performance guide from the analysis. Updated cutover context.
+- Open: Production load, cache/browser and real-user migration acceptance remain separate.
+- Risks/Assumptions: First eligible relation is used without selectivity statistics. No permission cache or stored reverse edges. 166 native checks, 27 offline tests and 24 focused API checks pass. Real-export HTTP medians: project-wide 7355→524 ms, frontend shape 3054→924 ms; all five parent comparisons pass. Measurements use isolated owned data only. No live changes, commit or push.
+
+### Update 2026-10-30 23:58
+- Decisions: Use a fresh read-only local TriG-star export after archived gzip input was correctly refused for encoded RDF4J triple IRIs. Retain any original account header privately; never silently drop or activate accounts.
+- Implementation: Added read-only exporter, private preparation/header retention, native instance extraction and real-data/API comparison in the owned fresh-model runner. Retained aggregate evidence and cutover guidance. No application API/signature change.
+- Validation: Real local Fasnacht TriG-star export rehearsed on a fresh owned Jena target: 38,674 instance triples, two hasPart reversals, 11 canonical pairs, all 38,663 other triples unchanged. All 23 focused checks pass, including five parent API comparisons and a single-resource read. Source export byte-stable. Native conversion preserves 35,829 ordinary source quads and converts 2,919 annotations, with zero orphaned annotations or added memberships and successful structural round-trip. One subject link preserved; no direct archive assignments existed or were manufactured. Python compilation/whitespace pass; owned processes ended. Initial Java Dataset cleanup compile issue corrected before successful run.
+- Open: Production snapshot rehearsal, actual-account/role provisioning and user-specific permission parity, binary/fulltext/cache/browser acceptance; reverse-search trace takes several seconds per request and needs performance work.
+- Risks/Assumptions: Current local data, not production. Owned audit actor receives nine source role identities only in disposable admin graph; instance permissions unchanged. Old source model/lists retained privately; target uses revised YAML. No live mutation, cache flush, deployment, commit or push.
+
+### Update 2026-10-30 23:46
+- Decisions: Prove complete model provisioning on a fresh owned target before in-place cleanup or real-data cutover.
+- Implementation: Added focused --fasnacht-only API acceptance and complete YAML/taxonomy CLI import, no-write replay, transactional part conversion and HTTP permission-filtered reverse lookup. Retained hashes, counts, evidence and cross-repository context. No runtime application change required.
+- Validation: The actual migration YAML imports through tools/HTTP with 16 classes, 88 property declarations, 10 taxonomies and 3 external registrations. 224 operations, then zero-write replay. Canonical isPartOf reverse lookup excludes an ungranted child after transactional conversion. All 13 focused checks pass. Owned processes completed; Python compilation and whitespace checked.
+- Open: Actual Fasnacht export comparison, in-place shape/restriction cleanup, fulltext activation and browser/cache acceptance. Chama relations remain separate.
+- Risks/Assumptions: Fresh target and synthetic instances, not production acceptance. GraphDB connectors skipped. External registration does not imply graph content loading. Object-cache I/O suppressed; no live source/data/Redis changes, deployment, commit or push.
+
+### Update 2026-10-30 23:37
+- Decisions: Use only dcterms:isPartOf in Fasnacht models, storage and queries; replace hasPart consumers with reverse lookup rather than an inverse read field.
+- Implementation: Added target-scoped SPARQL preflight/data conversion and native acceptance; revised semantics cases I1/I2, cutover guide and migration sequence.
+- Validation: 156 native model/search checks pass (4 new): duplicate edges, conflicting Place parents, replay and graph isolation.
+- Open: Fresh target model provisioning or explicit in-place field/restriction cleanup, migrated-data acceptance and authenticated browser smoke. YAML omission does not delete existing fields; do not bypass in-use guards.
+- Risks/Assumptions: Data conversion is prepared and tested only on owned fixtures; run zero-row preflight and backup before application with writers stopped. Existing source/live data and services unchanged. hasPart consumers require migration; API signatures unchanged. No commit, push or deployment.
+
+### Update 2026-10-30 23:28
+- Decisions: Verify explicit inverse metadata removal through the actual tools CLI and normal HTTP model-update endpoint, without substituting SPARQL schema cleanup.
+- Implementation: Updated semantics profile, cutover index and master context with the completed owned HTTP model-update acceptance and remaining full-project/reverse-axiom gates; corrected stale archive design-gate wording.
+- Validation: 162 integration checks pass, including eight new archive checks. Legacy false assignment reproduced; preview, backup, metadata/RDF removal, stable direct response, unchanged instance triples and zero-write replay verified. Backup retains prior metadata and RDF. Syntax/whitespace checks pass; owned processes completed.
+- Open: Full Fasnacht target import/real-data comparison, cache acceptance, reverse/external axiom inventory and general modeled inverse fields.
+- Risks/Assumptions: Minimal demo namespace/class fixture uses actual Fasnacht target/cardinality/null declaration. Only forward axiom owned by the edited property is covered; object-cache I/O is suppressed. No live data/service changes, public signature changes, commit or push.
+
+### Update 2026-10-30 23:20
+- Decisions: Prove direct archive assignment independently of subject references in an owned Jena target; preserve generic subject imports and public contracts.
+- Implementation: Added transaction-scoped native acceptance using the actual Fasnacht YAML declaration/predicate, synthetic test resources and real read/summary/search builders. Reproduces old inference, explicitly removes both legacy axiom orientations, verifies direct links, independent subjects, filters/counts, assignment deletion and abort. Linked retained results in profile, cutover index and master context.
+- Validation: 152 native model/search checks (11 new) and 57 offline tests pass. Owned probe completed; no shared Redis or live service/data changes.
+- Open: Complete HTTP model-update rehearsal on a representative Fasnacht target, current data audit and broader inverse-field acceptance. Fixture cleanup is explicit SPARQL, not the model-update endpoint.
+- Risks/Assumptions: Synthetic model applicability uses test:Cat with the real archiveUnit field; no claim of full Fasnacht hydration/import parity. No public API changes, deployment, commit or push.
+
+### Update 2026-10-30 23:17
+- Decisions: Store fasnacht:archiveUnit directly as archival assignment; retain schema:about for subject matter and remove their legacy inverse axiom, as agreed with the user.
+- Implementation: Replaced semantics acceptance case I3 with direct archive assignment, independent subject links, no automatic reversal, explicit target model cleanup and retained export evidence. Updated master context; generic archive importer remains unchanged.
+- Open: Apply and verify the model change in an isolated migration target, inspect both axiom orientations, audit current live data and finish the separate inverse-read-field implementation. Raw append-only transfer does not remove old axioms.
+- Risks/Assumptions: Local model/documentation change only; no live data/service writes, public signature changes, commit or push. Existing subject links are preserved and are not evidence of archival assignment.
+
+### Update 2026-10-30 22:40
+- Decisions: Implement step 2 of the agreed profile: subclass-only ancestry, forward subproperty expansion, stable modeled response keys and asserted-only search projection. Keep legacy inverses until step 3.
+- Implementation: Updated the common Jena path/value helper and resource single/summary/search builders. Added scoped SHACL field eligibility for derived superproperty values and conservative exclusion of protected predicates anywhere on hierarchy routes. Added offline behavioral cases and transaction-scoped native fixtures; test transport supports transactional JSON-LD reads. Updated profile, implementation guide, cutover index and retained results.
+- Validation: 57 offline tests, 141 native model/search checks (15 new) and 154 normal-adapter API regressions pass. Native checks cover direct/ancestor types, ignored equivalence, multilevel diamonds/cycles, filtering/counts/projection, modeled hydration, forged grants, all protected bridges and abort restoration. Initial offline graph-dereference setup and probe JSON-LD transport limitation corrected. Syntax, Markdown links and whitespace verified; owned test processes completed.
+- Open: Step 3 inverse field metadata/applicability/source constraints and writer audit; own-model equivalence rejection; profile-aware real-project comparison and performance measurement. External axioms remain stored but equivalences are ignored.
+- Risks/Assumptions: No general reasoner, new cache, public signature change or GraphDB behavior change. Hierarchy routes touching protected fields are conservatively refused even with a harmless alternate route. Earlier 120-match Chama parity and latency figures apply only to the old implementation. No source service/data changes, deployment, commit or push.
+
+### Update 2026-10-29 17:35
+- Decisions: Specify the agreed restricted semantics before implementation; keep uniform query construction and distinguish filter semantics from response projection.
+- Implementation: Added step 1 behavioral specification with Fasnacht/Chama fixtures for ancestry, three subproperties, place/thing inverses, archive association, contribution/story backlinks and ignored equivalence. Linked from master context, cutover index and current entailment documentation.
+- Open: Implement hierarchy changes in step 2; design inverse field identity/applicability and source constraints in step 3. Audit legacy directions and writers, resolve archive subject-versus-assignment semantics and multiplicity before migration.
+- Risks/Assumptions: Documentation only; no runtime/data/API changes or test acceptance claimed. Previous 120 comparison matches remain historical baseline. Search projection stays asserted-only; derived fields must not expand authorization or silently discard legacy writes.
+
+### Update 2026-10-29 00:45
+- Decisions: Implement a limited, explicit read-entailment contract rather than enable general OWL reasoning. Keep public API/library signatures, GraphDB behavior and asserted-only authorization/provenance. Preserve existing asserted-only search projections while filters/summaries support derived links.
+- Implementation: Added shared inverse/class/schema helpers and transaction-local external vocabulary discovery; wired resource reads/summaries/search and media/archive class checks. Class search preselects instantiated types before ACL joins to avoid repeated ontology walks. Rehearsal preserves used source prefixes, compares eight additional batch/search cases, verifies adversarial/transaction scenarios and measures isolated cache/scale/control cases.
+- Validation: All 112 original plus eight extra GraphDB/Jena HTTP comparisons match; all source bracketing guards pass. Seven native entailment checks, 126 model/search checks, 154 API checks and 41 offline tests pass. Added scope/cycle/type/provenance/registration tests. Real Chama plus 1,000 synthetic people measured; paired search control requires identical pages. Syntax/whitespace checks pass; owned services closed after probes.
+- Open: Broader real-project/load/concurrency acceptance; durable prefix/vocabulary provisioning for deployment, fulltext inverse-path decisions, large export/account/binary migration and production recovery. General OWL restrictions/domain/range/sameAs/property chains remain unsupported.
+- Risks/Assumptions: Warm single read 141→175 ms and 54-resource summaries 311→414 ms; not negligible overhead. Cold means object cache only. Broad scaled search ~1.19 s; identical-page Person control 0.90 s new vs 1.72 s previous-rules control, not a historical release benchmark. Schema discovery and data read are separate outside a transaction. Source/user Redis untouched; private exports outside Git. No deployment, commit or push.
+
+### Update 2026-10-29 00:04
+- Decisions: Rehearse a real GraphDB project with an isolated Jena API, preserving asserted source data and public contracts. Keep content mismatches visible rather than accepting inferred-data loss or enabling general OWL reasoning.
+- Implementation: Added repeatable Chama export/conversion/provisioning/import/API comparator, private evidence and sanitized report. Source schemas plus three vocabulary graphs, limited two-account bootstrap, normal API and owned Redis. Replaced exponential dataset tuple comparison with graph-based quad verification; reject RDF4J encoded triple URIs and use explicit star export formats.
+- Validation: Real transfer succeeds; 112 API statuses match, 77 normalized bodies match and 35 differ (27 inferredTypes, eight knowledge backlinks, one story hasPart; overlapping fields). Source project/schema/admin exports and API baselines stable on reread. 28 native converter and eight CLI checks pass; syntax/whitespace checks pass. Owned services stopped.
+- Open: Scoped external vocabulary hierarchy/equivalence and inverse-property reads; rerun the same comparator before claiming parity. Fulltext/binaries, further actors, writes, large packages, snapshot/recovery and production cutover remain separate gates.
+- Risks/Assumptions: Rehearsal exits nonzero deliberately for content differences. Arrays compared without order; source uses existing cache. Bracketing stability is not a coordinated snapshot. Two pre-existing admin orphan grants preserved without memberships. Private exports/hashes/responses outside Git; no source data writes, deployment, commit or push.
+
+### Update 2026-10-28 23:44
+- Decisions: Retain GraphDB-to-Jena migration knowledge explicitly for the later system transition, as requested by the user.
+- Implementation: Added a central cutover knowledge index in oldaplib and prominent links in all three repository master contexts. Records proven tools/evidence, compatibility/reasoning decisions, limits, administrative and binary/index gaps, rehearsal sequence and recovery prerequisites.
+- Open: Representative source project export, controlled target provisioning/import/API comparison and remaining production cutover gates.
+- Risks/Assumptions: Documentation only; checklist is future work, not production acceptance or authorization to switch systems. No runtime changes, service access, commit or push.
+
+### Update 2026-10-28 23:41
+- Decisions: Start the GraphDB-to-Jena data path with an offline, bounded, reviewable conversion; do not silently reinterpret unsupported RDF-star or discard legacy user side-channel records. Preserve asserted/orphan membership status and graph isolation.
+- Implementation: Added native Jena tokenizer/parser-based converter, stable graph/membership reifier normalization, permission-kind validation, unchanged ordinary quads, strict UTF-8/gzip bounds and private no-overwrite output. Report records hashes/counts and dataset-isomorphic serialization round-trip. Added synthetic/legacy-seed/TDB2 probe, real CLI probe and documentation/results.
+- Validation: 21 native checks and 8 CLI checks pass. Original GraphDB admin seed files produce the same permission relations as migrated seeds. Covers metadata/value union, ordinary quads, cross-graph blank nodes, orphan preservation, generated-ID collisions, malformed/mixed/nested/object quotations, wrong permission types, user side-channel refusal, gzip limit, private output and no partial publication. First probe compile corrected an atlas-json Number API call; final runs passed.
+- Open: Representative GraphDB project export and target provisioning/import/API comparison; serialized user/account migration, large/streaming packages, index configuration and production recovery.
+- Risks/Assumptions: Supports flat URI-based OLDAP membership annotations, not arbitrary RDF-star. 16 MiB decompressed/in-memory limit; existing HTTP 256 KiB limit unchanged. Output is plain native TriG, not the tools project wrapper. Reifier IDs differ from seed UUIDs but preserve relations; repeated blank-node imports are not generally idempotent. No live services, OWL reasoning, public signature changes, commit or push.
+
+### Update 2026-10-28 23:31
+- Decisions: Migrate initialization permission annotations to RDF 1.2 while preserving asserted memberships, all permission values and other data. Keep general OWL reasoning disabled; evaluate concrete inference dependencies separately.
+- Implementation: Replaced 19 legacy annotation statements in admin.trig/admin-testing.trig with stable UUIDv5 reifiers for 18 memberships; duplicate Fornaro/HyperHamlet annotations share one identifier. Updated oldap.trig examples and statementShape descriptions without changing shape structure. Added native seed acceptance, original permission manifest and migration documentation/results. Shared/example/standard files need no syntax edits.
+- Validation: 24 native Jena checks pass: all 10 ontology/vocabulary files parse, 29 original permission values preserved, asserted membership/exclusive reifier checks and reload stability. One-time baseline comparison proves remaining admin/default/model graphs unchanged by isomorphism. Nine offline shared-ontology/user-order/Jena-user-write tests pass; only existing RDFLib deprecation warnings.
+- Open: Existing GraphDB project/account conversion and restore, larger transfer packages, remaining inference-dependency audit and production acceptance.
+- Risks/Assumptions: Native RDF 1.2 files are for the Jena migration branch; legacy GraphDB seed loaders are not tested against them. Stable grant reload does not make arbitrary blank-node model reload idempotent. No user credentials changed, live data loaded, OWL reasoner enabled, public signatures changed, commit or push performed.
+
+### Update 2026-10-28 23:16
+- Decisions: Add a native RDF 1.2 graph-transfer boundary for provisioned projects; retain existing public signatures/GraphDB behavior. Require current root rights and explicitly exclude administrative identity restore. Preserve cross-graph blank nodes without Python RDF reserialization.
+- Implementation: Added JenaProjectTransfer native parser/serializer and three session operations, private adapter export/import methods, explicit tools project routing and versioned gzip headers. Export replaces files atomically; import validates graph scope then appends within existing transaction ownership. Cache checked before import and cleared after commit with explicit committed-state errors. Added docs, offline tests and owned CLI/Redis acceptance.
+- Validation: 154 integration checks pass (145 previous plus 9); 14 library and 17 tools tests pass. Covers four-graph RDF 1.2/language/blank-node round-trip, ordinary-user/root-revocation refusal, joined rollback, malformed/foreign/default/reserved input, and fulltext commit/rollback. Corrected initial fixture short-name datatype. Owned processes closed; whitespace checks clean.
+- Open: Full administrative users/roles restore, legacy GraphDB RDF-star conversion, streaming/large projects, binary/export-job acceptance, production cache/concurrency and normal-adapter crash recovery.
+- Risks/Assumptions: Jena --no-admin dumps are not complete backups; target project namespace/identities/configuration must be provisioned separately. Existing 262144-byte JSON request limit remains; server export uses memory. Import appends, so repeated blank-node payloads are not idempotent. CLI migration assumes quiesced application traffic; no production services, public signature changes, deployment, commit or push.
+
+### Update 2026-10-28 23:00
+- Decisions: Preserve public media signatures, serialization and token claims; select project-scoped media ancestry and asserted RDF 1.2 grants on Jena. Refuse ambiguous visible identities instead of merging token metadata.
+- Implementation: Added documented private media query helper and backend routing for ID/IRI lookup. Bind selectors/caller inside permission aggregate. Added owned modeled-media/inventory acceptance, dedicated Redis fixture naming, isolated media JWT key, offline routing/ambiguity tests and retained results/documentation.
+- Validation: 145 owned integration checks pass (132 earlier plus 13 new); 18 library tests plus 6 subtests and 10 API tests pass. Real HTTP covers metadata/signed claims, restricted grants, paginated hydrated inventory, entry capabilities, catalogue references, revocation/orphans, duplicate IDs and unrelated schema isolation. All owned processes closed; diff whitespace checks pass.
+- Open: Raw project transfer/export, production object cache, normal-adapter crash/uncertain-outcome recovery and binary media delivery.
+- Risks/Assumptions: Shared-model fixtures and real policy/coordination; object-cache I/O suppressed. Catalogue reference edge and malformed edge cases imported directly for acceptance. Candidate discovery and metadata reads are separate outside an existing transaction; metadata queries recheck rights. Existing tokens are not revoked by lookup changes. GraphDB query path unchanged; no public signature change, deployment, commit or push.
+
+### Update 2026-10-28 22:50
+- Decisions: Exercise full adoption through real policy-file loading, durable Redis coordination and HTTP endpoints; preserve existing transactions, audit, receipts and public signatures. Propagate only permissions attached to asserted source role memberships.
+- Implementation: Scoped Jena archive-level and sibling-name validation to project/shared/base schemas; reused one private level query in preflight and domain guards. Fixed grant propagation so orphaned annotations retained in revision snapshots cannot become active rights on new units (both backends). Added owned socket-only Redis/AOF fixture and real coordinated-write acceptance, documentation/results.
+- Validation: 132 owned checks pass (115 previous plus 17 coordinated writes); 106 library tests plus 24 subtests and 11 API tests plus 13 subtests pass. Covers duplicate siblings, actual parent/mapping/grant RDF, orphan exclusion, atomic audit/receipt, exact retry/conflicting IDs, session journaling, full rollback/retry, stale apply and structure-only provenance. Redis validates appendonly/always/noeviction and real WAITAOF; process closed after run.
+- Open: Complete inventory/media hydration and specialized queries, raw project transfer/export, real object-cache behavior and normal-adapter crash/uncertain-outcome recovery.
+- Risks/Assumptions: Synthetic owned resources, ordinary writer with explicit ADMIN_CREATE and role/data rights; normal policy loader and coordinator, only object-cache I/O suppressed. Confirmed commit/abort evidence is not crash/failover acceptance. User Redis untouched; no public signature change, deployment, commit or push.
+
+### Update 2026-10-28 22:39
+- Decisions: Migrate inventory/adoption read queries and canonical folder snapshots; preserve public signatures, creator/role semantics, distinct counts and stale-review guards. Select only project/shared/base schemas for Jena hierarchy paths.
+- Implementation: Added three private query-building methods to ArchiveRepository for RDF 1.2 grants, schema dataset and exact/subclass matching; used by inventory/adoption/snapshots. Jena adoption visibility now uses direct subject-bound joins after the old correlated EXISTS/UNION shape admitted restricted/orphaned identities. Added offline dialect/routing tests and owned real-query/model/preflight/cursor acceptance; documented results and boundaries.
+- Validation: 115 owned checks pass (102 earlier plus 13 archive reads), 62 library tests plus 21 subtests, 11 API tests plus 13 subtests. Covers schema scope/cross-schema ancestry, exact unknown classes, mixed keyset/counts, hidden/disconnected folders, hidden targets, fresh receipt-hint authorization, stale plans/cursors and transactional revisions. Existing RDFLib fixture emits deprecation warnings.
+- Open: Coordinated staging/adoption writes, structural audit/receipts, complete inventory hydration/HTTP workflows, specialized media queries, raw project transfer and export jobs.
+- Risks/Assumptions: Explicit fixture policy and imported owned RDF; real model/query/permission/transaction behavior. API staging creation correctly refused absent write coordination; no guard relaxed. Redis object-cache I/O suppressed. GraphDB tested offline only; no shared services, public signature changes, deployment, commit or push.
+
+### Update 2026-10-28 22:26
+- Decisions: Migrate archive publication as a bounded service workflow before inventory/adoption. Preserve public signatures, review/authorization rules and whole-command transactions; edit only the public role's permissions.
+- Implementation: Added RDF 1.2 grant reads for publication/link reviews and explicit reifier writes for publication. Extended private cleanup helper with optional target; preserve internal grants and unrelated annotations. Shared reifiers raise existing PublicationConflict. Added Jena/offline publication tests, owned real-service acceptance and documentation/results.
+- Validation: 102 owned integration checks pass (91 previous plus 11 publication/link checks); 50 library tests plus 14 subtests and 15 API route tests plus 13 subtests pass. Covers stale ACL review, rollback after first-resource write, no failed receipt, exact replay/conflicting IDs, internal grant/metadata preservation, additive links, restricted republishing and fresh publisher membership. Initial incomplete fixture property definition corrected through common base model.
+- Open: Archive inventory/adoption/repository snapshots, complete policy-file/HTTP publication acceptance with coordination, raw project transfer and export jobs.
+- Risks/Assumptions: Publication fixture supplies explicit server policy while using real authorization/model/query/transaction implementations. Redis object-cache I/O remains suppressed. GraphDB regressions offline only; no public signature change, shared service change, deployment, commit or push.
+
+### Update 2026-10-28 22:20
+- Decisions: Port the concrete all_resources bulk-query gap while preserving public signatures, exact asserted-class matching, role-only authorization and existing joined-row pagination. Track specialized workflows separately.
+- Implementation: Added backend-selected RDF 1.2 permission annotation to all_resources; documented its contract and fixed undefined project name in error logging. Added offline dialect/routing/result/error tests, owned bulk acceptance and copy/export call-path inventory with retained results.
+- Validation: 91 owned normal API/Fuseki checks pass (85 existing plus 6 bulk checks); 21 targeted library tests pass. Verifies projection/missing values, count/page, threshold, orphan/foreign-graph isolation and transaction/abort visibility. GraphDB syntax covered offline only.
+- Open: Complete tools staging command, specialized archive/media queries, raw GraphDB project dump/restore, complete export jobs and legacy native fulltext search. Joined-row pagination can truncate multi-valued projections; unchanged in this compatibility step.
+- Risks/Assumptions: Synthetic owned data; Redis object-cache I/O suppressed. No public signature change, shared service modification, deployment, commit or push.
+
+### Update 2026-10-28 22:14
+- Decisions: Verify normal API resource-to-index behavior before expanding migration scope. Keep authorization in current RDF checks and field meanings bound to managed revisions; no new application abstraction needed.
+- Implementation: Added check_fulltext_writes to the owned API acceptance runner, exercising real writes/search and dynamic model/field configuration. Added retained results and updated migration status documentation. Application code unchanged.
+- Validation: 85 owned API/Fuseki checks pass, including previous 69; 27 library fulltext/connection tests and 13 API fulltext tests pass. Covers commit/abort visibility, counts/pagination, ACL downgrade/restoration, late field activation, AND/projection, stale revisions, remapping and delete cleanup. First run caught untyped values in the test's direct library assignment; corrected to existing QName/DataPermission contract.
+- Open: Bulk/copy/export RDF-star paths, specialized archive/media workflows, operational cache/load and normal-API restart recovery acceptance.
+- Risks/Assumptions: Synthetic owned data, ordinary-user search and isolated service; only object-cache Redis I/O suppressed. No shared service change, public signature change, deployment, commit or push. Prior isolated crash/restart evidence is separate from this normal-API run.
+
+### Update 2026-10-28 22:07
+- Decisions: Preserve resource-operation transaction ownership and public signatures. Share RDF 1.2 permission generation/cleanup across users and resources with explicit graph scope; keep GraphDB branches and existing creator/role semantics.
+- Implementation: Ported resource permission checks, create, role-map updates, class transformation grants and deletion. Renamed internal user helper to jena_permission_write and added graph selection/object grant predicate. Shared-reifier checks precede writes; API delete maps inconsistencies to 409. Added owned resource acceptance, offline dialect/routing tests and documentation/results.
+- Validation: 69 owned API/Fuseki checks pass (including previous 52), plus 78 library tests with 14 subtests and 35 API tests. Covers non-admin permission thresholds, duplicate create, stale update, update/delete callback rollback, composed-create rollback, transformation, grant revocation, shared reifiers and foreign-graph isolation. Initial failures exposed missing numeric permissions and root role in the synthetic fixture; fixture corrected without altering access semantics.
+- Open: Remaining RDF-star bulk/copy/export queries, specialized dating/list/media/archive writes and linked transforms, normal-adapter fulltext mutation/search acceptance, deployment/cache/recovery gates.
+- Risks/Assumptions: Only ordinary modeled resources/basic transformation accepted here. factory.read retains role-based access even for admin/creator; read_data/class read preserve creator access. Object cache I/O mocked in owned runner; no live GraphDB regression, shared services, commit/push or deployment.
+
+### Update 2026-10-28 21:56
+- Decisions: Port user membership annotations explicitly, without rewriting arbitrary SPARQL. Replace only changed project/role maps in the existing optimistic transaction; retain bare memberships and current authorization/authVersion behavior. Reifiers must describe one membership for permission edits.
+- Implementation: Added jena_user_write helpers and opt-in connection capability; User serialization/update/delete handles RDF 1.2 grants, duplicate cleanup and unrelated metadata preservation. Shared-reifier preflight runs inside the transaction; API reports its conflict as 409 with OpenAPI documentation. Removed raw user-update query printing on failure. Added normal-API user/role acceptance and GraphDB serialization regressions.
+- Validation: 52 owned API/Fuseki integration checks pass (including the previous 33); 66 library tests with 9 subtests and 29 API tests pass. Covers role CRUD, user CRUD/login, grant replacement/removal, authVersion, invalid target rollback, stale edits, missing rights, shared-reifier refusal and graph isolation.
+- Open: Resource-instance RDF-star write paths, extended user-class properties, refresh-cookie revocation acceptance on the normal adapter, remaining list/search/service operational gates.
+- Risks/Assumptions: Whole changed membership maps are replaced after the timestamp check; reifier identifiers are internal and can change. Unrelated reifier annotations remain historical metadata without permissions. Cache Redis I/O is mocked only in the owned runner. No live GraphDB test, shared service change, commit, push or deployment.
+
+### Update 2026-10-28 21:46
+- Decisions: Select Jena explicitly through OLDAP_BACKEND; retain GraphDB default and existing public signatures. Reuse credential/JWT logic; keep the private identity callback database-free. Never replay updates after uncertain replies.
+- Implementation: Added JenaConnection, central API backend selection/validation, identity endpoint and Jena health check; User.read uses a private backend query hook. Real API acceptance exposed and fixed duplicate list BEGIN, implicit default-graph reads, wrong index predicates and ancestor-move interval calculation. Invalid descendant moves abort. Added configuration/acceptance documentation and retained result artifact.
+- Validation: 33 owned API/Fuseki checks pass without connection mocks: startup/login/refresh, model/property/list CRUD and moves with index/position assertions, fulltext activation, real tools import/update/TriG+fulltext backup/dump and zero-write replay. 63 library tests (9 subtests), 29 API tests and 76 tools tests (3 subtests) pass. Initial owned failing runs reproduced list defects before correction.
+- Open: Remaining user/role/resource RDF-star writers, normal-adapter search acceptance, multi-node/concurrent list moves, isolated Redis/cache operational acceptance and production service packaging/recovery.
+- Risks/Assumptions: Only object-cache Redis I/O mocked in owned integration. No live GraphDB regression for shared list corrections. Jena service still uses migration session protocol; maintenance operations explicitly unsupported. No shared service/data/environment switch, deployment, commit or push.
+
+### Update 2026-10-28 21:26
+- Decisions: Keep public fulltext administration bound to the authenticated connection, with fresh metadata and active-user asserted model/root permissions. Normal GraphDB connections explicitly refuse support; public signatures unchanged.
+- Implementation: Added ProjectFulltext service and private IConnection capability/transport hook; expanded owned activation runner through the real Flask route, Project.read and current RDF authorization. API/tools provide additive endpoint and explicit import/dump/backup contracts.
+- Validation: 46 owned integration checks pass, including orphaned grant after membership removal, inactive admin, system admin, graph mismatch, stale revision and normal-backend refusal; 21 API and 76 tools tests plus three subtests pass.
+- Open: Normal Jena connection/startup, complete model/list write migration and live importer acceptance; large rebuild timing and whole-dataset recovery. Public request authorization is not atomic with later index publication.
+- Risks/Assumptions: Probe replaces API Connection factory and cache I/O only. Synthetic URN project IRI exposed existing QName interpretation; HTTP fixture used, general URN support not changed. No shared services/data touched, deployment, commit or push.
+
+### Update 2026-10-28 18:14
+- Decisions: Keep RDF authoritative; synchronously rebuild all configured text predicates before activation and on every startup. Serialize maintenance with writers, exclude readers during swap, and bind compiled searches to configuration revisions. Private service administration remains separate from future public model-admin authorization.
+- Implementation: Added JenaManagedText durable manifest/CAS/rebuild lifecycle, reusable allowlisted index producer, authenticated private FULLTEXT_STATE/APPLY and revision-bound READ, failure fencing and owned acceptance runner consuming actual oldap-tools YAML plan output. Added lifecycle/protocol/recovery documentation and results.
+- Validation: 35 real Fuseki/TDB2 activation checks pass, covering existing text, changes across projects, writer refusal, stale reads, rollback/deletion, SIGKILL with pending writes, corrupt manifest and publication failure recovery. Existing 126 model/search and 51 identity/session/callback checks pass.
+- Open: Public API ADMIN_MODEL authorization and authoritative project resolution, adapter/import/dump/backup wiring, production packaging and large-dataset timing. Whole-index rebuild needs maintenance time; disable-project operation not implemented.
+- Risks/Assumptions: Durable manifest requires local atomic rename and fsync. Process-kill tests do not prove hardware power-loss behavior. Managed commit failures fence operations pending restart; no automatic replay. No public signature, production/shared service, real data or Redis change; no commit/push.
+
+### Update 2026-10-28 14:39
+- Decisions: Make fields/project paths data-driven from a portable fulltext YAML section; keep unknown native connector options explicit errors. Resolve fixed forward chains at query time; do not maintain copied root text. Public signatures unchanged.
+- Implementation: Added field/path validation and QName expansion; generalized query helper and Java project/predicate allowlist from one YAML source. Added two-project/chain checks and read-only consumer/export inventory. Jena class filter now handles asserted class equality independently of schema presence.
+- Validation: 126 integration checks (13 new configuration/chain checks) and 76 offline tests + 7 subtests pass. Fourteen GraphDB query comparisons unchanged. Second-project test reproduced schema-dependent direct-type failure before fix; QName test caught Context string conversion issue, handled using typed QName input.
+- Open: oldap-tools YAML schema/import and admin persistence/activation/rebuild; native types/languages/analyzers and arbitrary consumer text grammar/ranking; index consistency/performance. No external checkout edits, commit, push or deployment.
+- Risks/Assumptions: Configuration loaded before fixture data, not hot reload/reindex. Chains check root ACL only and stay within project data. Local fasnacht export is a snapshot, not live config; consumer archiveMediaObjectText is missing from that export. Multiterm user text remains unsupported. GraphDB/Redis untouched.
+
+### Update 2026-10-28 14:21
+- Decisions: Connect the unchanged public search via a concrete internal hook and explicit direct-field map. Support a validated atom/phrase/wildcard AND/OR subset; reject arbitrary Lucene/configuration rather than silently changing semantics. Preserve GraphDB defaults.
+- Implementation: Added jena_fulltext query helper; wired search patterns and optional transactional TextDataset fixture into the authenticated engine. Project-only index producer excludes private/admin graphs; protected view receives only index context. Added real full-text integration checks and private canary fixture.
+- Validation: 113 integration checks (27 additional) pass, including ACL/count/page, field/multivalue AND, structured/list filters, unsupported-input rejection before query HTTP, receipt exclusion and HTTP index commit/rollback/delete. Default identity/session/callback 51 checks and 60 offline tests + 7 subtests pass. Fourteen GraphDB query variants remain whitespace-equivalent to HEAD.
+- Open: Actual connector/consumer inventory, property chains/type/analyzer/complex-query/ranking parity, production wiring/admin API, rebuild/concurrent visibility/resource bounds/hard-crash consistency. No deployment, commit or push.
+- Risks/Assumptions: Explicit two-field test mapping, not production configuration translation. Sum for AND/MAX for OR ranking differs from GraphDB; unsupported inputs raise. Text index tests cover committed reads and normal transaction changes, not crash-atomicity. Shared GraphDB/Redis untouched.
+
+### Update 2026-10-28 14:09
+- Decisions: Establish text-index semantics/lifecycle before wiring public search. Keep existing connector and substring-search APIs unchanged; do not silently translate arbitrary GraphDB configurations.
+- Implementation: Added standalone JenaTextProbe with owned persistent TDB2/Lucene, explicit direct-property/graph/language/UID mappings and documented compatibility findings. No application implementation changes.
+- Validation: 24 runtime checks pass, including normal commit/rollback/replacement/deletion/clean reopen, synthetic RDF 1.2 ACL, distinct counts and final pagination. Demonstrated default cross-field/multivalue AND mismatch and successful independent joins. Fixed probe-only COUNT assertion to use typed integer instead of string formatting. Existing Python suites unchanged/not rerun.
+- Open: Actual connector configuration inventory, public search integration, property chains/type/analyzer/query/ranking parity, protected dataset/HTTP sessions, rebuild/concurrency/hard-crash consistency. No commit, push or deployment.
+- Risks/Assumptions: StandardAnalyzer and two direct fields are fixtures, not a production configuration decision. Separate index/storage clean reopen is not crash-atomicity proof. Default document limitations are expected observations, not full-text migration completion. No shared GraphDB/Redis accessed.
+
 ### Update 2026-10-28 01:27
 - Decisions: Retain real list/node readers; use independent correlated EXISTS for each Jena hierarchical filter condition. Keep GraphDB queries and public interfaces unchanged.
 - Implementation: Added owned two-list/tree acceptance fixture and Jena boolean filter branch with explanatory comments. Independent bindings support OR with absent properties and AND across multiple assigned nodes; refreshed docs/inventory.

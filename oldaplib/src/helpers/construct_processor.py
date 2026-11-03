@@ -1,3 +1,4 @@
+"""Decode RDF CONSTRUCT graphs into OLDAP values and model structures."""
 import textwrap
 from pprint import pprint
 from typing import Set, List
@@ -53,10 +54,32 @@ from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
 type ConstructResultDict = dict[Xsd_QName, ConstructResultDict | Xsd | LangString | List[Xsd] | Set[Xsd]]
 
 class ConstructProcessor:
+    """Decode resource/model graphs and resolve their nested RDF structures."""
 
     @staticmethod
     def process(con: Context, g: Graph) -> ConstructResultDict:
-        #print(g.serialize(format="turtle"))
+        """Convert a CONSTRUCT graph to OLDAP values and nested blank nodes.
+
+        Args:
+            con: Namespace context used to shorten known IRIs.
+            g: RDF graph returned by a permission-checked query. Stored values
+                were validated on write; datatype conversion uses validate=False.
+
+        Returns:
+            Subject/property mappings with typed values, language strings and
+            resolved blank-node structures. The input graph is not changed.
+        """
+        # Predicates, types and subjects recur throughout a batch. Resolve each
+        # namespace once per graph, including unknown namespaces. Keep this
+        # local: contexts can change between reads. Return fresh QName values
+        # because callers can mutate them (for example with +=).
+        qnames: dict[URIRef, Xsd_QName | None] = {}
+
+        def resolve_qname(iri: URIRef) -> Xsd_QName | None:
+            if iri not in qnames:
+                qnames[iri] = con.iri2qname(iri, validate=False)
+            value = qnames[iri]
+            return Xsd_QName(value) if value is not None else None
 
         def process_rdfsets(nodes: dict):
             for key, val in nodes.items():
@@ -78,95 +101,95 @@ class ConstructProcessor:
         bnodes: dict = {}
         for s, p, o in g.triples((None, None, None)):
             if isinstance(p, URIRef):
-                tmp = con.iri2qname(p, validate=False)
+                tmp = resolve_qname(p)
                 if tmp is not None:
                     p = tmp
             if isinstance(o, URIRef):
-                tmp = con.iri2qname(o, validate=False)
-                o = tmp if tmp is not None else Iri(o)
+                tmp = resolve_qname(o)
+                o = tmp if tmp is not None else Iri(o, validate=False)
             elif isinstance(o, Literal):
                 match o.datatype:
                     case XSD.anyURI:
-                        o = Xsd_anyURI(o)
+                        o = Xsd_anyURI(o, validate=False)
                     case XSD.int:
-                        o = Xsd_int(o)
+                        o = Xsd_int(o, validate=False)
                     case XSD.integer:
-                        o = Xsd_integer(o)
+                        o = Xsd_integer(o, validate=False)
                     case XSD.long:
-                        o = Xsd_long(o)
+                        o = Xsd_long(o, validate=False)
                     case XSD.short:
-                        o = Xsd_short(o)
+                        o = Xsd_short(o, validate=False)
                     case XSD.byte:
-                        o = Xsd_byte(o)
+                        o = Xsd_byte(o, validate=False)
                     case XSD.float:
-                        o = Xsd_float(o)
+                        o = Xsd_float(o, validate=False)
                     case XSD.decimal:
-                        o = Xsd_decimal(o)
+                        o = Xsd_decimal(o, validate=False)
                     case XSD.boolean:
-                        o = Xsd_boolean(o)
+                        o = Xsd_boolean(o, validate=False)
                     case XSD.double:
-                        o = Xsd_double(o)
+                        o = Xsd_double(o, validate=False)
                     case XSD.string:
-                        o = Xsd_string(o)
+                        o = Xsd_string(o, validate=False)
                     case XSD.dateTime:
-                        o = Xsd_dateTime(o)
+                        o = Xsd_dateTime(o, validate=False)
                     case XSD.dateTimeStamp:
-                        o = Xsd_dateTimeStamp(o)
+                        o = Xsd_dateTimeStamp(o, validate=False)
                     case XSD.date:
-                        o = Xsd_date(o)
+                        o = Xsd_date(o, validate=False)
                     case XSD.time:
-                        o = Xsd_time(o)
+                        o = Xsd_time(o, validate=False)
                     case XSD.duration:
-                        o = Xsd_duration(o)
+                        o = Xsd_duration(o, validate=False)
                     case XSD.anyURI:
-                        o = Xsd_anyURI(o)
+                        o = Xsd_anyURI(o, validate=False)
                     case XSD.NCName:
-                        o = Xsd_NCName(o)
+                        o = Xsd_NCName(o, validate=False)
                     case XSD.QName:
-                        o = Xsd_QName(o)
+                        o = Xsd_QName(o, validate=False)
                     case XSD.token:
-                        o = Xsd_token(o)
+                        o = Xsd_token(o, validate=False)
                     case XSD.base64Binary:
-                        o = Xsd_base64Binary(o)
+                        o = Xsd_base64Binary(o, validate=False)
                     case XSD.gDay:
-                        o = Xsd_gDay(o)
+                        o = Xsd_gDay(o, validate=False)
                     case XSD.gMonth:
-                        o = Xsd_gMonth(o)
+                        o = Xsd_gMonth(o, validate=False)
                     case XSD.gYear:
-                        o = Xsd_gYear(o)
+                        o = Xsd_gYear(o, validate=False)
                     case XSD.gYearMonth:
-                        o = Xsd_gYearMonth(o)
+                        o = Xsd_gYearMonth(o, validate=False)
                     case XSD.gMonthDay:
-                        o = Xsd_gMonthDay(o)
+                        o = Xsd_gMonthDay(o, validate=False)
                     case XSD.hexBinary:
-                        o = Xsd_hexBinary(o)
+                        o = Xsd_hexBinary(o, validate=False)
                     case XSD.ID:
-                        o = Xsd_ID(o)
+                        o = Xsd_ID(o, validate=False)
                     case XSD.IDREF:
-                        o = Xsd_IDREF(o)
+                        o = Xsd_IDREF(o, validate=False)
                     case XSD.language:
-                        o = Xsd_language(o)
+                        o = Xsd_language(o, validate=False)
                     case XSD.negativeInteger:
-                        o = Xsd_negativeInteger(o)
+                        o = Xsd_negativeInteger(o, validate=False)
                     case XSD.NMTOKEN:
-                        o = Xsd_NMTOKEN(o)
+                        o = Xsd_NMTOKEN(o, validate=False)
                     case XSD.normalizedString:
-                        o = Xsd_normalizedString(o)
+                        o = Xsd_normalizedString(o, validate=False)
                     case XSD.positiveInteger:
-                        o = Xsd_positiveInteger(o)
+                        o = Xsd_positiveInteger(o, validate=False)
                     case XSD.unsignedByte:
-                        o = Xsd_unsignedByte(o)
+                        o = Xsd_unsignedByte(o, validate=False)
                     case XSD.unsignedInt:
-                        o = Xsd_unsignedInt(o)
+                        o = Xsd_unsignedInt(o, validate=False)
                     case XSD.unsignedLong:
-                        o = Xsd_unsignedLong(o)
+                        o = Xsd_unsignedLong(o, validate=False)
                     case XSD.unsignedShort:
-                        o = Xsd_unsignedShort(o)
+                        o = Xsd_unsignedShort(o, validate=False)
                     case _:
                         if o.language:
-                            o = Xsd_string(o, o.language)
+                            o = Xsd_string(o, o.language, validate=False)
                         else:
-                            o = Xsd_string(o)
+                            o = Xsd_string(o, validate=False)
 
             if isinstance(s, BNode):
                 if bnodes.get(s) is None:
@@ -179,8 +202,8 @@ class ConstructProcessor:
                     else:
                         bnodes[s][p] = [bnodes[s][p], o]
             elif isinstance(s, URIRef):
-                tmp = con.iri2qname(s, validate=False)
-                s = tmp if tmp is not None else Iri(s)
+                tmp = resolve_qname(s)
+                s = tmp if tmp is not None else Iri(s, validate=False)
                 if topnodes.get(s) is None:
                     topnodes[s] = {}
                 if topnodes[s].get(p) is None:
@@ -248,6 +271,7 @@ class ConstructProcessor:
         CONSTRUCT {{
             ?shape ?p ?o .
             ?prop ?pp ?oo .
+            ?path sh:inversePath ?inverse .
             ?listnode rdf:first ?item .
             ?listnode rdf:rest ?rest .
         }}
@@ -258,6 +282,7 @@ class ConstructProcessor:
                 OPTIONAL {{
                     ?shape sh:property ?prop .
                     ?prop ?pp ?oo .
+                    OPTIONAL {{ ?prop sh:path ?path . ?path sh:inversePath ?inverse . }}
                     OPTIONAL {{
                         ?prop ?pp ?list .
                         ?list rdf:rest* ?listnode .

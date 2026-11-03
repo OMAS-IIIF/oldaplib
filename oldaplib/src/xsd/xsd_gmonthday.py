@@ -25,6 +25,7 @@ class Xsd_gMonthDay(Xsd):
         Constructor of the Xsd_gMonthDay class
         :param value: Xsd_gMonthDay instance or valid string
         :type value: Xsd_gMonthDay | str
+        :param validate: Validate new input against XML Schema; skip for trusted RDF reads.
         :raises OldapErrorValue: if the value is not valid Xsd_gMonthDay representation
         """
         if isinstance(value, Xsd_gMonthDay):
@@ -32,7 +33,7 @@ class Xsd_gMonthDay(Xsd):
             self.__day = value.__day
             self.__tz = value.__tz
         else:
-            if not XsdValidator.validate(XsdDatatypes.gMonthDay, value):
+            if validate and not XsdValidator.validate(XsdDatatypes.gMonthDay, value):
                 raise OldapErrorValue(f'Invalid string "{value}" for xsd:gMonthDay')
             res = re.split("--([0-9]{2})-([0-9]{2})((([+-][0-9]{2}):([0-9]{2}))|(Z))?", value)
             if len(res) != 9:

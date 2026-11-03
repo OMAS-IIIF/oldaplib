@@ -17,6 +17,7 @@ from oldaplib.src.helpers.oldaperror import (
     OldapErrorConfiguration,
     OldapErrorNoPermission,
     OldapErrorNotFound,
+    OldapErrorInconsistency,
     OldapErrorValue,
 )
 from oldaplib.src.resource_transaction import resource_transaction, resource_query
@@ -241,6 +242,12 @@ def guard_publication(instance, operation, args, kwargs, policy, previous):
 class ArchivePublication(ArchiveRepository):
     """Authorize, review and atomically publish an explicitly requested resource."""
 
+    def _grant_pattern(self):
+        """Read grant values without exposing reifier identities in review hashes."""
+        if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+            return '?publicationGrant rdf:reifies <<( ?s oldap:attachedToRole ?role )>> ; oldap:hasDataPermission ?grant .'
+        return '<<?s oldap:attachedToRole ?role>> oldap:hasDataPermission ?grant'
+
     def _configured(self):
         policy = self._policy()
         if not policy.publication:
@@ -387,7 +394,7 @@ class ArchivePublication(ArchiveRepository):
         query = (
             policy.context.sparql_context + f"""SELECT ?s ?p ?o ?role ?grant WHERE {{
           GRAPH {graph} {{ VALUES ?s {{ {ids} }} ?s ?p ?o .
-          OPTIONAL {{ ?s oldap:attachedToRole ?role . <<?s oldap:attachedToRole ?role>> oldap:hasDataPermission ?grant }} }}
+          OPTIONAL {{ ?s oldap:attachedToRole ?role . {self._grant_pattern()} }} }}
         }}"""
         )
         rows = resource_query(self._con, query)["results"]["bindings"]
@@ -485,15 +492,35 @@ class ArchivePublication(ArchiveRepository):
                     if hasattr(grants[iri], "toRdf")
                     else grants[iri].value.toRdf
                 )
-                query = (
-                    context
-                    + f"""WITH {graph}
-                DELETE {{ {subject} {status} ?oldStatus ; oldap:lastModificationDate ?date ; oldap:lastModifiedBy ?actor .
-                  <<{subject} oldap:attachedToRole {public_role}>> oldap:hasDataPermission ?oldGrant . }}
-                INSERT {{ {subject} {status} {published} ; oldap:attachedToRole {public_role} ; oldap:lastModificationDate {timestamp} ; oldap:lastModifiedBy {self._con.userIri.toRdf} .
-                  <<{subject} oldap:attachedToRole {public_role}>> oldap:hasDataPermission {grant} . }}
-                WHERE {{ OPTIONAL {{ {subject} {status} ?oldStatus }} OPTIONAL {{ {subject} oldap:lastModificationDate ?date }} OPTIONAL {{ {subject} oldap:lastModifiedBy ?actor }} OPTIONAL {{ <<{subject} oldap:attachedToRole {public_role}>> oldap:hasDataPermission ?oldGrant }} }}"""
-                )
+                if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+                    from oldaplib.src.helpers.jena_permission_write import (
+                        clear_membership_annotations, permission_annotation, require_exclusive_reifiers,
+                    )
+                    # Do not edit a shared reifier: its permission could also
+                    # belong to another resource. Failure aborts this command.
+                    try:
+                        require_exclusive_reifiers(self._con, subject, ('oldap:attachedToRole',), graph=graph)
+                    except OldapErrorInconsistency as error:
+                        raise PublicationConflict('Separate shared permission reifiers before publication.') from error
+                    cleanup = clear_membership_annotations(subject, 'oldap:attachedToRole',
+                                                           graph=graph, target=public_role)
+                    annotation = permission_annotation(subject, 'oldap:attachedToRole', public_role, grant)
+                    query = context + cleanup + f""" ;
+                    WITH {graph}
+                    DELETE {{ {subject} {status} ?oldStatus ; oldap:lastModificationDate ?date ; oldap:lastModifiedBy ?actor . }}
+                    INSERT {{ {subject} {status} {published} ; oldap:attachedToRole {public_role} ; oldap:lastModificationDate {timestamp} ; oldap:lastModifiedBy {self._con.userIri.toRdf} . }}
+                    WHERE {{ OPTIONAL {{ {subject} {status} ?oldStatus }} OPTIONAL {{ {subject} oldap:lastModificationDate ?date }} OPTIONAL {{ {subject} oldap:lastModifiedBy ?actor }} }} ;
+                    INSERT DATA {{ GRAPH {graph} {{ {annotation} }} }}"""
+                else:
+                    query = (
+                        context
+                        + f"""WITH {graph}
+                    DELETE {{ {subject} {status} ?oldStatus ; oldap:lastModificationDate ?date ; oldap:lastModifiedBy ?actor .
+                      <<{subject} oldap:attachedToRole {public_role}>> oldap:hasDataPermission ?oldGrant . }}
+                    INSERT {{ {subject} {status} {published} ; oldap:attachedToRole {public_role} ; oldap:lastModificationDate {timestamp} ; oldap:lastModifiedBy {self._con.userIri.toRdf} .
+                      <<{subject} oldap:attachedToRole {public_role}>> oldap:hasDataPermission {grant} . }}
+                    WHERE {{ OPTIONAL {{ {subject} {status} ?oldStatus }} OPTIONAL {{ {subject} oldap:lastModificationDate ?date }} OPTIONAL {{ {subject} oldap:lastModifiedBy ?actor }} OPTIONAL {{ <<{subject} oldap:attachedToRole {public_role}>> oldap:hasDataPermission ?oldGrant }} }}"""
+                    )
                 self._con.transaction_update(query)
             result = {
                 "operationId": operation_id,
@@ -544,7 +571,7 @@ class ArchivePublication(ArchiveRepository):
         ids = ' '.join(_iri(iri).toRdf for iri in sorted(resources))
         rows = resource_query(self._con, policy.context.sparql_context + f'''SELECT ?s ?p ?o ?role ?grant WHERE {{
           GRAPH {self.project.projectShortName}:data {{ VALUES ?s {{ {ids} }} ?s ?p ?o .
-          OPTIONAL {{ ?s oldap:attachedToRole ?role . <<?s oldap:attachedToRole ?role>> oldap:hasDataPermission ?grant }} }}
+          OPTIONAL {{ ?s oldap:attachedToRole ?role . {self._grant_pattern()} }} }}
         }}''')['results']['bindings']
         rows.sort(key=lambda row: json.dumps(row, sort_keys=True))
         return _digest([definition, request, rows]), parent_iri in parents

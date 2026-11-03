@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from oldaplib.src.archive_policy import ArchiveConflict, ArchivePolicy, canonical_iri
 from oldaplib.src.enums.datapermissions import DataPermission
+from oldaplib.src.helpers.jena_entailment import CLASS_PATH, schema_dataset
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.oldaperror import (
@@ -72,6 +73,15 @@ def single(instance, prop):
     if len(items) > 1:
         raise ArchiveConflict(f"Multiple values for {prop}.")
     return next(iter(items), None)
+
+
+def _archive_level_query(policy, level):
+    """Validate vocabulary against the selected schemas on Jena, as in reads."""
+    dataset = ''
+    if getattr(policy.connection, '_resource_permissions_rdf12', False) is True:
+        dataset = f'FROM {policy.project.projectShortName}:onto FROM shared:onto FROM oldap:onto'
+    term = Iri(Xsd_anyURI(canonical_iri(policy.context, level))).toRdf
+    return policy.context.sparql_context + f'ASK {dataset} {{ {term} a shared:ArchiveLevel }}'
 
 
 def structural_state(instance):
@@ -188,13 +198,19 @@ def _folder_integrity(policy, instance, previous, operation):
         if parent is not None
         else "FILTER NOT EXISTS { ?other shared:inStagingFolder ?parent }"
     )
-    query = policy.context.sparql_context + f"""SELECT DISTINCT ?name WHERE {{
+    dataset = ''
+    class_pattern = '?folderClass rdfs:subClassOf* shared:StagingFolder .'
+    if getattr(policy.connection, '_resource_permissions_rdf12', False) is True:
+        project = instance.project.projectShortName
+        dataset = schema_dataset(policy.connection, project) + f' FROM NAMED {project}:data'
+        class_pattern = f'FILTER (?folderClass = shared:StagingFolder || EXISTS {{ ?folderClass {CLASS_PATH} shared:StagingFolder }})'
+    query = policy.context.sparql_context + f"""SELECT DISTINCT ?name {dataset} WHERE {{
         GRAPH {instance.project.projectShortName}:data {{
             ?other a ?folderClass ; shared:inStagingArea {Iri(Xsd_anyURI(canonical_iri(policy.context, area))).toRdf}; schema:name ?name .
             {parent_pattern}
             FILTER (?other != {instance.iri.toRdf})
         }}
-        ?folderClass rdfs:subClassOf* shared:StagingFolder .
+        {class_pattern}
     }}"""
     rows = resource_query(policy.connection, query)["results"]["bindings"]
     if any(name_key(row["name"]["value"]) == name for row in rows):
@@ -357,8 +373,7 @@ def guard_resource_operation(instance, operation, args, kwargs, policy):
                 level is None
                 or not resource_query(
                     policy.connection,
-                    policy.context.sparql_context
-                    + f"ASK {{ {Iri(Xsd_anyURI(canonical_iri(policy.context, level))).toRdf} a shared:ArchiveLevel }}",
+                    _archive_level_query(policy, level),
                 )["boolean"]
             ):
                 raise OldapErrorValue(

@@ -12,6 +12,7 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.dating import Dating
 from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.iri import Iri
 
 
 def run_search_checks(con, project, context, check):
@@ -27,6 +28,23 @@ def run_search_checks(con, project, context, check):
               and int(search(countOnly=True, **kwargs)) == len(expected))
 
     matches('Search and count omit denied/orphan/restricted/creator-only resources', ['test:cat', 'test:secondCat'])
+    # Extracting grant triple terms must never accept another predicate, a
+    # non-triple reification value, or a grant for someone else's role.
+    con.transaction_start()
+    try:
+        con.transaction_update(context.sparql_context + """INSERT DATA { GRAPH test:data {
+            test:wrongPredicate a test:Cat ; oldap:attachedToRole oldap:Reader .
+            test:nonTriple a test:Cat ; oldap:attachedToRole oldap:Reader .
+            test:wrongRole a test:Cat ; oldap:attachedToRole oldap:Reader .
+            <urn:wrong-predicate-grant> rdf:reifies <<( test:wrongPredicate test:unrelated oldap:Reader )>> ;
+                oldap:hasDataPermission oldap:DATA_VIEW .
+            <urn:non-triple-grant> rdf:reifies test:nonTriple ; oldap:hasDataPermission oldap:DATA_VIEW .
+            <urn:wrong-role-grant> rdf:reifies <<( test:wrongRole oldap:attachedToRole test:unheldRole )>> ;
+                oldap:hasDataPermission oldap:DATA_VIEW .
+        } }""")
+        matches('Grant extraction rejects unrelated terms and roles', ['test:cat', 'test:secondCat'])
+    finally:
+        con.transaction_abort()
     matches('Superclass search follows project ontology while keeping asserted classes',
             ['test:cat', 'test:secondCat'], resClass='test:Mammal')
     check('Superclass search returns concrete asserted result classes',
@@ -103,11 +121,72 @@ GRAPH <urn:other-project:data> { test:secondCat test:subName "Outside" . }
                     SearchFilter('test:name', CompOp.EQ, Xsd_string('Zora'))])
     matches('Dating overlap uses scoped normalized dates', ['test:cat'],
             filter=[SearchFilter('test:writtenAt', CompOp.OVERLAPS, Dating('1250'))])
+    # A century-wide stored interval exercises inclusive overlap boundaries,
+    # strict before/after, and normalized equality independently of display text.
+    for op, value, expected in (
+        (CompOp.OVERLAPS, Dating('1299'), ['test:cat']),
+        (CompOp.OVERLAPS, Dating('1300'), []),
+        (CompOp.BEFORE, Dating('1300'), ['test:cat']),
+        (CompOp.AFTER, Dating('1199'), ['test:cat']),
+        (CompOp.EQ, Dating('1200', '1299'), ['test:cat']),
+        (CompOp.NE, Dating('1250'), ['test:cat']),
+    ):
+        matches('Dating operator ' + op.value + ' keeps scoped count/result semantics', expected,
+                filter=[SearchFilter('test:writtenAt', op, value)])
     check('Dating sort puts missing dates last',
           ids(search(sortBy=[SortBy('test:writtenAt', kind='dating')])) == ['test:cat', 'test:secondCat'])
+    check('Counts ignore missing/multivalued sort keys and pagination',
+          all(int(search(countOnly=True, sortBy=sorts, limit=1, offset=100)) == 2
+              for sorts in ([SortBy('test:name', 'desc')],
+                            [SortBy('test:writtenAt', kind='dating')],
+                            [SortBy('test:subName'), SortBy('test:writtenAt', kind='dating')])))
     try:
-        search(ftfilter=[FTSearchFilter('name', 'Minka')])
+        search(ftfilter=[FTSearchFilter('unknownField', 'Minka')])
     except OldapErrorValue as error:
-        check('Unimplemented Jena full-text reports a clear error', 'not implemented' in str(error))
+        check('Unconfigured Jena text field reports a clear error', 'Unknown' in str(error))
     else:
-        raise AssertionError('Unsupported full-text silently accepted')
+        raise AssertionError('Unknown full-text field silently accepted')
+
+    # All changes below belong to this transaction and are rolled back. Both
+    # matching and denied resources share the target; two subproperty paths
+    # exercise candidate deduplication without bypassing the original ACLs.
+    con.transaction_start()
+    try:
+        con.transaction_update(context.sparql_context + """INSERT DATA {
+          GRAPH test:onto { test:childLink rdfs:subPropertyOf test:parentLink . }
+          GRAPH test:data {
+            test:cat test:parentLink test:target ; test:childLink test:target .
+            test:secondCat test:childLink test:target .
+            test:denied test:parentLink test:target .
+          }
+          GRAPH <urn:other-project:data> { test:cat test:parentLink test:foreignTarget . }
+        }""")
+        relation = SearchFilter('test:parentLink', CompOp.EQ, Iri('test:target'))
+        matches('Candidate relationship retains permissions and deduplicates paths',
+                ['test:cat', 'test:secondCat'], filter=[relation])
+        matches('QName relationship values retain result/count agreement',
+                ['test:cat', 'test:secondCat'], filter=[SearchFilter('test:parentLink', CompOp.EQ, Xsd_QName('test:target'))])
+        matches('Candidate AND keeps the remaining comparison', ['test:cat'],
+                filter=[relation, LogicOp.AND, SearchFilter('test:name', CompOp.EQ, Xsd_string('Minka'))])
+        matches('Candidate AND preserves absence semantics', ['test:secondCat'],
+                filter=[relation, LogicOp.AND, SearchFilter('test:subName', CompOp.NOT_EXISTS, Xsd_QName('test:subName'))])
+        missing = SearchFilter('test:parentLink', CompOp.EQ, Iri('test:missing'))
+        matches('OR must not require a relationship from one alternative', ['test:secondCat'],
+                filter=[missing, LogicOp.OR, SearchFilter('test:name', CompOp.EQ, Xsd_string('Zora'))])
+        matches('Grouped OR must not narrow a conjunctive search incorrectly', ['test:cat'],
+                filter=[LogicOp.LEFT_, missing, LogicOp.OR,
+                        SearchFilter('test:name', CompOp.EQ, Xsd_string('Minka')), LogicOp._RIGHT,
+                        LogicOp.AND, relation])
+        matches('Candidate relationship cannot read foreign project values', [],
+                filter=[SearchFilter('test:parentLink', CompOp.EQ, Iri('test:foreignTarget'))])
+        check('Candidate sorted pages keep distinct resources and total count',
+              ids(search(filter=[relation], sortBy=[SortBy('test:name')], limit=1)) == ['test:cat']
+              and ids(search(filter=[relation], sortBy=[SortBy('test:name')], limit=1, offset=1)) == ['test:secondCat']
+              and int(search(filter=[relation], countOnly=True, limit=1, offset=1)) == 2)
+        con.transaction_update(context.sparql_context + """DELETE WHERE {
+          GRAPH test:data { test:secondCat oldap:attachedToRole ?role }
+        }""")
+        matches('Candidate search immediately observes membership revocation', ['test:cat'], filter=[relation])
+    finally:
+        con.transaction_abort()
+    matches('Candidate search does not retain rolled-back relationships', [], filter=[relation])

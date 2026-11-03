@@ -440,7 +440,7 @@ class ObservableSet(Notify):
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
+                sparql += f'{blank:{(indent + 1) * indent_inc}}?prop (sh:path|oldap:field) {prop_iri.toRdf} .\n'
             else:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop) .\n'
             sparql += f'{blank:{(indent + 1) * indent_inc}}?prop dcterms:modified ?modified .\n'

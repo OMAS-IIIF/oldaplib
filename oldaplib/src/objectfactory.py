@@ -19,6 +19,7 @@ from oldaplib.src.enums.propertyclassattr import PropClassAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.jena_entailment import CLASS_PATH, schema_dataset, property_pattern, class_choices
 from oldaplib.src.helpers.construct_processor import ConstructProcessor, ConstructResultDict
 from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.langstring import LangString
@@ -33,7 +34,7 @@ from oldaplib.src.oldaplist import OldapList
 from oldaplib.src.oldaplistnode import OldapListNode
 from oldaplib.src.project import Project, reuse_project_reads
 from oldaplib.src.propertyclass import PropertyClass
-from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.resourceclass import ResourceClass, reuse_resource_class_reads
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.dating import Dating
@@ -619,6 +620,9 @@ def _resource_data_from_construct(
             _convert_construct_value(item, None, construct_data, dating_cache)
             for item in _construct_values(resource_data, predicate)
         ]
+        prop = allowed_properties.get(predicate) if allowed_properties else None
+        if prop is not None and prop.inversePath is not None and prop.maxCount is not None and len(values) > int(prop.maxCount):
+            raise OldapErrorInconsistency(f'Inverse field {predicate} exceeds maxCount={prop.maxCount}; no value was selected arbitrarily.')
         data[str(predicate)] = values
     if not data.get('rdf:type'):
         raise OldapErrorNotFound(f'Resource with iri <{iri}> not found.')
@@ -745,8 +749,8 @@ def _build_resource_read_query(con: IConnection,
                              include_creator: bool, rdf12: bool = False) -> str:
     """Build a shared single-resource read with explicit backend syntax.
 
-    RDF 1.2 reads use asserted project data and derive superclass types only
-    from the project/shared/system ontology graphs. This bounded entailment is
+    RDF 1.2 reads add declared inverse properties, modeled superproperties and class ancestry
+    from project/shared/system schemas and registered vocabularies. This entailment is
     not a replacement for a complete OWL reasoner. GraphDB retains its default
     graph and existing inferred-type behavior.
     """
@@ -762,16 +766,18 @@ def _build_resource_read_query(con: IConnection,
     )
     # Keep Jena data scoped to this project. Merge only the schema graphs for
     # subclass paths; do not merge arbitrary projects or internal receipt data.
-    triples = (f"GRAPH {graph}:data {{ {iri.toRdf} ?predicate ?value . }}" if rdf12
+    triples = (property_pattern(graph, iri.toRdf, "?predicate", "?value", alias="read",
+                                expand_subproperties=True, modeled_only=True) if rdf12
                else f"{iri.toRdf} ?predicate ?value .")
     annotation = (f"?read_grant rdf:reifies <<( {iri.toRdf} oldap:attachedToRole ?attachedRole )>> ; oldap:hasDataPermission ?attachedDataperm ."
                   if rdf12 else f"<< {iri.toRdf} oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .")
-    dataset = (f"FROM {graph}:onto FROM shared:onto FROM oldap:onto "
-               f"FROM NAMED {graph}:data FROM NAMED oldap:admin" if rdf12 else "")
+    dataset = (schema_dataset(con, graph) + " "
+               f"FROM NAMED {graph}:data FROM NAMED oldap:admin "
+               f"FROM NAMED {graph}:shacl FROM NAMED shared:shacl FROM NAMED oldap:shacl" if rdf12 else "")
     inferred_triple = f"{iri.toRdf} rdf:type ?inferredType ." if rdf12 else ""
     hierarchy = (f"""OPTIONAL {{
         GRAPH {graph}:data {{ {iri.toRdf} a ?directType . }}
-        ?directType rdfs:subClassOf+ ?inferredType .
+        ?directType {CLASS_PATH} ?inferredType .
         FILTER(isIRI(?inferredType))
     }}""" if rdf12 else "")
     sparql = context.sparql_context
@@ -788,7 +794,7 @@ def _build_resource_read_query(con: IConnection,
     {dataset}
     WHERE {{
         {access_block}
-        {triples}
+        {{ {triples} }}
         {hierarchy}
         OPTIONAL {{
             GRAPH {graph}:data {{
@@ -851,16 +857,46 @@ def _build_resource_summaries_query(
     role_annotation = (
         "?summary_role_grant rdf:reifies <<( ?resource oldap:attachedToRole ?attachedRole )>> ; oldap:hasDataPermission ?attachedDataperm ."
         if rdf12 else "<< ?resource oldap:attachedToRole ?attachedRole >> oldap:hasDataPermission ?attachedDataperm .")
-    triples = (f"GRAPH {graph}:data {{ ?resource ?predicate ?value . }}" if rdf12
+    triples = (property_pattern(graph, "?resource", "?predicate", "?value", alias="summary",
+                                expand_subproperties=True, modeled_only=True) if rdf12
                else "?resource ?predicate ?value .")
-    dataset = (f"FROM {graph}:onto FROM shared:onto FROM oldap:onto "
-               f"FROM NAMED {graph}:data FROM NAMED oldap:admin" if rdf12 else "")
+    dataset = (schema_dataset(con, graph) + " "
+               f"FROM NAMED {graph}:data FROM NAMED oldap:admin "
+               f"FROM NAMED {graph}:shacl FROM NAMED shared:shacl FROM NAMED oldap:shacl" if rdf12 else "")
     inferred_triple = "?resource rdf:type ?inferredType ." if rdf12 else ""
     hierarchy = (f"""OPTIONAL {{
         GRAPH {graph}:data {{ ?resource a ?directType . }}
-        ?directType rdfs:subClassOf+ ?inferredType .
+        ?directType {CLASS_PATH} ?inferredType .
         FILTER(isIRI(?inferredType))
     }}""" if rdf12 else "")
+    # Build the permission-pair nodes before joining properties and ancestor
+    # types. Otherwise each joined row allocates another blank node for the
+    # same grant, inflating the JSON-LD graph without adding information.
+    # The bounded VALUES list makes this subquery independent of outer bindings;
+    # outer access checks still decide which resources may be returned.
+    role_bindings = f"""
+        OPTIONAL {{
+            SELECT ?resource ?attachedRole ?attachedDataperm (BNODE() AS ?permBinding)
+            WHERE {{
+                VALUES ?resource {{ {resource_values} }}
+                GRAPH {graph}:data {{
+                    ?resource oldap:attachedToRole ?attachedRole .
+                    {role_annotation}
+                }}
+            }}
+        }}
+    """ if rdf12 else f"""
+        OPTIONAL {{
+            GRAPH {graph}:data {{
+                ?resource oldap:attachedToRole ?attachedRole .
+                {role_annotation}
+            }}
+            # Bind each role/permission pair to its own stable blank node.
+            # GraphDB may evaluate an uncorrelated BNODE() before the role join,
+            # merging distinct grants and losing their association on read.
+            BIND(BNODE(CONCAT(STR(?attachedRole), "|", STR(?attachedDataperm))) AS ?permBinding)
+        }}
+    """
     sparql = context.sparql_context
     sparql += textwrap.dedent(f'''
     CONSTRUCT {{
@@ -893,23 +929,14 @@ def _build_resource_summaries_query(
             }}
         }}
         VALUES ?predicate {{ {predicate_values} }}
-        {triples}
+        {{ {triples} }}
         {hierarchy}
         OPTIONAL {{
             GRAPH {graph}:data {{
                 ?resource a ?assertedType .
             }}
         }}
-        OPTIONAL {{
-            GRAPH {graph}:data {{
-                ?resource oldap:attachedToRole ?attachedRole .
-                {role_annotation}
-            }}
-            # Bind each role/permission pair to its own stable blank node.
-            # GraphDB may evaluate an uncorrelated BNODE() before the role join,
-            # merging distinct grants and losing their association on read.
-            BIND(BNODE(CONCAT(STR(?attachedRole), "|", STR(?attachedDataperm))) AS ?permBinding)
-        }}
+        {role_bindings}
         OPTIONAL {{
             GRAPH {graph}:data {{
                 ?resource ?predicate ?value .
@@ -1681,7 +1708,15 @@ class ResourceInstance:
 
 
     def get_data_permission(self, permission: DataPermission) -> bool:
+        """Check creator access or an asserted role grant in this project graph.
+
+        Reads the active transaction when present, so preceding permission
+        changes and the following mutation share one consistent view.
+        """
         context = Context(name=self._con.context_name)
+        annotation = f'<<{self._iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .'
+        if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+            annotation = f'?grant rdf:reifies <<( {self._iri.toRdf} oldap:attachedToRole ?role )>> ; oldap:hasDataPermission ?dataperm .'
         permission_query = context.sparql_context
         permission_query += textwrap.dedent(f'''
         ASK {{
@@ -1699,7 +1734,7 @@ class ResourceInstance:
                 }}
                 GRAPH {self._graph}:data {{
                     {self._iri.toRdf} oldap:attachedToRole ?role .
-                    <<{self._iri.toRdf} oldap:attachedToRole ?role>> oldap:hasDataPermission ?dataperm .
+                    {annotation}
                 }}
             }}
         }}''')
@@ -1732,6 +1767,9 @@ class ResourceInstance:
         :raises OldapErrorAlreadyExists: If a resource with the same IRI already exists.
         :raises OldapError: For errors encountered during the SPARQL transaction execution.
         """
+        for field, prop in self.resolved_properties().items():
+            if prop.inversePath is not None and self._values.get(field):
+                raise OldapErrorValue(f'{field} is a read-only inverse field; write {prop.inversePath} on the linked resource.')
         result, message = self.check_for_permissions(AdminPermission.ADMIN_CREATE)
         if not result:
             raise OldapErrorNoPermission(message)
@@ -1774,7 +1812,13 @@ class ResourceInstance:
             else:
                 sparql += f' ;\n{blank:{(indent + 3) * indent_inc}}{prop_iri.toRdf} {values.toRdf}'
         for role, dperm in self._attached_roles.items():
-            sparql += f' .\n{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} oldap:attachedToRole {role.toRdf}>> oldap:hasDataPermission {dperm.toRdf}'
+            if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+                from oldaplib.src.helpers.jena_permission_write import permission_annotation
+                annotation = permission_annotation(self._iri.toRdf, 'oldap:attachedToRole', role.toRdf, dperm.toRdf)
+                # The surrounding INSERT builder supplies the final period.
+                sparql += ' .\n' + annotation.rstrip().removesuffix('.')
+            else:
+                sparql += f' .\n{blank:{(indent + 2) * indent_inc}}<<{self._iri.toRdf} oldap:attachedToRole {role.toRdf}>> oldap:hasDataPermission {dperm.toRdf}'
 
         sparql += f' .\n{blank:{(indent + 1) * indent_inc}}}}\n'
         sparql += f'{blank:{indent * indent_inc}}}}\n'
@@ -1853,6 +1897,10 @@ class ResourceInstance:
         :return: None
         :rtype: None
         """
+        for field in self._changeset:
+            prop = self.properties.get(field)
+            if prop is not None and prop.inversePath is not None:
+                raise OldapErrorValue(f'{field} is a read-only inverse field; write {prop.inversePath} on the linked resource.')
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
         context = Context(name=self._con.context_name)
@@ -1907,6 +1955,12 @@ class ResourceInstance:
 
         for field, change in self._changeset.items():
             if field == 'oldap:attachedToRole':
+                if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+                    from oldaplib.src.helpers.jena_permission_write import replace_memberships
+                    mapping = {role.toRdf: [permission.toRdf] for role, permission in self._attached_roles.items()}
+                    sparql_list.append(replace_memberships(self._iri.toRdf, 'oldap:attachedToRole', mapping,
+                                                          graph=f'{self._graph}:data'))
+                    continue
                 sparql = f'# Processing field "{field}"\n'
                 add_sparql = False
                 if (change.action == Action.DELETE or change.action == Action.REPLACE) and len(change.old_value) > 0:
@@ -2044,6 +2098,10 @@ class ResourceInstance:
                 if inuse and self._con.transaction_query(inuse)['boolean']:
                     raise OldapErrorInUse(
                         f'Dating value of property "{field}" cannot be deleted because another Dating value refers to it with oldap:before.')
+        if (getattr(self._con, '_resource_permissions_rdf12', False) is True
+                and Xsd_QName('oldap:attachedToRole') in self._changeset):
+            from oldaplib.src.helpers.jena_permission_write import require_exclusive_reifiers
+            require_exclusive_reifiers(self._con, self._iri.toRdf, ('oldap:attachedToRole',), graph=f'{self._graph}:data')
         self._con.transaction_update(sparql)
         self._con.transaction_update(modtime_update)
         jsonobj = self._con.transaction_query(modtime_get)
@@ -2338,24 +2396,30 @@ class ResourceInstance:
             sparql_updates.append(sparql)
 
         if attached_to_role is not None:
-            sparql = context.sparql_context
-            sparql += textwrap.dedent(f'''
-            DELETE WHERE {{
-                GRAPH {self._graph}:data {{
-                    {self._iri.toRdf} oldap:attachedToRole ?role .
-                    << {self._iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
-                }}
-            }}
-            ''')
-            sparql_updates.append(sparql)
-            if target_attached_roles:
+            if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+                from oldaplib.src.helpers.jena_permission_write import replace_memberships
+                mapping = {role.toRdf: [permission.toRdf] for role, permission in target_attached_roles.items()}
+                sparql_updates.append(context.sparql_context + replace_memberships(
+                    self._iri.toRdf, 'oldap:attachedToRole', mapping, graph=f'{self._graph}:data'))
+            else:
                 sparql = context.sparql_context
-                sparql += f'INSERT DATA {{\n    GRAPH {self._graph}:data {{'
-                for role, dperm in target_attached_roles.items():
-                    sparql += f'\n        {self._iri.toRdf} oldap:attachedToRole {role.toRdf} .'
-                    sparql += f'\n        << {self._iri.toRdf} oldap:attachedToRole {role.toRdf} >> oldap:hasDataPermission {dperm.toRdf} .'
-                sparql += '\n    }\n}\n'
+                sparql += textwrap.dedent(f'''
+                DELETE WHERE {{
+                    GRAPH {self._graph}:data {{
+                        {self._iri.toRdf} oldap:attachedToRole ?role .
+                        << {self._iri.toRdf} oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .
+                    }}
+                }}
+                ''')
                 sparql_updates.append(sparql)
+                if target_attached_roles:
+                    sparql = context.sparql_context
+                    sparql += f'INSERT DATA {{\n    GRAPH {self._graph}:data {{'
+                    for role, dperm in target_attached_roles.items():
+                        sparql += f'\n        {self._iri.toRdf} oldap:attachedToRole {role.toRdf} .'
+                        sparql += f'\n        << {self._iri.toRdf} oldap:attachedToRole {role.toRdf} >> oldap:hasDataPermission {dperm.toRdf} .'
+                    sparql += '\n    }\n}\n'
+                    sparql_updates.append(sparql)
 
         sparql = context.sparql_context
         sparql += textwrap.dedent(f'''
@@ -2411,6 +2475,9 @@ class ResourceInstance:
             link_admin_resources, _ = link_source.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
             if not link_admin_resources and not link_source.get_data_permission(DataPermission.DATA_UPDATE):
                 raise OldapErrorNoPermission(f'No permission to update linked resource "{link_source._iri}"')
+        if attached_to_role is not None and getattr(self._con, '_resource_permissions_rdf12', False) is True:
+            from oldaplib.src.helpers.jena_permission_write import require_exclusive_reifiers
+            require_exclusive_reifiers(self._con, self._iri.toRdf, ('oldap:attachedToRole',), graph=f'{self._graph}:data')
         for sparql_update in sparql_updates:
             self._con.transaction_update(sparql_update)
 
@@ -2477,6 +2544,12 @@ class ResourceInstance:
         result = self._con.transaction_query(inuse)
         if result['boolean']:
             raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
+        if getattr(self._con, '_resource_permissions_rdf12', False) is True:
+            from oldaplib.src.helpers.jena_permission_write import clear_membership_annotations, require_exclusive_reifiers
+            require_exclusive_reifiers(self._con, self._iri.toRdf, ('oldap:attachedToRole',), graph=f'{self._graph}:data')
+            sparql = context.sparql_context + clear_membership_annotations(
+                self._iri.toRdf, 'oldap:attachedToRole', graph=f'{self._graph}:data')
+            sparql += f' ; DELETE WHERE {{ GRAPH {self._graph}:data {{ {self._iri.toRdf} ?predicate ?value }} }}'
         self._con.transaction_update(sparql)
 
     @staticmethod
@@ -2630,13 +2703,13 @@ class ResourceInstance:
         Returns:
             The number of distinct root resources when `countOnly` is true;
             otherwise a list of result dictionaries for the selected root
-            resources.
+            resources. Counts ignore pagination and do not fetch sort values.
+            Result pages use the resource IRI to break sorting ties, and expand
+            projected properties only after selecting the page.
         """
         # Internal opt-in for the migration connection; ordinary connections
         # retain GraphDB's query dialect and inferred default graph.
         rdf12 = getattr(con, '_resource_search_rdf12', False) is True
-        if rdf12 and ftfilter:
-            raise OldapErrorValue('Jena full-text search is not implemented yet.')
 
         if not resClass and not filter and not ftfilter and not hlfilter:
             raise OldapErrorValue('Search without filters requires resClass.')
@@ -2648,6 +2721,11 @@ class ResourceInstance:
             project_obj = project
 
         graph = project_obj.projectShortName
+        # Validate backend field/query support before model/list reads or a
+        # search request. GraphDB retains its connector expression unchanged.
+        fulltext_pattern = (con._resource_fulltext_pattern(graph, ftfilter, 'score_raw')
+                            if rdf12 and ftfilter else None)
+
         if resClass:
             if not isinstance(resClass, Xsd_QName):
                 _resClass = Xsd_QName(resClass, validate=True)
@@ -2678,6 +2756,11 @@ class ResourceInstance:
         sparql = context.sparql_context
         sparql_vars: set[tuple[str,str]] = {('res', 'res'), ('resclass', 'resclass')}
         dating_filter_props = {f.prop for f in filter or [] if isinstance(f, SearchFilter) and isinstance(f.value, Dating)}
+        # Both candidate generation and ACL planning use this same decision.
+        relationship_candidate = (next((f for f in filter
+                                        if isinstance(f, SearchFilter) and f.op == CompOp.EQ
+                                        and isinstance(f.value, (Iri, Xsd_QName))), None)
+                                  if rdf12 and filter and LogicOp.OR not in filter else None)
 
         def sparql_comp_op(op: CompOp) -> str:
             match op:
@@ -2717,22 +2800,58 @@ class ResourceInstance:
                 if not includeProperties or s.property not in includeProperties:
                     sparql_vars.add((f'{s.property.fragment}', str(s.property)))
 
-        def data_pattern(pattern: str) -> str:
-            """Scope Jena property matches without mixing data and schema graphs."""
-            return f'GRAPH {graph}:data {{ {pattern} }}' if rdf12 else pattern
+        property_match_index = 0
+
+        def data_pattern(subject: str, predicate: str, value: str) -> str:
+            """Use the same subproperty/inverse semantics for filters and sort keys."""
+            nonlocal property_match_index
+            if not rdf12:
+                return f'{subject} {predicate} {value} .'
+            property_match_index += 1
+            pattern = property_pattern(graph, subject, predicate, value,
+                                       alias=f'search_value_{property_match_index}', expand_subproperties=True)
+            return '{ ' + pattern + ' }'
 
         def class_pattern(subject: str, target: str, type_var: str) -> str:
             """Match asserted classes or their ancestors in the selected schemas."""
             if not rdf12:
                 return f'{subject} rdf:type {target} .'
-            return (data_pattern(f'{subject} rdf:type {type_var} .')
-                    + f' {type_var} rdfs:subClassOf* {target} .')
+            # Direct types must match even when the selected schema graphs do
+            # not mention that class (for example an external project class).
+            return (data_pattern(subject, 'rdf:type', type_var)
+                    + f' FILTER({type_var} = {target} || EXISTS {{ {type_var} {CLASS_PATH} {target} }})')
 
-        dataset = (f'\nFROM {graph}:onto FROM shared:onto FROM oldap:onto '
-                   f'FROM NAMED {graph}:data FROM NAMED oldap:admin FROM NAMED {graph}:lists'
+        dataset = ('\n' + schema_dataset(con, graph) + ' '
+                   f'FROM NAMED {graph}:data FROM NAMED oldap:admin FROM NAMED {graph}:lists '
+                   f'FROM NAMED {graph}:shacl FROM NAMED shared:shacl FROM NAMED oldap:shacl'
                    if rdf12 else '')
 
         def append_access_patterns(parts: list[str], level: int, resclass_var: str) -> None:
+            """Require current role membership and a matching readable grant."""
+            if rdf12 and not ftfilter and relationship_candidate is None:
+                # Broad metadata searches should read each grant once. Matching
+                # a partially bound triple term repeats grant scans in ARQ.
+                # The isolated subquery lets us extract its resource/role first;
+                # DISTINCT also collapses multiple grants before date/property joins.
+                # Text/relationship searches already supply candidates and retain
+                # their direct lookup below. Never infer asserted membership.
+                parts.append(f"""
+{' ' * (level * indent_inc)}{{ SELECT DISTINCT ?res {resclass_var} WHERE {{
+    GRAPH oldap:admin {{
+        {con.userIri.toRdf} oldap:hasRole ?role .
+        ?DataPermission oldap:permissionValue ?permval .
+        FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
+    }}
+    GRAPH {graph}:data {{
+        ?searchGrant rdf:reifies ?accessTriple ; oldap:hasDataPermission ?DataPermission .
+        FILTER(isTRIPLE(?accessTriple) && PREDICATE(?accessTriple) = oldap:attachedToRole)
+        BIND(SUBJECT(?accessTriple) AS ?res)
+        BIND(OBJECT(?accessTriple) AS ?grantedRole)
+        FILTER(?grantedRole = ?role)
+        ?res oldap:attachedToRole ?role ; rdf:type {resclass_var} .
+    }}
+}} }}""")
+                return
             parts.append(f'\n{blank:{level * indent_inc}}GRAPH oldap:admin {{')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}{con.userIri.toRdf} oldap:hasRole ?role .')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}?DataPermission oldap:permissionValue ?permval .')
@@ -2745,7 +2864,7 @@ class ResourceInstance:
                           if rdf12 else '<< ?res oldap:attachedToRole ?role >> oldap:hasDataPermission ?DataPermission .')
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}{annotation}')
             parts.append(f'\n{blank:{level * indent_inc}}}}')
-            if _resClass:
+            if _resClass and not rdf12:
                 parts.append(f'\n{blank:{level * indent_inc}}{class_pattern("?res", _resClass.toRdf, "?filterType")}')
 
         def append_linked_access_patterns(parts: list[str], level: int, linked_var: str, filter_index: int) -> None:
@@ -2801,7 +2920,7 @@ class ResourceInstance:
                     # An absent/denied link is not a readable linked resource
                     # with a missing property. Keep that distinction in ORs.
                     parts.append(f'BOUND(?{subject_var}) && ')
-                parts.append(f'NOT EXISTS {{ {data_pattern(f"?{subject_var} {predicate.toRdf} ?{value_var}")} }}')
+                parts.append(f'NOT EXISTS {{ {data_pattern(f"?{subject_var}", f"{predicate.toRdf}", f"?{value_var}")} }}')
             elif f.op in {CompOp.EQ, CompOp.GT, CompOp.GE, CompOp.LT, CompOp.LE, CompOp.NE}:
                 op = sparql_comp_op(f.op)
                 if isinstance(f.value, Xsd_string) and f.value.lang:
@@ -2839,26 +2958,26 @@ class ResourceInstance:
                     linked_var = f'linked_{filter_index}'
                     value_var = f'linked_{filter_index}_{f.prop.fragment}'
                     parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?res {f.linkProp.toRdf} ?{linked_var} .")}')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern("?res", f"{f.linkProp.toRdf}", f"?{linked_var}")}')
                     if f.linkedClass:
                         parts.append(f'\n{blank:{(level + 1) * indent_inc}}{class_pattern(f"?{linked_var}", f.linkedClass.toRdf, f"?linked_{filter_index}_type")}')
                     if f.checkLinkedPermissions:
                         append_linked_access_patterns(parts, level + 1, linked_var, filter_index)
                     if isinstance(f.value, Dating):
                         dating_var = f'{value_var}_dating'
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{linked_var} {f.prop.toRdf} ?{dating_var} .")}')
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedStart ?{dating_var}_start .")}')
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedEnd ?{dating_var}_end .")}')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{linked_var}", f"{f.prop.toRdf}", f"?{dating_var}")}')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_var}", "oldap:normalizedStart", f"?{dating_var}_start")}')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_var}", "oldap:normalizedEnd", f"?{dating_var}_end")}')
                     elif f.op != CompOp.NOT_EXISTS:
-                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{linked_var} {f.prop.toRdf} ?{value_var} .")}')
+                        parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{linked_var}", f"{f.prop.toRdf}", f"?{value_var}")}')
                     parts.append(f'\n{blank:{level * indent_inc}}}}')
                 elif isinstance(f.value, Dating):
                     dating_var = f'{f.prop.fragment}_dating_{filter_index}'
-                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?res {f.prop.toRdf} ?{dating_var} .")}')
-                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedStart ?{dating_var}_start .")}')
-                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?{dating_var} oldap:normalizedEnd ?{dating_var}_end .")}')
+                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern("?res", f"{f.prop.toRdf}", f"?{dating_var}")}')
+                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?{dating_var}", "oldap:normalizedStart", f"?{dating_var}_start")}')
+                    parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?{dating_var}", "oldap:normalizedEnd", f"?{dating_var}_end")}')
                 else:
-                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ {data_pattern(f"?res {f.prop.toRdf} ?{f.prop.fragment}")} }}.')
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ {data_pattern("?res", f"{f.prop.toRdf}", f"?{f.prop.fragment}")} }}.')
             parts.append(f'\n{blank:{level * indent_inc}}FILTER(')
             langfilters: list[str] = []
             for filter_index, f in enumerate(filter):
@@ -2915,7 +3034,7 @@ class ResourceInstance:
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
                     continue
-                parts.append(f'\n{blank:{level * indent_inc}}{data_pattern(f"?res {hlf.prop.toRdf} ?{hlf.prop.fragment} .")}')
+                parts.append(f'\n{blank:{level * indent_inc}}{data_pattern("?res", f"{hlf.prop.toRdf}", f"?{hlf.prop.fragment}")}')
             parts.append(f'\n{blank:{level * indent_inc}}GRAPH {graph}:lists {{')
             for hlf in hlfilter:
                 if isinstance(hlf, LogicOp):
@@ -2938,6 +3057,9 @@ class ResourceInstance:
         def append_ft_patterns(parts: list[str], level: int, score_var: str = 'score') -> None:
             if not ftfilter:
                 return
+            if fulltext_pattern is not None:
+                parts.append(fulltext_pattern)
+                return
             parts.append(f'\n{blank:{level * indent_inc}}?search a inst:{str(project_obj.projectShortName)} ;')
             fields = _lucene_query_fields(ftfilter)
             parts.append(f'\n{blank:{(level + 1) * indent_inc}}luc:query "{fields}" ;')
@@ -2951,12 +3073,12 @@ class ResourceInstance:
                 if is_dating_sort(s):
                     dating_sort_var = f'sort_{sort_index}_dating'
                     parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?res {s.property.toRdf} ?{dating_sort_var} .")}')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_sort_var} oldap:normalizedStart ?sort_{sort_index}_start_raw .")}')
-                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_sort_var} oldap:normalizedEnd ?sort_{sort_index}_end_raw .")}')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern("?res", f"{s.property.toRdf}", f"?{dating_sort_var}")}')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_sort_var}", "oldap:normalizedStart", f"?sort_{sort_index}_start_raw")}')
+                    parts.append(f'\n{blank:{(level + 1) * indent_inc}}{data_pattern(f"?{dating_sort_var}", "oldap:normalizedEnd", f"?sort_{sort_index}_end_raw")}')
                     parts.append(f'\n{blank:{level * indent_inc}}}}')
                 else:
-                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ {data_pattern(f"?res {s.property.toRdf} ?sort_{sort_index}_raw")} }} .')
+                    parts.append(f'\n{blank:{level * indent_inc}}OPTIONAL {{ {data_pattern("?res", f"{s.property.toRdf}", f"?sort_{sort_index}_raw")} }} .')
 
         def resource_order_by() -> str:
             order_parts: list[str] = []
@@ -2976,12 +3098,47 @@ class ResourceInstance:
             order_parts.append('ASC(STR(?res))')
             return ' '.join(order_parts)
 
+        def append_relationship_candidates(parts: list[str], level: int) -> None:
+            """Narrow Jena searches before ACL joins using one required IRI match.
+
+            A conjunctive root EQ condition is a necessary condition for every
+            result. Evaluate it independently, projecting only distinct resource
+            IRIs so duplicate property paths cannot multiply later joins. Keep
+            the original filters and access checks as the final authority.
+            OR expressions and linked-resource filters deliberately use the
+            existing path: their conditions need not hold for every result.
+            """
+            candidate = relationship_candidate
+            if candidate is None:
+                return
+            # Reuse the normal property rules, including subproperties and
+            # protected predicates. No inferred relationship grants access.
+            pattern = data_pattern('?res', candidate.prop.toRdf, candidate.value.toRdf)
+            parts.append(f'\n{blank:{level * indent_inc}}{{ SELECT DISTINCT ?res WHERE {{ {pattern} }} }}')
+
         def append_resource_match(parts: list[str], level: int, resclass_var: str = '?searchResclass') -> None:
+            # Resolve the small class set before *any* resource bindings,
+            # including relationship candidates. Otherwise ARQ can repeat the
+            # independent class scan for each child in a large result set.
+            if rdf12 and _resClass:
+                parts.append('\n' + class_choices(resclass_var, _resClass.toRdf, f'{graph}:data'))
+            append_relationship_candidates(parts, level)
+            # Let the text index supply candidates before checking root access.
+            # Otherwise ARQ repeats text lookups for already-bound resources.
+            # Referenced-text permissions remain inside the text pattern; root
+            # permissions and all filters still run before scoring/paging.
+            if fulltext_pattern is not None:
+                append_ft_patterns(parts, level, 'score_raw')
             append_access_patterns(parts, level, resclass_var)
             append_filter_patterns(parts, level)
             append_hlist_patterns(parts, level)
-            append_ft_patterns(parts, level, 'score_raw')
-            append_sort_bindings(parts, level)
+            if fulltext_pattern is None:
+                append_ft_patterns(parts, level, 'score_raw')
+            # Counts need the same matches and permissions, but no sort keys.
+            # Optional multivalued/date joins add work without changing a
+            # distinct resource count. Keep them only for actual result pages.
+            if not countOnly:
+                append_sort_bindings(parts, level)
 
         if countOnly:
             sparql += f'{blank:{indent * indent_inc}}SELECT (COUNT(DISTINCT ?res) as ?numResult)'
@@ -3035,6 +3192,8 @@ class ResourceInstance:
 
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph}:data {{'
             sparql += f'\n{blank:{(indent + 2) * indent_inc}}?res rdf:type ?resclass .'
+            # Preserve the existing search projection contract: returned fields
+            # come from asserted data, even when filters match derived links.
             for p in projection_props:
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?res {p.toRdf} ?{p.fragment} }} .'
             sparql += f'\n{blank:{(indent + 1) * indent_inc}}}}'
@@ -3198,6 +3357,26 @@ class ResourceInstance:
                       offset: int = 0,
                       indent: int = 0, indent_inc: int = 4) -> list[dict[str | Xsd_QName, list[Xsd] | LangString]] | int:
 
+        """List role-visible resources of the exact asserted class.
+
+        Args:
+            con: Authenticated connection; reads join an active transaction.
+            project: Project whose data graph is queried.
+            resClass: Exact resource class (no subclass expansion).
+            includeProperties: Optional properties to return, including sort keys.
+            countOnly: Return the distinct resource count instead of records.
+            sortBy: Property ordering for returned rows.
+            limit: Maximum joined query rows, not fully hydrated resources.
+            offset: Number of joined rows to skip.
+            indent: Initial SPARQL indentation level.
+            indent_inc: Spaces per indentation level.
+
+        Returns:
+            Records with list-valued IRIs/properties and LangString values for
+            language-tagged properties, or the distinct count. Missing optional
+            properties have empty lists. Access requires an asserted role link
+            and a grant of at least DATA_VIEW; no creator/admin bypass is added.
+        """
         if isinstance(project, str):
             project = Xsd_NCName(project, validate=True)
         if not isinstance(project, Project):
@@ -3235,7 +3414,12 @@ class ResourceInstance:
         sparql += f'\n{blank:{(indent + 1) * indent_inc}}GRAPH {graph.toRdf} {{'
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s rdf:type {resClass} .'  # TODO: REMOVE WHEN ONTO FIXED!
         sparql += f'\n{blank:{(indent + 2) * indent_inc}}?s oldap:attachedToRole ?role .'
-        sparql += f'\n{blank:{(indent + 2) * indent_inc}}<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .'
+        # A grant alone is insufficient: the asserted role link above and its
+        # annotation must both exist in this project's data graph.
+        annotation = ('?grant rdf:reifies <<( ?s oldap:attachedToRole ?role )>> ; oldap:hasDataPermission ?dataperm .'
+                      if getattr(con, '_resource_permissions_rdf12', False) is True else
+                      '<< ?s oldap:attachedToRole ?role >> oldap:hasDataPermission ?dataperm .')
+        sparql += f'\n{blank:{(indent + 2) * indent_inc}}{annotation}'
         if includeProperties:
             for index, prop in enumerate(includeProperties):
                 sparql += f'\n{blank:{(indent + 2) * indent_inc}}OPTIONAL {{ ?s {prop} ?o{index} . }}'
@@ -3259,7 +3443,7 @@ class ResourceInstance:
         try:
             jsonres = resource_query(con, sparql)
         except OldapError:
-            logger.error(f'SPARQL: Failed to retrieve resources for project "{projectShortName}"', exc_info=True)
+            logger.error(f'SPARQL: Failed to retrieve resources for project "{project.projectShortName}"', exc_info=True)
             raise
         res = QueryProcessor(context, jsonres)
         if countOnly:
@@ -3394,7 +3578,11 @@ INSERT DATA {
         }}
         """)
         try:
-            jsonres = resource_query(con, sparql)
+            if getattr(con, '_resource_permissions_rdf12', False) is True:
+                from oldaplib.src.helpers.jena_media import media_rows
+                jsonres = media_rows(con, mediaObjectId.toRdf, by_id=True)
+            else:
+                jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve media object with ID "{mediaObjectId}"', exc_info=True)
             raise
@@ -3489,7 +3677,11 @@ INSERT DATA {
         }}
         """)
         try:
-            jsonres = resource_query(con, sparql)
+            if getattr(con, '_resource_permissions_rdf12', False) is True:
+                from oldaplib.src.helpers.jena_media import media_rows
+                jsonres = media_rows(con, mediaObjectIri.toRdf, by_id=False)
+            else:
+                jsonres = resource_query(con, sparql)
         except OldapError:
             logger.error(f'SPARQL: Failed to retrieve media object with IRI "{mediaObjectIri}"', exc_info=True)
             raise
@@ -3581,6 +3773,7 @@ class ResourceInstanceFactory:
     _sharedModel: DataModel
     _user_default_roles: Dict[Xsd_QName, DataPermission] = {}
 
+    @reuse_resource_class_reads
     @reuse_project_reads
     def __init__(self,
                  con: IConnection,

@@ -1,0 +1,24 @@
+# Example only: install after provisioning an isolated dataset and credentials.
+[Unit]
+Description=OLDAP private Jena backend
+After=network.target
+
+[Service]
+Type=simple
+User=oldap
+Group=oldap
+UMask=0077
+Environment=JAVA_HOME=/opt/jdk-25
+Environment=JAVA_HEAP_MB=8192
+ExecStart=/opt/oldap-jena/start /etc/oldap-jena/service.properties
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=90
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/oldap-jena
+
+[Install]
+WantedBy=multi-user.target

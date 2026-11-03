@@ -262,8 +262,8 @@
 
     #
     # SHACL definition of the oldap:AdminPermission class. The AdminPermission instances are attached as
-    # RDF*star to the triple that defines to which oldap:project as oldap:User belongs to.
-    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
+    # permissions on an RDF 1.2 reifier of an asserted user/project membership.
+    # E.g. :adminGrant rdf:reifies <<( :ThisUser :inProject :SystemProject )>> ; :hasAdminPermission :ADMIN_OLDAP .
     #
     :AdminPermissionShape a sh:NodeShape ;
         sh:targetClass :AdminPermission ;
@@ -287,8 +287,8 @@
         ] .
 
     #
-    # Property to assign a admin permission to a << <user> :inProject <project> >> :hasAdminPermission <admin-permission> .
-    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
+    # Assign an administrative permission to the reifier of a user/project membership.
+    # E.g. :adminGrant rdf:reifies <<( :ThisUser :inProject :SystemProject )>> ; :hasAdminPermission :ADMIN_OLDAP .
     #
     :hasAdminPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -302,8 +302,8 @@
         ] .
 
     #
-    # Property to assign a default data permission to a << <user> :inProject <project> >> hasDefaultDataPermissio <data-permission> .
-    # E.g. <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_PROJECT .
+    # Assign a creation-time default permission to the reifier of a user/role membership.
+    # E.g. :defaultGrant rdf:reifies <<( :ThisUser :hasRole :MyRole )>> ; :hasDefaultDataPermission :DATA_VIEW .
     #
     :hasDefaultDataPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -317,8 +317,8 @@
         ] .
 
     #
-    # Property to assign a data permission to a << <instance> :attachedToRole <role> >> hasDataPermissio <data-permission> .
-    # E.g. <<<urn:...> :attachedToRole shared:UnknownUser>> :hasDataPermission :DATA_VIEW .
+    # Assign a data permission to the reifier of an instance/role membership.
+    # E.g. :dataGrant rdf:reifies <<( :MyInstance :attachedToRole :MyRole )>> ; :hasDataPermission :DATA_VIEW .
     #
     :hasDataPermissionShape a sh:NodeShape ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -362,38 +362,23 @@
             sh:uniqueLang true ;
         ] .
 
-    # TODO: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # SHACL to define a permission sets. A permission set assigns data permissions to both
-    # a given user and a given data instance.
-    # Let's assume a PermissionSet instance :MyPermSet which I will use. Then I can give the following
-    # permissions:
+    # A role links users to instance permissions. Assert the membership as well
+    # as its RDF 1.2 annotation; a triple term does not assert its triple.
     #
-    #  <<:MyInstance oldap:attachedToRole :MyRole>> oldap:hasDataPermission :DATA_EXTEND .
+    # In the project data graph:
+    # :MyInstance :attachedToRole :MyRole .
+    # :dataGrant rdf:reifies <<( :MyInstance :attachedToRole :MyRole )>> ;
+    #     :hasDataPermission :DATA_EXTEND .
     #
-    # A user with:
+    # In oldap:admin:
+    # :ThisUser :hasRole :MyRole .
+    # :defaultGrant rdf:reifies <<( :ThisUser :hasRole :MyRole )>> ;
+    #     :hasDefaultDataPermission :DATA_VIEW .
     #
-    # :ThisUser oldap:hasRole :MyRole, MyRole2 .
-    #
-    # we may add default values that are proposed as standard values for creating instances:
-    #
-    # <<:ThisUser oldap:hasRole :MyRole>> oldap:hasDefaultDataPermission :DATA_EXTEND
-    # <<:ThisUser oldap:hasRole :MyRole2>> oldap:hasDefaultDataPermission :DATA_RESTRICTED
-    #
-    # Thus, the user should have maximal :DATA_VIEW access to the given instance
-    #
-    #    PREFIX : <https://gaga.com/>
-    #    PREFIX o: <http://www.ooo.org/ns#>
-    #
-    #    SELECT ?predicate ?value ?permval
-    #    WHERE {
-    #        GRAPH :test {
-    #            :InstanceA ?predicate ?value ;
-    #            	o:attachedToRole ?role .
-    #            :UserA o:hasRole ?role .
-    #           <<:InstanceA  o:attachedToRole ?role>> o:dataPermission ?permval .
-    #        }
-    #        FILTER(?permval >= 1)
-    #   }
+    # The default proposes permissions for newly created instances. It does not
+    # reduce the DATA_EXTEND grant on an existing instance. A permission query
+    # joins the current user/role membership in oldap:admin to the asserted
+    # instance/role membership and its reifier in the selected project graph.
     #
 
     :RoleShape a sh:NodeShape ;
@@ -820,11 +805,11 @@
 
 
     ###############################################################################
-    # Extension (non-standard) for RDF*star
+    # OLDAP model-documentation extension for RDF 1.2 annotations
     ###############################################################################
     :statementShape a owl:ObjectProperty ;
-        rdfs:label "statement shape for RDF-star annotation"@en ;
-        rdfs:comment "Links a sh:PropertyShape to a sh:NodeShape that constrains annotations on <<S P O>>."@en ;
+        rdfs:label "statement shape for RDF 1.2 annotation"@en ;
+        rdfs:comment "Links a sh:PropertyShape to a sh:NodeShape describing an annotation reifier linked by rdf:reifies to an RDF 1.2 triple term."@en ;
         rdfs:domain sh:PropertyShape ;
         rdfs:range  sh:NodeShape .
 
@@ -890,7 +875,7 @@
     :authVersion rdf:type owl:DatatypeProperty .
 
     #
-    # RDF*Star property to assign an admin permission to a user/project combination
+    # RDF 1.2 reifier property assigning an admin permission to a user/project membership
     #
     :hasAdminPermission a owl:ObjectProperty .
 
@@ -918,11 +903,11 @@
     :rightIndex rdf:type owl:DatatypeProperty .
 
     ###############################################################################
-    # Properties used for assigning data permission to an instance (RDF*star)
+    # Properties used for assigning data permission via an RDF 1.2 reifier
     ###############################################################################
 
     #
-    # Example: <<:MyInstance :attachedToRole>> :hasDataPermission :DATA_RESTRICTED .
+    # Example: :grant rdf:reifies <<( :MyInstance :attachedToRole :MyRole )>> ; :hasDataPermission :DATA_RESTRICTED .
     #
     :hasDataPermission rdf:type owl:ObjectProperty .
 

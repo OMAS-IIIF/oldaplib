@@ -191,6 +191,7 @@ class ResourceTransactionTest(unittest.TestCase):
             _values={},
             _attached_roles={},
             properties={},
+            resolved_properties=lambda: {},
             check_for_permissions=lambda permission: (True, ""),
         )
         with resource_transaction(self.con):
@@ -210,6 +211,7 @@ class ResourceTransactionTest(unittest.TestCase):
             _values={},
             _attached_roles={},
             properties={},
+            resolved_properties=lambda: {},
             check_for_permissions=lambda permission: (True, ""),
         )
         with self.assertRaises(OldapErrorAlreadyExists):

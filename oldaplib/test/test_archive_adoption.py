@@ -326,6 +326,12 @@ class AdoptionPlanTest(unittest.TestCase):
             }
             for role, permission in roles.items()
         ]
+        rows.extend({"s": {"value": "urn:as04:folder"},
+                     "p": {"value": "http://oldap.org/base#attachedToRole"},
+                     "o": {"value": canonical_iri(context, role)}} for role in roles)
+        rows.append({"s": {"value": canonical_iri(context, "fixture:Orphan")},
+                     "p": {"value": "http://oldap.org/base#hasDataPermission"},
+                     "o": {"value": "http://oldap.org/base#DATA_VIEW"}})
         service = object.__new__(ArchiveAdoption)
         grants = service._unit_grants(
             self.plan,
@@ -338,6 +344,7 @@ class AdoptionPlanTest(unittest.TestCase):
         self.assertEqual(grants[Xsd_QName("fixture:Restricted")], DP.DATA_RESTRICTED)
         self.assertEqual(grants[Xsd_QName("oldap:Unknown")], DP.DATA_VIEW)
         self.assertNotIn(Xsd_QName("fixture:UnrelatedStructure"), grants)
+        self.assertNotIn(Xsd_QName("fixture:Orphan"), grants)
 
     def test_project_creation_rule_grants_all_new_units_without_folder_grants(self):
         from types import SimpleNamespace
@@ -383,8 +390,10 @@ class AdoptionPlanTest(unittest.TestCase):
             }
         )
 
-        def rows(role):
+        def rows(role, folder):
             return [
+                {"s": {"value": folder}, "p": {"value": "http://oldap.org/base#attachedToRole"},
+                 "o": {"value": "https://example.test/roles/" + role}},
                 {
                     "s": {"value": "https://example.test/roles/" + role},
                     "p": {"value": "http://oldap.org/base#hasDataPermission"},
@@ -396,7 +405,7 @@ class AdoptionPlanTest(unittest.TestCase):
         grants = service._unit_grants(
             self.plan,
             {u["key"]: u for u in self.plan["newUnits"]},
-            {"urn:as04:folder": rows("First"), "urn:as04:second": rows("Second")},
+            {"urn:as04:folder": rows("First", "urn:as04:folder"), "urn:as04:second": rows("Second", "urn:as04:second")},
             SimpleNamespace(
                 context=context,
                 structure_roles=(),

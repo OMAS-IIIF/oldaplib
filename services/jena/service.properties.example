@@ -1,0 +1,10 @@
+# Copy to a private 0600 file; replace each secret with a distinct random value.
+# Use an absolute, NEW dataset path only with the explicit first-start --init.
+dataset=/var/lib/oldap-jena/dataset
+port=3031
+transactionLifetimeMillis=30000
+identityUrl=http://127.0.0.1:8001/internal/jena/identity
+identitySecret=REPLACE_WITH_RANDOM_IDENTITY_SECRET
+serviceSecret=REPLACE_WITH_RANDOM_TRANSPORT_SECRET
+bootstrapSecret=REPLACE_WITH_RANDOM_BOOTSTRAP_SECRET
+fulltextSecret=REPLACE_WITH_RANDOM_FULLTEXT_SECRET

@@ -712,6 +712,15 @@ class User(Model):
             self._changeset[UserAttr.IN_PROJECT] = AttributeChange(self._attributes[UserAttr.IN_PROJECT], Action.MODIFY)
         self._attributes[UserAttr.IN_PROJECT][project].remove(permission)
 
+    def _permission_annotation(self, predicate: str, target: str, permission: str) -> str:
+        """Serialize a user permission using the connection's RDF dialect."""
+        if getattr(self._con, '_user_permissions_rdf12', False) is True:
+            from oldaplib.src.helpers.jena_permission_write import permission_annotation
+            return permission_annotation(self.userIri.toRdf, predicate, target, permission)
+        annotation = ('oldap:hasAdminPermission' if predicate == 'oldap:inProject'
+                      else 'oldap:hasDefaultDataPermission')
+        return f'<<{self.userIri.toRdf} {predicate} {target}>> {annotation} {permission} .\n'
+
     def trig_to_str(self,
                     creator: Iri,
                     created: Xsd_dateTime,
@@ -742,13 +751,13 @@ class User(Model):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:inProject {rdfstr}'
             for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-                    star += f'{blank:{indent * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
+                    star += f'{blank:{indent * indent_inc}}' + self._permission_annotation('oldap:inProject', p.toRdf, admin_p.value)
         if self.hasRole:
             rdfstr = ", ".join([str(x) for x in self.hasRole.keys()])
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:hasRole {rdfstr}'
             for r, p in self.hasRole.items():
                 if p:
-                    star += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {r.toRdf}>> oldap:hasDefaultDataPermission {p.value} .\n'
+                    star += f'{blank:{(indent + 1) * indent_inc}}' + self._permission_annotation('oldap:hasRole', r.toRdf, p.value)
         if self.passwordResetRequestAt:
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:passwordResetRequestAt {self.passwordResetRequestAt.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:authVersion {self.authVersion.toRdf}'
@@ -968,7 +977,7 @@ class User(Model):
                     return tmp
 
         context = Context(name=con.context_name)
-        jsonobj = con.query(UserData.sparql_query(context, userId))
+        jsonobj = con.query(con._user_read_query(context, userId))
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OldapErrorNotFound(f'User "{userId}" not found.')
@@ -1117,8 +1126,18 @@ class User(Model):
             ?user ?prop ?val .
         }} 
         """
-        # TODO: use transaction for error handling
-        self._con.update_query(sparql)
+        if getattr(self._con, '_user_permissions_rdf12', False) is True:
+            from oldaplib.src.helpers.jena_permission_write import delete_user, require_exclusive_reifiers
+            self._con.transaction_start()
+            try:
+                require_exclusive_reifiers(self._con, self.userIri.toRdf, ('oldap:inProject', 'oldap:hasRole'))
+                self._con.transaction_update(context.sparql_context + delete_user(self.userIri.toRdf))
+            except OldapError:
+                self._con.transaction_abort()
+                raise
+            self._con.transaction_commit()
+        else:
+            self._con.update_query(sparql)
         cache = CacheSingletonRedis()
         cache.delete(self.userIri)
 
@@ -1191,7 +1210,8 @@ class User(Model):
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
-        if UserAttr.HAS_ROLE in self._changeset:
+        rdf12 = getattr(self._con, '_user_permissions_rdf12', False) is True
+        if UserAttr.HAS_ROLE in self._changeset and not rdf12:
             added = {}
             removed = {}
             changed = {}
@@ -1322,7 +1342,7 @@ class User(Model):
                 indent_inc,
             ))
 
-        if UserAttr.IN_PROJECT in self._changeset:
+        if UserAttr.IN_PROJECT in self._changeset and not rdf12:
             addedprojs = {}
             deletedprojs = {}
             if self._changeset[UserAttr.IN_PROJECT].action == Action.CREATE:
@@ -1449,6 +1469,29 @@ class User(Model):
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                         sparql_list.append(sparql)
 
+        if rdf12:
+            from oldaplib.src.helpers.jena_permission_write import replace_memberships
+            # Replace only changed permission maps within the existing optimistic
+            # transaction. Preserve bare memberships and validate every target.
+            if UserAttr.HAS_ROLE in self._changeset:
+                roles = self.hasRole or {}
+                mapping = {role.toRdf: [permission.toRdf] if permission else []
+                           for role, permission in roles.items()}
+                sparql_list.append(replace_memberships(self.userIri.toRdf, 'oldap:hasRole', mapping))
+                if roles:
+                    ptest = ('SELECT ?role FROM oldap:admin WHERE { ?role a oldap:Role . '
+                             + 'FILTER (?role IN (' + ', '.join(mapping) + ')) }')
+                    ptest_len = len(roles)
+            if UserAttr.IN_PROJECT in self._changeset:
+                projects = self.inProject or {}
+                mapping = {project.toRdf: [permission.value for permission in permissions]
+                           for project, permissions in projects.items()}
+                sparql_list.append(replace_memberships(self.userIri.toRdf, 'oldap:inProject', mapping))
+                if projects:
+                    proj_test = ('SELECT ?project FROM oldap:admin WHERE { ?project a oldap:Project . '
+                                 + 'FILTER (?project IN (' + ', '.join(mapping) + ')) }')
+                    proj_test_len = len(projects)
+
         sparql_list.extend(self.__additional_properties_update_sparql(indent=indent, indent_inc=indent_inc))
 
         sparql = context.sparql_context
@@ -1482,6 +1525,12 @@ class User(Model):
                 raise OldapErrorValue("One of the projects is not existing!")
 
         try:
+            if rdf12:
+                from oldaplib.src.helpers.jena_permission_write import require_exclusive_reifiers
+                changed_memberships = [predicate for attribute, predicate in (
+                    (UserAttr.IN_PROJECT, 'oldap:inProject'), (UserAttr.HAS_ROLE, 'oldap:hasRole'))
+                    if attribute in self._changeset]
+                require_exclusive_reifiers(self._con, self.userIri.toRdf, changed_memberships)
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
@@ -1492,7 +1541,6 @@ class User(Model):
                         f'Authentication version update for user "{self.userId}" conflicted with another update.'
                     )
         except OldapError:
-            print(sparql)
             self._con.transaction_abort()
             raise
         if timestamp != modtime:

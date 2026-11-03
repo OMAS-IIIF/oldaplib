@@ -570,7 +570,7 @@ class LangString(Notify):
                 sparql += f'{blank:{indent * indent_inc}}}}\n'
 
             sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop (sh:path|oldap:field) {prop_iri} .\n'
             if owlclass_iri:
                 sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
                 sparql += f'{blank:{(indent + 1) * indent_inc}}?property sh:property ?prop .\n'
@@ -623,7 +623,7 @@ class LangString(Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         if owlclass_iri:
             sparql += f'{blank:{(indent + 1) * indent_inc}}{owlclass_iri}Shape sh:property ?prop .\n'
-            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop sh:path {prop_iri.toRdf} .\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?prop (sh:path|oldap:field) {prop_iri.toRdf} .\n'
         else:
             sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({prop_iri}Shape as ?prop)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?prop {attr.value} ?langval\n'

@@ -43,7 +43,11 @@ class Xsd(ABC):
     @classmethod
     def fromRdf(cls, value: str) -> Self:
         """
-        Create an XSD instance from a RDF value string.
+        Create an XSD instance from a trusted database RDF value string.
+
+        Values are validated on write. This path skips schema validation while
+        retaining the parsing needed to construct a Python value. Do not use it
+        to bypass validation of new external inputs.
         :param value: String with RDF value string.
         :return: Instance of the XSD class.
         """

@@ -134,32 +134,32 @@
     {
       "file": "oldaplib/src/objectfactory.py",
       "scope": "ResourceInstance.search.append_access_patterns",
-      "line": 2745
+      "line": 2751
     },
     {
       "file": "oldaplib/src/objectfactory.py",
       "scope": "ResourceInstance.search.append_linked_access_patterns",
-      "line": 2763
+      "line": 2769
     },
     {
       "file": "oldaplib/src/objectfactory.py",
       "scope": "ResourceInstance.search_fulltext",
-      "line": 3135
+      "line": 3144
     },
     {
       "file": "oldaplib/src/objectfactory.py",
       "scope": "ResourceInstance.all_resources",
-      "line": 3238
+      "line": 3247
     },
     {
       "file": "oldaplib/src/objectfactory.py",
       "scope": "ResourceInstance.get_media_object_by_id",
-      "line": 3373
+      "line": 3382
     },
     {
       "file": "oldaplib/src/objectfactory.py",
       "scope": "ResourceInstance.get_media_object_by_iri",
-      "line": 3463
+      "line": 3472
     },
     {
       "file": "oldaplib/src/user.py",
