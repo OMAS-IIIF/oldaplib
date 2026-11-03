@@ -1,5 +1,9 @@
 # Library merge preparation — 2026-11-03
 
+Later packaging status: core metadata and locks are now prepared as 1.0.0rc1.
+See the coordinated `oldap-setup/docs/jena-1.0rc1-preparation.md` for current
+artifact acceptance; the original checkpoint versions below are historical.
+
 This records a local checkpoint on `migration/jena`, not final 1.0 approval.
 The coordinated sequence is in sibling setup's
 [release plan](../../../oldap-setup/docs/jena-1.0-merge-plan.md).

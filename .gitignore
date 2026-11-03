@@ -162,7 +162,8 @@ cython_debug/
 .DS_Store
 .idea/
 .idea
-/poetry.lock
+# Retain the coordinated release/development dependency solution.
+!/poetry.lock
 /gaga.trig
 /.42c
 /propclass_test.trig
