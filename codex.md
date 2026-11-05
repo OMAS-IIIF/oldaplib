@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Official Fuseki administration (2026-11-05): optional `JenaAdministration` exposes the pinned Apache UI and native query/update/upload protocols in the same JVM and over the existing protected managed-text dataset. A separate proxy key and same-origin write checks protect the listener; request locking prevents index replacement during native operations. Dataset lifecycle stays with OLDAP. Public Python signatures are unchanged. See services/jena/check_administration.py and sibling oldap-setup/docs/jena-console.md.
+
 - Coordinated 1.0 candidate (2026-11-03): core packages and OLDAP service wrapper now use 1.0.0rc1. API/tools depend on >=1.0.0rc1,<2.0.0 instead of a sibling path/0.x constraint. Poetry-generated portable locks use the exact candidate library wheel hash; library lock is now tracked. Existing development venvs were not reinstalled. Clean installed-wheel tests and rebuilt Java service pass. See ../oldap-setup/docs/jena-1.0rc1-preparation.md and results JSON. No publication, tag, merge or deployment; older dated version statements below describe historical checkpoints.
 
 - HTTP pooling (2026-11-03): JenaConnection owns one task-local requests.Session, preventing reproduced macOS EADDRNOTAVAIL under the full API probe. Pools close on failed construction/collection; per-request credentials, public signatures and transaction/retry rules are unchanged. Owned HTTP/lifecycle regressions and full API acceptance pass. See docs/migration/jena-merge-readiness.md. Not deployed.

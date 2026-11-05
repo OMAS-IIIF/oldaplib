@@ -32,6 +32,7 @@ def build(java_home, fuseki_home, output):
         raise ValueError('Expected the reviewed Apache Jena Fuseki 6.2.0 jar')
     sources = [root / 'tools/migration' / (name + '.java') for name in SHARED]
     sources.append(Path(__file__).parent / 'src/JenaService.java')
+    sources.append(Path(__file__).parent / 'src/JenaAdministration.java')
     sources.append(Path(__file__).parent / 'src/JenaInitialImport.java')
     # The offline importer reuses the converter's cross-graph RDF verifier.
     # Neither command is exposed by the HTTP service.

@@ -1,3 +1,21 @@
+### Update 2026-11-05 12:08
+- Decisions: Checkpoint the reviewed Jena migration changes on the migration branch; keep publication, merges and deployment separate.
+- Implementation: Reviewed the official Fuseki administration changes and existing acceptance evidence (20 administration checks and 22 service checks); checked Python syntax and whitespace. Existing deployed service validation remains the runtime evidence. Checked candidate changes for accidental credentials and whitespace.
+- Open: Remaining production readiness gates and final release acceptance; see the coordinated setup checkpoint.
+- Risks/Assumptions: This checkpoint does not change running services or production. Existing skipped tests and prior runtime evidence retain their documented scope.
+
+### Update 2026-11-05 00:52
+- Decisions: Accept the official, unmodified Apache Fuseki UI on home with native administrative writes; keep dataset lifecycle in deployment and production unchanged.
+- Implementation: Activated the single-JVM native listener (service SHA 42901bf6b98d8a92df2fce65b3799ee5dd45abb6e843ef7016a5a6d6da038694). Browser index matches the pinned Apache JAR; query editor, file upload, SPARQL updates and cleanup pass. 20 administration, 22 existing service, 13 setup and 26 public API/media checks pass. Updated configuration example, runbook and acceptance evidence.
+- Open: Production-specific activation and existing production readiness gates. No public Python signatures or application images changed.
+- Risks/Assumptions: Direct admin writes intentionally bypass OLDAP validation/permissions; protected receipts and managed text remain enforced. Initial Compose CLI failure was recovered, corrected and guarded by dry-run before successful activation. Offline snapshot: /srv/storage/oldap-fuseki-before-20261105T004721/api.tar. GraphDB credentials unchanged; test graph removed.
+
+### Update 2026-11-05 00:45
+- Decisions: Provide the unmodified official Fuseki UI and native administrative data writes, as explicitly requested; dataset lifecycle remains service-owned.
+- Implementation: Added optional native administration listener over the existing protected/text-indexed dataset, with independent proxy key, same-origin mutations and request-level maintenance locking. Build includes JenaAdministration; real isolated tests cover uploads, updates, transaction isolation/serialization, receipts, index replacement and restarts. Existing 300-commit service/crash tests pass. No public Python signatures changed.
+- Open: Finish home activation and live browser/API verification; production remains unchanged.
+- Risks/Assumptions: Direct administrator writes bypass OLDAP validation/resource permissions by design. Native transactions share the single TDB owner and managed text index. No dataset creation/deletion/compaction through UI.
+
 ### Update 2026-11-03 23:54
 - Decisions: Prepare 1.0.0rc1 for library/API/tools and the OLDAP Jena wrapper; final 1.0.0 waits for acceptance. Keep independent media/harvester versions and running environments unchanged.
 - Implementation: Checkpointed HTTP pooling (e62651a) and API evidence (44cecf7). Aligned runtime/package/bump/OpenAPI/wrapper metadata; API/tools use portable 1.x requirements. Poetry solver regenerated locks offline from existing packages plus the exact new library wheel, with no path/source entry; library lock now tracked. Setup pins candidate wrapper and supports existing isolated image tags with prerelease metadata. Fixed tools bump command typo; documented local wheel/editable workflows and artifact hashes.

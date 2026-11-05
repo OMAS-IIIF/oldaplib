@@ -8,3 +8,10 @@ identitySecret=REPLACE_WITH_RANDOM_IDENTITY_SECRET
 serviceSecret=REPLACE_WITH_RANDOM_TRANSPORT_SECRET
 bootstrapSecret=REPLACE_WITH_RANDOM_BOOTSTRAP_SECRET
 fulltextSecret=REPLACE_WITH_RANDOM_FULLTEXT_SECRET
+
+# Optional official Fuseki administration; supply all three values together.
+# The native listener shares this process/dataset and must sit behind the
+# authenticated proxy, which injects X-Oldap-Admin-Key. Do not publish its port.
+# adminPort=8040
+# adminSecret=<separate random transport secret, at least 32 characters>
+# adminOrigin=https://fuseki.home.org

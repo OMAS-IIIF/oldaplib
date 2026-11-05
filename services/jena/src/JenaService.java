@@ -30,12 +30,24 @@ public final class JenaService {
             throw new IllegalArgumentException("Configuration permissions must exclude group and others (0600)");
         Properties values = new Properties();
         try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) { values.load(reader); }
-        if (!values.stringPropertyNames().equals(KEYS))
+        Set<String> expected = new HashSet<>(KEYS);
+        if (values.containsKey("adminPort")) expected.addAll(Set.of("adminPort", "adminSecret", "adminOrigin"));
+        if (!values.stringPropertyNames().equals(expected))
             throw new IllegalArgumentException("Configuration has missing or unknown keys");
         for (String key : KEYS)
             if (values.getProperty(key).isBlank()) throw new IllegalArgumentException("Blank configuration value: " + key);
         for (String key : List.of("identitySecret", "serviceSecret", "bootstrapSecret", "fulltextSecret"))
             if (values.getProperty(key).length() < 32 || values.getProperty(key).startsWith("REPLACE_")) throw new IllegalArgumentException("Service secrets require at least 32 characters");
+        if (values.containsKey("adminPort")) {
+            int adminPort = Integer.parseInt(values.getProperty("adminPort"));
+            if (adminPort < 1024 || adminPort > 65535 || values.getProperty("adminPort").equals(values.getProperty("port"))
+                || values.getProperty("adminSecret").length() < 32)
+                throw new IllegalArgumentException("Invalid administration listener configuration");
+            URI origin = URI.create(values.getProperty("adminOrigin"));
+            if (!"https".equals(origin.getScheme()) || origin.getHost() == null || origin.getUserInfo() != null
+                || origin.getQuery() != null || origin.getFragment() != null || !origin.getPath().isEmpty())
+                throw new IllegalArgumentException("Administrator origin must be an HTTPS origin");
+        }
         return values;
     }
 
@@ -66,6 +78,7 @@ public final class JenaService {
         }
         JenaSessionEngine engine = new JenaSessionEngine(directory.toString(), lifetime, false, true);
         FusekiServer server = null;
+        FusekiServer administration = null;
         try {
             if (args.length == 2) Files.writeString(marker, FORMAT, StandardOpenOption.CREATE_NEW);
             server = FusekiServer.create().port(port).loopback(true)
@@ -81,12 +94,19 @@ public final class JenaService {
                 }).build();
             server.getJettyServer().setStopTimeout(65000);
             server.start();
+            if (values.containsKey("adminPort")) {
+                administration = JenaAdministration.build(engine, Integer.parseInt(values.getProperty("adminPort")),
+                    values.getProperty("adminSecret"), values.getProperty("adminOrigin"));
+                administration.getJettyServer().setStopTimeout(65000);
+                administration.start();
+            }
+            final FusekiServer admin = administration;
             final FusekiServer running = server;
             CountDownLatch stopped = new CountDownLatch(1);
             AtomicBoolean closing = new AtomicBoolean();
             Runnable stop = () -> {
                 if (!closing.compareAndSet(false, true)) return;
-                try { running.stop(); engine.close(); }
+                try { if (admin != null) admin.stop(); running.stop(); engine.close(); }
                 catch (Exception error) { System.err.println("Backend shutdown failed; inspect storage before restart"); }
                 finally { stopped.countDown(); }
             };
@@ -96,6 +116,7 @@ public final class JenaService {
             try { stopped.await(); }
             finally { stop.run(); }
         } catch (Exception failure) {
+            if (administration != null) administration.stop();
             if (server != null) server.stop();
             engine.close();
             throw failure;
