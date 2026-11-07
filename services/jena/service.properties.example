@@ -15,3 +15,18 @@ fulltextSecret=REPLACE_WITH_RANDOM_FULLTEXT_SECRET
 # adminPort=8040
 # adminSecret=<separate random transport secret, at least 32 characters>
 # adminOrigin=https://fuseki.home.org
+
+# Optional growth-triggered native compaction (all seven keys required).
+# Enable only with the matching new service release and a verified backup.
+# Check every 15 minutes; compact at most daily, after >=512 MiB AND >=2x growth.
+# First run without a baseline is eligible at >=512 MiB. Requires space for a
+# second complete generation plus a 20% filesystem reserve. Preserves receipts.
+# compactionCheckSeconds=900
+# compactionMinSeconds=86400
+# compactionGrowthBytes=536870912
+# compactionGrowthRatio=2.0
+
+# Start maintenance only during the local night; an active run finishes safely.
+# compactionZone=Europe/Zurich
+# compactionWindowStart=01:00
+# compactionWindowEnd=03:00

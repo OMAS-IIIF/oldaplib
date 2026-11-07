@@ -1,5 +1,9 @@
 # OLDAPlib Project Context
 
+- Night maintenance (2026-11-07): compaction admission now requires a configured local-time window (default 01:00–03:00 Europe/Zurich); all seven policy keys are required. An admitted run finishes safely even after window end. Coordinate backups and measure runtime before home activation; not deployed.
+
+- TDB growth maintenance (2026-11-07): Native TDB compaction is now an opt-in service component, serialized with writes and exclusive maintenance access. Durable intent/state, capacity guard and restart fencing preserve recovery boundaries. Default proposal: check every 15 minutes, minimum 24 hours, at least 512 MiB and 2x growth. All RDF including receipts and managed text are retained. See docs/migration/jena-compaction.md. Local acceptance complete; home deployment pending.
+
 - Official Fuseki administration (2026-11-05): optional `JenaAdministration` exposes the pinned Apache UI and native query/update/upload protocols in the same JVM and over the existing protected managed-text dataset. A separate proxy key and same-origin write checks protect the listener; request locking prevents index replacement during native operations. Dataset lifecycle stays with OLDAP. Public Python signatures are unchanged. See services/jena/check_administration.py and sibling oldap-setup/docs/jena-console.md.
 
 - Coordinated 1.0 candidate (2026-11-03): core packages and OLDAP service wrapper now use 1.0.0rc1. API/tools depend on >=1.0.0rc1,<2.0.0 instead of a sibling path/0.x constraint. Poetry-generated portable locks use the exact candidate library wheel hash; library lock is now tracked. Existing development venvs were not reinstalled. Clean installed-wheel tests and rebuilt Java service pass. See ../oldap-setup/docs/jena-1.0rc1-preparation.md and results JSON. No publication, tag, merge or deployment; older dated version statements below describe historical checkpoints.

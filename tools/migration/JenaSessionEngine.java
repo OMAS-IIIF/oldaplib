@@ -27,7 +27,9 @@ public class JenaSessionEngine implements AutoCloseable {
         new java.util.concurrent.locks.ReentrantReadWriteLock(true);
     final ScheduledExecutorService owner = Executors.newSingleThreadScheduledExecutor();
     final long lifetimeMillis;
-    // Only the owner thread reads/writes these fields or the write transaction.
+    // Owner writes these fields; request threads may read the volatile maintenance flags.
+    volatile boolean maintenanceActive;
+    volatile boolean maintenanceFailed;
     UUID session;
     String actor;
     long deadline;
@@ -67,6 +69,7 @@ public class JenaSessionEngine implements AutoCloseable {
 
     void available() {
         if (closed.get()) throw new Refusal(503, "Backend stopping");
+        if (maintenanceActive || maintenanceFailed) throw new Refusal(503, "Backend maintenance");
         if (managedText != null && managedText.unavailable)
             throw new Refusal(503, "Fulltext activation outcome requires restart and state inspection");
     }
@@ -205,6 +208,7 @@ public class JenaSessionEngine implements AutoCloseable {
 
     /** Dispatch an authenticated request without letting a handler own a write. */
     String dispatch(String operation, UUID id, String identity, String body) throws Exception {
+        available(); // Refuse new work promptly while the owner compacts storage.
         if (Set.of("STATUS", "READ", "FULLTEXT_READ", "READ_GRAPHS").contains(operation)) {
             if (!maintenance.readLock().tryLock()) throw new Refusal(503, "Fulltext rebuild in progress");
             try {

@@ -32,6 +32,8 @@ public final class JenaService {
         try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) { values.load(reader); }
         Set<String> expected = new HashSet<>(KEYS);
         if (values.containsKey("adminPort")) expected.addAll(Set.of("adminPort", "adminSecret", "adminOrigin"));
+        Set<String> compactionKeys = Set.of("compactionCheckSeconds", "compactionMinSeconds", "compactionGrowthBytes", "compactionGrowthRatio", "compactionZone", "compactionWindowStart", "compactionWindowEnd");
+        if (values.stringPropertyNames().stream().anyMatch(compactionKeys::contains)) expected.addAll(compactionKeys);
         if (!values.stringPropertyNames().equals(expected))
             throw new IllegalArgumentException("Configuration has missing or unknown keys");
         for (String key : KEYS)
@@ -68,6 +70,14 @@ public final class JenaService {
         if (!"http".equals(identity.getScheme()) || !Set.of("localhost", "127.0.0.1", "[::1]").contains(identity.getHost())
             || identity.getUserInfo() != null || identity.getFragment() != null || identity.getQuery() != null)
             throw new IllegalArgumentException("Identity verification must use a private loopback HTTP URL");
+        JenaCompaction.Policy maintenancePolicy = values.containsKey("compactionCheckSeconds")
+            ? new JenaCompaction.Policy(Long.parseLong(values.getProperty("compactionCheckSeconds")),
+                Long.parseLong(values.getProperty("compactionMinSeconds")),
+                Long.parseLong(values.getProperty("compactionGrowthBytes")),
+                Double.parseDouble(values.getProperty("compactionGrowthRatio")),
+                java.time.ZoneId.of(values.getProperty("compactionZone")),
+                java.time.LocalTime.parse(values.getProperty("compactionWindowStart")),
+                java.time.LocalTime.parse(values.getProperty("compactionWindowEnd"))) : null;
         Path marker = directory.resolve("oldap-service-format");
         if (args.length == 2) {
             // Never initialize an existing directory or seed production from a fixture.
@@ -76,11 +86,17 @@ public final class JenaService {
         } else if (!Files.isRegularFile(marker) || !Files.readString(marker).equals(FORMAT)) {
             throw new IllegalArgumentException("Dataset not initialized by this service; use --init only for a new path");
         }
+        // Fence before opening storage or rebuilding managed text on restart.
+        if (Files.exists(directory.resolve("compaction.pending")))
+            throw new IllegalStateException("Interrupted compaction requires operator verification");
         JenaSessionEngine engine = new JenaSessionEngine(directory.toString(), lifetime, false, true);
+        JenaCompaction compaction = null;
         FusekiServer server = null;
         FusekiServer administration = null;
         try {
             if (args.length == 2) Files.writeString(marker, FORMAT, StandardOpenOption.CREATE_NEW);
+            if (maintenancePolicy != null)
+                compaction = new JenaCompaction(engine, directory, maintenancePolicy, java.time.Clock.systemUTC());
             server = FusekiServer.create().port(port).loopback(true)
                 .enablePing(false).enableStats(false).enableMetrics(false).enableCompact(false).enableTasks(false)
                 .addServlet("/tx/*", new JenaSessionServlet(engine, identity, values.getProperty("identitySecret"),
@@ -100,13 +116,15 @@ public final class JenaService {
                 administration.getJettyServer().setStopTimeout(65000);
                 administration.start();
             }
+            final JenaCompaction maintenance = compaction;
+            if (maintenance != null) maintenance.start();
             final FusekiServer admin = administration;
             final FusekiServer running = server;
             CountDownLatch stopped = new CountDownLatch(1);
             AtomicBoolean closing = new AtomicBoolean();
             Runnable stop = () -> {
                 if (!closing.compareAndSet(false, true)) return;
-                try { if (admin != null) admin.stop(); running.stop(); engine.close(); }
+                try { if (maintenance != null) maintenance.close(); if (admin != null) admin.stop(); running.stop(); engine.close(); }
                 catch (Exception error) { System.err.println("Backend shutdown failed; inspect storage before restart"); }
                 finally { stopped.countDown(); }
             };
@@ -116,6 +134,7 @@ public final class JenaService {
             try { stopped.await(); }
             finally { stop.run(); }
         } catch (Exception failure) {
+            if (compaction != null) compaction.close();
             if (administration != null) administration.stop();
             if (server != null) server.stop();
             engine.close();

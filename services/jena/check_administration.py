@@ -23,7 +23,7 @@ from oldaplib.src.helpers.jena_fulltext import jena_fulltext_fields, jena_fullte
 from oldaplib.src.objectfactory import FTSearchFilter
 
 
-def run(distribution, java_home, output):
+def run(distribution, java_home, output, *, compaction=False):
     """Start the built artifact; retain sanitized evidence and private diagnostics."""
     os.umask(0o077)
     output.mkdir(parents=True, exist_ok=False)
@@ -51,6 +51,14 @@ adminPort={admin_port}
 adminSecret={key}
 adminOrigin={origin}
 ''')
+    if compaction:
+        from datetime import datetime, timedelta, timezone
+        instant = datetime.now(timezone.utc)
+        window_start = (instant - timedelta(hours=2)).strftime('%H:%M')
+        window_end = (instant + timedelta(hours=2)).strftime('%H:%M')
+        with config.open('a') as stream:
+            stream.write('compactionCheckSeconds=60\ncompactionMinSeconds=60\ncompactionGrowthBytes=1048576\ncompactionGrowthRatio=2.0\n')
+            stream.write(f'compactionZone=UTC\ncompactionWindowStart={window_start}\ncompactionWindowEnd={window_end}\n')
     config.chmod(0o600)
     checks, process = [], None
     log = (output / 'service.log').open('w')
@@ -126,10 +134,30 @@ adminOrigin={origin}
         cfg['fields']['extra'] = ['http://schema.org/description']
         api('FULLTEXT_APPLY', json.dumps({'project':'demo','configuration':cfg,'expectedRevision':state['revision']}), extra=extra)
         check('Console follows index replacement', any(r['res']['value']=='urn:text' for r in query(text_query)['results']['bindings']))
+        if compaction:
+            deadline = time.monotonic() + 90
+            completed = output / 'dataset/compaction.properties'
+            while (not completed.exists() or (output / 'dataset/compaction.pending').exists()) and time.monotonic() < deadline:
+                assert process.poll() is None, 'Service exited during scheduled compaction'
+                time.sleep(.5)
+            check('Periodic check completed native compaction', completed.exists())
+            check('Old generation retired after native switch', not (output / 'dataset/Data-0001').exists())
+            check('Managed fulltext survives scheduled compaction', any(r['res']['value']=='urn:text' for r in query(text_query)['results']['bindings']))
+            check('API receipt survives scheduled compaction', api('STATUS', identifier=identifier).text == 'committed')
+            update('INSERT DATA { GRAPH <urn:admin:data> { <urn:after-compact> <http://schema.org/name> "Zürich" } }')
+            check('Managed writes after compaction stay indexed', any(r['res']['value']=='urn:after-compact' for r in query(text_query)['results']['bindings']))
         process.terminate();process.wait(timeout=80);process=None
         start()
         check('Native writes survive restart', query('ASK { GRAPH <urn:upload:test> { <urn:upload:item> ?p ?o } }')['boolean'])
         check('API receipts survive restart', api('STATUS', identifier=identifier).text == 'committed')
+        if compaction:
+            process.terminate(); process.wait(timeout=80); process = None
+            (output / 'dataset/compaction.pending').write_text('interrupted-test\n')
+            result = subprocess.run([str(distribution / 'start'), str(config)],
+                env={**os.environ, 'JAVA_HOME': str(java_home), 'JAVA_HEAP_MB': '512'},
+                stdout=log, stderr=log, timeout=30)
+            check('Interrupted compaction fences service restart', result.returncode != 0)
+
     finally:
         if process is not None:
             process.terminate();process.wait(timeout=80)
@@ -141,5 +169,6 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ['distribution','java-home','output']:
         parser.add_argument('--'+name, type=Path, required=True)
+    parser.add_argument("--compaction", action="store_true")
     args=parser.parse_args()
-    run(args.distribution.resolve(),args.java_home.resolve(),args.output.resolve())
+    run(args.distribution.resolve(),args.java_home.resolve(),args.output.resolve(), compaction=args.compaction)

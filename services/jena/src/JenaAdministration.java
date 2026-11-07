@@ -62,7 +62,9 @@ public final class JenaAdministration {
                 }
                 // Pin the current managed-text view for the entire native request.
                 // Index replacement uses the exclusive side of this same lock.
-                engine.maintenance.readLock().lock();
+                if (!engine.maintenance.readLock().tryLock()) {
+                    res.sendError(503, "Backend maintenance; retry later"); return;
+                }
                 try {
                     engine.available();
                     chain.doFilter(request, response);

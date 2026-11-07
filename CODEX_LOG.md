@@ -1,3 +1,15 @@
+### Update 2026-11-07 01:09
+- Decisions: Restrict growth-triggered compaction starts to a configurable night window; retain elapsed minimum interval and native completion semantics.
+- Implementation: Added zone/start/end configuration, midnight-aware and DST-aware admission with a final pre-maintenance recheck; template defaults 01:00–03:00 Europe/Zurich. Native acceptance covers daytime exclusion, boundaries, summer/autumn time and midnight; 13 setup tests and all 26 packaged administration checks pass.
+- Open: Coordinate the backup window, measure home duration and deploy updated artifacts; admission window is not a hard finish deadline.
+- Risks/Assumptions: Active native compaction must not be interrupted at window end. No home/production activation; previous bundle evidence remains historical until superseded by this build.
+
+### Update 2026-11-07 00:59
+- Decisions: Use native in-process TDB compaction; preserve all replay metadata and avoid an external writer opening live storage.
+- Implementation: Added growth policy, serialized maintenance, capacity guard, durable intent/baseline and failed-maintenance admission/restart fence. Packaged native acceptance, 26 administration checks and 22 service checks pass; grown fixture shrinks 361148408 to 201764856 bytes with 12000 quads retained.
+- Open: Publish/deploy the tested bundle with the updated API; verify capacity and backup before enabling on home.
+- Risks/Assumptions: Compaction temporarily returns 503. Native deletion retires the replaced generation; a verified backup is required. Interrupted maintenance requires operator verification. No live compaction/deployment.
+
 ### Update 2026-11-05 12:08
 - Decisions: Checkpoint the reviewed Jena migration changes on the migration branch; keep publication, merges and deployment separate.
 - Implementation: Reviewed the official Fuseki administration changes and existing acceptance evidence (20 administration checks and 22 service checks); checked Python syntax and whitespace. Existing deployed service validation remains the runtime evidence. Checked candidate changes for accidental credentials and whitespace.
