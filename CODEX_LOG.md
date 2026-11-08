@@ -1,3 +1,9 @@
+### Update 2026-11-08 22:45
+- Decisions: Keep the cutover knowledge index synchronized with the tested setup operators and explicit production gates.
+- Implementation: Linked the completed two-host rollback and model/fulltext/core-package follow-up. Recorded target-copy selective cache eviction, six-project cold-cache acceptance and unchanged Chama compatibility. No library implementation or public signatures changed.
+- Open: Final source drift/capacity/image preload, nine private production checks and backup/harvester wiring.
+- Risks/Assumptions: Rehearsal data must not replace a fresh final production snapshot; cache cleanup must preserve auth/revocation and coordination state.
+
 ### Update 2026-11-07 01:09
 - Decisions: Restrict growth-triggered compaction starts to a configurable night window; retain elapsed minimum interval and native completion semantics.
 - Implementation: Added zone/start/end configuration, midnight-aware and DST-aware admission with a final pre-maintenance recheck; template defaults 01:00–03:00 Europe/Zurich. Native acceptance covers daytime exclusion, boundaries, summer/autumn time and midnight; 13 setup tests and all 26 packaged administration checks pass.

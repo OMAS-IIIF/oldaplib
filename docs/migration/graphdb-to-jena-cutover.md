@@ -1,5 +1,19 @@
 # GraphDB to Jena cutover: retained migration knowledge
 
+## Production model/fulltext package follow-up — 2026-11-08
+
+The full two-host pre-opening rollback rehearsal now passes. Subsequent offline
+Fasnacht model cleanup removes the two obsolete hasPart fields and project inverse
+axioms (27 quads), preserves all other RDF and passes six-project API acceptance.
+The source filesystem contains only the nine-field Fasnacht connector. Selective
+cache cleanup in the private target copy and a cold restart also pass; never
+flush auth/revocation or coordination state. The pinned production core package
+is prepared, but final source checks, private production acceptance and operational
+backup/harvester wiring remain open. See the executable sequence and evidence in
+[setup model/package preparation](../../../oldap-setup/docs/production-model-package.md).
+Apply that sequence to a fresh final snapshot; the rehearsal RDF is not the final
+production source. Existing Chama legacy inverse handling is intentionally retained.
+
 ## Home archive structure enabled — 2026-11-03
 
 At the user's request, Fasnacht structure management is now enabled through the
