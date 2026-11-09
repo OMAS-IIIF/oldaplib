@@ -1,3 +1,9 @@
+### Update 2026-11-10 00:22
+- Decisions: Owner-authorized Docker publication and production promotion of API/library 1.0.1; preserve existing tags, namespace and other services.
+- Implementation: Published accepted AMD64/ARM64 IDs and multiarch digest 7fed616c31b8c298d02778e807bb0713746f0f21cb722662548796d9a573070a. Scoped maintenance-locked rollout replaced API/identity only; saved Compose before-api-1.0.1-20261110T002006. Readiness/auth/media/search checks pass. Browser comparison: text 1845→1500 ms, year 1621→1324, image 1934→1478, detail 2387→2289; three repeats, equal visible content, 231 successful API responses.
+- Open: Routine observation and user acceptance; live measurements are small warm samples, not load-test guarantees.
+- Risks/Assumptions: No RDF migration, real upload or data-write test in this rollout. Rollback uses retained Compose/images; maintenance lock released. Detailed evidence retained in the 20261110-performance-1.0.1 release directory.
+
 ### Update 2026-11-10 00:12
 - Decisions: Push both mainlines and publish library 1.0.1; owner clarified API distribution should be Docker, not PyPI. API 1.0.1 upload had already completed before clarification; do not repeat for future releases.
 - Implementation: make build/publish completed for both packages; library wheel matches the previously locked SHA-256. Targeted poetry update oldaplib adds the published sdist hash only (no third-party lock version changes); local API venv synchronized to the existing lock. Added API make build; removed the newly added publish target following clarification. 61 installed-library tests pass, using copied tests because wheel intentionally excludes oldaplib.test.
