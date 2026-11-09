@@ -14,7 +14,7 @@ import tempfile
 import zipfile
 
 FUSEKI_SHA256 = '2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee'
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 SHARED = ('JenaSessionEngine', 'JenaSessionServlet', 'ProtectedApplicationDataset',
           'JenaManagedText', 'JenaProjectTransfer', 'OldapTextAnalyzer', 'JenaTextFixture')
 

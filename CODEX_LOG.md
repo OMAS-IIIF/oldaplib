@@ -1,3 +1,9 @@
+### Update 2026-11-10 00:08
+- Decisions: Merge the accepted performance branch into local main and prepare coordinated patch 1.0.1, as requested. Preserve experiment branches; no push/tag/deployment.
+- Implementation: Fast-forwarded main; updated package, runtime and bump metadata plus native service label/OpenAPI version where applicable. API now requires oldaplib >=1.0.1; the existing offline Poetry solver pins its exact local wheel with all third-party versions unchanged. Library lock unchanged. 61 focused tests pass against OLDAP mainline sources.
+- Open: Publish/push and deploy in a separate coordinated release. Retained wheel: /Users/rosenth/Library/Application Support/OLDAP-Jena/releases/20261110-performance-1.0.1/wheels/oldaplib-1.0.1-py3-none-any.whl.
+- Risks/Assumptions: Unpublished 1.0.1 cannot yet be fetched from the package index; use the retained wheel for local acceptance. Production remains core 1.0.0. Existing dependency deprecation warnings remain.
+
 ### Update 2026-11-10 00:02
 - Decisions: Owner-requested local checkpoint of the home-accepted performance work on experiment/dating-read-performance; keep it separate from published main until coordinated promotion.
 - Implementation: Reviewed and retained the focused dating reader, normalized calendar decoding, operation-scoped vocabulary discovery and ACL join changes with tests/profiling evidence. Revalidated 61 focused library/API tests using the API virtualenv and explicit sibling source paths; whitespace checks pass.
