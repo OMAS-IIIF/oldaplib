@@ -291,6 +291,51 @@ class Dating(Xsd):
             case _:
                 raise OldapErrorValue(f'Invalid calendar: {self._inCalendar}')
 
+    @classmethod
+    def _from_storage(cls, dateStart: str, dateEnd: str,
+                      verbatimDate: str | None = None, *,
+                      datePrecision: DatePrecision | None = None,
+                      inCalendar: OldapCalendar = OldapCalendar.GREGORIAN,
+                      before: set[Self] | None = None,
+                      iri: Iri | Xsd_QName | None = None) -> Self:
+        """Restore validated RDF endpoints, which are always Gregorian dates.
+
+        Unlike constructor input, stored endpoints are already normalized. Keep
+        them unchanged for comparisons and reconstruct display tuples in their
+        declared calendar. Going through the public string constructor would
+        discard that calendar and can reject normalized decade boundaries.
+        No database write or public input-validation behavior is changed.
+        """
+        value = cls.__new__(cls)
+        value.__iri = iri
+        value._verbatimDate = verbatimDate
+        value._beforeDating = set(before or ())
+        value._inCalendar = inCalendar
+        value._normalizedStart = date.fromisoformat(dateStart)
+        value._normalizedEnd = date.fromisoformat(dateEnd)
+        value._datePrecision = datePrecision or DatePrecision.DAY
+        converter = {
+            OldapCalendar.GREGORIAN: gregorian,
+            OldapCalendar.JULIAN: julian,
+            OldapCalendar.HEBREW: hebrew,
+            OldapCalendar.ISLAMIC: islamic,
+            OldapCalendar.PERSIAN: persian,
+        }[inCalendar]
+
+        def display_tuple(endpoint: date) -> tuple[int, ...]:
+            parts = (endpoint.year, endpoint.month, endpoint.day)
+            if inCalendar != OldapCalendar.GREGORIAN:
+                parts = converter.from_gregorian(*parts)
+            # Precision belongs to the original calendar, not its Gregorian
+            # representation (a Julian year starts in January but not on day 1).
+            width = 3 if value._datePrecision == DatePrecision.DAY else (
+                2 if value._datePrecision == DatePrecision.MONTH else 1)
+            return tuple(parts[:width])
+
+        value._dateStartTuple = display_tuple(value._normalizedStart)
+        value._dateEndTuple = display_tuple(value._normalizedEnd)
+        return value
+
     def __str__(self) -> str:
         return f'{self._normalizedStart.isoformat()} - {self._normalizedEnd.isoformat()} ({self._inCalendar.name}, {self._datePrecision.name})'
 

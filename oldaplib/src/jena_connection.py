@@ -4,6 +4,7 @@ Keeps Connection's credential/JWT implementation and public query/transaction
 surface. The configured endpoint owns one dataset; GraphDB-specific maintenance
 operations fail explicitly. No automatic update or callback replay is performed.
 """
+from contextlib import contextmanager
 from dataclasses import dataclass
 import json
 import os
@@ -100,6 +101,9 @@ class JenaConnection(Connection):
         Closing the HTTP pool only releases sockets; transaction ownership and
         uncertain outcomes still follow the explicit commit/abort protocol.
         """
+        cache = getattr(self, '_scoped_schema_graphs', None)
+        if cache is not None and operation not in {'READ', 'FULLTEXT_READ'}:
+            cache.clear()
         headers = {'X-Oldap-Service-Key': self._jena.service_key, 'Content-Type': 'text/plain; charset=utf-8'}
         if bootstrap:
             headers['X-Oldap-Bootstrap-Key'] = self._jena.bootstrap_key
@@ -264,17 +268,41 @@ class JenaConnection(Connection):
         return jena_fulltext_pattern('<' + config['graph'] + '>', filters, fields, score_var,
                                      user_iri=self.userIri.toRdf)
 
+    @contextmanager
+    def _resource_schema_scope(self):
+        """Reuse vocabulary discovery during one read operation, never across requests.
+
+        Connections are task-local. Nested scopes share the outer cache, which is
+        discarded even on errors. Transactions bypass it and any non-read send
+        invalidates it. This caches schema graph names only, never ACLs/results.
+        Concurrent schema edits become visible on the next operation.
+        """
+        existing = getattr(self, '_scoped_schema_graphs', None)
+        if existing is not None:
+            yield
+            return
+        self._scoped_schema_graphs = {}
+        try:
+            yield
+        finally:
+            self._scoped_schema_graphs = None
+
     def _resource_schema_graphs(self, graph):
         """Resolve explicit project/shared/base external vocabulary registrations.
 
-        Read on every query build so ontology edits, including an active caller
-        transaction, are visible without a new persistent cache/invalidation rule.
+        Read on every query build unless an explicit read scope is active.
+        Active transactions always discover their own current registrations.
         Vocabulary graph names follow the existing urn:oldap:vocab:<prefix>
         provisioning convention; unregistered graphs cannot affect these reads.
         """
         from oldaplib.src.resource_transaction import resource_query
         from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
         graph = Xsd_NCName(str(graph), validate=True)
+        cache = getattr(self, '_scoped_schema_graphs', None)
+        if self.in_transaction():
+            cache = None
+        if cache is not None and str(graph) in cache:
+            return list(cache[str(graph)])
         context = Context(name=self.context_name)
         result = resource_query(self, context.sparql_context + f"""
             SELECT DISTINCT ?prefix
@@ -283,8 +311,11 @@ class JenaConnection(Connection):
         """)
         prefixes = sorted({str(Xsd_NCName(row['prefix']['value'], validate=True))
                            for row in result['results']['bindings']})
-        return [f'{graph}:onto', 'shared:onto', 'oldap:onto',
-                *[f'<urn:oldap:vocab:{prefix}>' for prefix in prefixes]]
+        graphs = [f'{graph}:onto', 'shared:onto', 'oldap:onto',
+                  *[f'<urn:oldap:vocab:{prefix}>' for prefix in prefixes]]
+        if cache is not None:
+            cache[str(graph)] = tuple(graphs)
+        return graphs
 
     def _resource_read_query(self, graph, iri, user_iri, *, include_creator):
         from oldaplib.src.objectfactory import _build_resource_read_query

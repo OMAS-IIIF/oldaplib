@@ -484,7 +484,7 @@ def _dating_from_construct(value: Any,
     before_values = {x for x in before_values if isinstance(x, Dating)}
 
     dating_iri = key if isinstance(key, (Iri, Xsd_QName)) else None
-    dating = Dating(str(start),
+    dating = Dating._from_storage(str(start),
                     str(end),
                     None if verbatim is None else str(verbatim),
                     datePrecision=precision,
@@ -950,11 +950,89 @@ def _build_resource_summaries_query(
     return sparql
 
 
+
+def _build_search_dating_query(con: IConnection, graph: Xsd_NCName,
+                              iris: list[Iri], include_properties: set[Xsd_QName]) -> str:
+    """Focused Jena projection for search-date expansion, not general reads.
+
+    Preserve current reader/creator access, asserted/ancestor types and modeled
+    property resolution, but do not return attached-role metadata that the search
+    date consumer discards. Separate type rows from date rows to avoid multiplying
+    date triples by ancestor types and permission bindings. The existing Dating
+    decoder and its before-chain semantics remain unchanged.
+
+    Args:
+        con: Authenticated Jena connection.
+        graph: Validated project short name.
+        iris: Validated, bounded resource IRIs from the summary reader.
+        include_properties: Model-resolved Dating-valued properties only.
+
+    Returns:
+        A CONSTRUCT query suitable only for the private search-date reader.
+        It must not replace general read_summaries: role metadata is omitted.
+    """
+    if not getattr(con, '_resource_permissions_rdf12', False):
+        raise OldapErrorValue('The focused search-dating query requires Jena.')
+    context = Context(name=con.context_name)
+    resources = ' '.join(iri.toRdf for iri in iris)
+    properties = ' '.join(prop.toRdf for prop in sorted(include_properties, key=str))
+    dataset = (schema_dataset(con, graph) + ' ' +
+               f'FROM NAMED {graph}:data FROM NAMED oldap:admin '
+               f'FROM NAMED {graph}:shacl FROM NAMED shared:shacl FROM NAMED oldap:shacl')
+    values = property_pattern(graph, '?resource', '?predicate', '?value',
+                              alias='dating', expand_subproperties=True, modeled_only=True)
+    return context.sparql_context + f"""
+    CONSTRUCT {{
+        ?resource rdf:type ?assertedType, ?inferredType .
+        ?resource {ASSERTED_TYPE_PRED.toRdf} ?assertedType .
+        ?resource ?predicate ?value .
+        ?datingNode ?datingPredicate ?datingValue .
+    }}
+    {dataset}
+    WHERE {{
+        {{ SELECT DISTINCT ?resource WHERE {{
+            VALUES ?resource {{ {resources} }}
+            {{ GRAPH {graph}:data {{ ?resource oldap:createdBy {con.userIri.toRdf} . }} }}
+            UNION {{
+                GRAPH oldap:admin {{
+                    {con.userIri.toRdf} oldap:hasRole ?accessRole .
+                    ?permission oldap:permissionValue ?level .
+                    FILTER(?level >= {DataPermission.DATA_VIEW.numeric.toRdf})
+                }}
+                GRAPH {graph}:data {{
+                    ?resource oldap:attachedToRole ?accessRole .
+                    ?grant rdf:reifies <<( ?resource oldap:attachedToRole ?accessRole )>> ;
+                           oldap:hasDataPermission ?permission .
+                }}
+            }}
+        }} }}
+        {{
+            GRAPH {graph}:data {{ ?resource a ?assertedType . }}
+            OPTIONAL {{
+                ?assertedType {CLASS_PATH} ?inferredType .
+                FILTER(isIRI(?inferredType))
+            }}
+        }} UNION {{
+            VALUES ?predicate {{ {properties} }}
+            {{ {values} }}
+            OPTIONAL {{
+                GRAPH {graph}:data {{
+                    ?resource ?predicate ?value .
+                    ?value a oldap:Dating ; oldap:before* ?datingNode .
+                    ?datingNode ?datingPredicate ?datingValue .
+                }}
+            }}
+        }}
+    }}
+    """
+
+
 def _read_resource_summaries_construct(
         con: IConnection,
         graph: Xsd_NCName,
         iris: list[Iri],
         include_properties: set[Xsd_QName],
+        *, dating_only: bool = False,
 ) -> ConstructResultDict:
     """Hydrate readable summaries from one backend-specific CONSTRUCT query.
 
@@ -964,7 +1042,10 @@ def _read_resource_summaries_construct(
     if not iris:
         return {}
     context = Context(name=con.context_name)
-    sparql = con._resource_summaries_query(graph, iris, include_properties)
+    # GraphDB retains the established query; only Jena has the focused projection.
+    sparql = (_build_search_dating_query(con, graph, iris, include_properties)
+              if dating_only and getattr(con, '_resource_permissions_rdf12', False)
+              else con._resource_summaries_query(graph, iris, include_properties))
     graph_res = resource_query(con, sparql, format=SparqlResultFormat.JSONLD)
     return _alias_requested_subjects(context, ConstructProcessor.process(context, graph_res), iris)
 
@@ -2835,19 +2916,23 @@ class ResourceInstance:
                 # DISTINCT also collapses multiple grants before date/property joins.
                 # Text/relationship searches already supply candidates and retain
                 # their direct lookup below. Never infer asserted membership.
+                # Join the extracted role directly to membership. Separate role
+                # variables plus FILTER equality create a costly cross product
+                # for users with several roles; the shared variable avoids it.
                 parts.append(f"""
 {' ' * (level * indent_inc)}{{ SELECT DISTINCT ?res {resclass_var} WHERE {{
+    GRAPH {graph}:data {{
+        ?searchGrant rdf:reifies ?accessTriple ; oldap:hasDataPermission ?DataPermission .
+        FILTER(isTRIPLE(?accessTriple) && PREDICATE(?accessTriple) = oldap:attachedToRole)
+        BIND(SUBJECT(?accessTriple) AS ?res)
+        BIND(OBJECT(?accessTriple) AS ?role)
+    }}
     GRAPH oldap:admin {{
         {con.userIri.toRdf} oldap:hasRole ?role .
         ?DataPermission oldap:permissionValue ?permval .
         FILTER(?permval >= {DataPermission.DATA_VIEW.numeric.toRdf})
     }}
     GRAPH {graph}:data {{
-        ?searchGrant rdf:reifies ?accessTriple ; oldap:hasDataPermission ?DataPermission .
-        FILTER(isTRIPLE(?accessTriple) && PREDICATE(?accessTriple) = oldap:attachedToRole)
-        BIND(SUBJECT(?accessTriple) AS ?res)
-        BIND(OBJECT(?accessTriple) AS ?grantedRole)
-        FILTER(?grantedRole = ?role)
         ?res oldap:attachedToRole ?role ; rdf:type {resclass_var} .
     }}
 }} }}""")
@@ -4019,6 +4104,25 @@ class ResourceInstanceFactory:
             OldapErrorInconsistency: If a readable resource has ambiguous known
                 concrete classes.
         """
+        return self._read_summaries(iris, include_properties, dating_only=False)
+
+    def _read_search_dating(
+            self, iris: Iterable[Iri | str],
+            include_properties: Iterable[Xsd_QName | str],
+    ) -> dict[Iri, ResourceReadResult]:
+        """Read model-resolved date fields for search, with normal reader ACLs.
+
+        Internal API/library contract: callers pass only Dating-valued properties.
+        Results omit role metadata and must not be used for authorization or media
+        delivery enrichment. General read_summaries retains its complete contract.
+        """
+        return self._read_summaries(iris, include_properties, dating_only=True)
+
+    def _read_summaries(
+            self, iris: Iterable[Iri | str],
+            include_properties: Iterable[Xsd_QName | str], *, dating_only: bool,
+    ) -> dict[Iri, ResourceReadResult]:
+        """Share bounded input handling, class selection and decoding for both reads."""
         if isinstance(iris, (str, Iri)):
             raise OldapErrorValue('Resource summary IRIs must be an iterable, not a scalar value.')
 
@@ -4055,6 +4159,7 @@ class ResourceInstanceFactory:
                 graph=graph,
                 iris=distinct_iris,
                 include_properties=properties,
+                dating_only=dating_only,
             )
         except OldapError:
             logger.error(
