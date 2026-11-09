@@ -1,3 +1,9 @@
+### Update 2026-11-10 00:12
+- Decisions: Push both mainlines and publish library 1.0.1; owner clarified API distribution should be Docker, not PyPI. API 1.0.1 upload had already completed before clarification; do not repeat for future releases.
+- Implementation: make build/publish completed for both packages; library wheel matches the previously locked SHA-256. Targeted poetry update oldaplib adds the published sdist hash only (no third-party lock version changes); local API venv synchronized to the existing lock. Added API make build; removed the newly added publish target following clarification. 61 installed-library tests pass, using copied tests because wheel intentionally excludes oldaplib.test.
+- Open: Build API images for AMD64/ARM64 using accepted Jena recipe and retained third-party constraints; no deployment requested.
+- Risks/Assumptions: Existing API PyPI artifact remains published. Legacy API Dockerfile is not used for this Jena release. Initial in-tree test collection failed on intentionally absent packaged tests; corrected installed-package run passed.
+
 ### Update 2026-11-10 00:08
 - Decisions: Merge the accepted performance branch into local main and prepare coordinated patch 1.0.1, as requested. Preserve experiment branches; no push/tag/deployment.
 - Implementation: Fast-forwarded main; updated package, runtime and bump metadata plus native service label/OpenAPI version where applicable. API now requires oldaplib >=1.0.1; the existing offline Poetry solver pins its exact local wheel with all third-party versions unchanged. Library lock unchanged. 61 focused tests pass against OLDAP mainline sources.
