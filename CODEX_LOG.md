@@ -1,3 +1,9 @@
+### Update 2026-11-09 18:00
+- Decisions: Prepare the owner-approved final 1.0.0 release; preserve independent component version lines and exact accepted runtime behavior.
+- Implementation: Updated package/runtime/bump metadata where applicable; core API/Tools require final library >=1.0.0,<2.0.0 and locks retain its exact wheel hash. App includes the previously tested dependency patches; Zod 3 remains the owner's accepted temporary risk. Native service 1.0.0 compiles byte-identically to the deployed RC JAR.
+- Open: Final clean-source artifacts, installed-image acceptance, immutable publication and coordinated production rollout; record exact results in oldap-setup.
+- Risks/Assumptions: No deployment from this commit. Existing production images/data retained; final version labels require genuinely final package metadata.
+
 ### Update 2026-11-09 17:33
 - Decisions: Preserve complete migration history in main via a non-squashed merge; keep pre-jena-merge-20261109 at the previous remote primary tip. No final release/version change or deployment.
 - Implementation: Refreshed origin; primary has no unique commits and merge-tree exactly matches reviewed migration 3f213a52c78b. Added current integration context only; runtime sources remain unchanged.
