@@ -1,8 +1,9 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix schema: <http://schema.org/> .
+@prefix schema: <https://schema.org/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix : <http://oldap.org/base#> .
@@ -10,10 +11,12 @@
 @prefix hyha: <http://hyperhamlet.unibas.ch/> .
 @prefix britnet: <http://www.salsah.org/version/2.0/SwissBritNet#> .
 
+# RDF 1.2 permission grants use stable reifier IRIs. The membership triples
+# remain asserted separately; rdf:reifies alone never grants membership.
 :admin {
 
     #
-    # add to prohjects for testing
+    # add to projects for testing
     #
     :HyperHamlet a :Project ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -60,15 +63,18 @@
     # Add additional projects admin permissions and roles/default data permissions to user "rosenth"
     #
     <https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet .
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
+    <urn:uuid:74fa57cd-0b33-5d95-b363-a2a76a6e9cb8> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :inProject :HyperHamlet )>> ;
+        :hasAdminPermission :ADMIN_RESOURCES .
     <https://orcid.org/0000-0003-1681-4036> :hasRole hyha:HyperHamletMember .
-    <<<https://orcid.org/0000-0003-1681-4036> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_PERMISSIONS .
+    <urn:uuid:aec8f91f-b25a-5a20-abe0-9c1765a063de> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :hasRole hyha:HyperHamletMember )>> ;
+        :hasDefaultDataPermission :DATA_PERMISSIONS .
 
     <https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet> .
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission
-            :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
+    <urn:uuid:1ea6a3a6-4dd5-53af-a030-76ac66abdc61> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :inProject <http://www.salsah.org/version/2.0/SwissBritNet> )>> ;
+        :hasAdminPermission :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_MODEL, :ADMIN_CREATE, :ADMIN_LISTS .
     <https://orcid.org/0000-0003-1681-4036> :hasRole britnet:BritnetEditor .
-    <<<https://orcid.org/0000-0003-1681-4036> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_DELETE .
+    <urn:uuid:9c778554-d1d8-53ac-9eff-6eeca744de92> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :hasRole britnet:BritnetEditor )>> ;
+        :hasDefaultDataPermission :DATA_DELETE .
 
     #
     # Add more test users
@@ -87,9 +93,10 @@
         :hasRole :Unknown, hyha:HyperHamletMember, britnet:BritnetEditor ;
         :isActive true .
 
-    <<<urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>>
+    <urn:uuid:c88b87d5-c18c-5d51-bd5b-93b9f8965ba6> rdf:reifies <<( <urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :inProject <http://www.salsah.org/version/2.0/SwissBritNet> )>> ;
         :hasAdminPermission :ADMIN_USERS, :ADMIN_ROLES, :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
-    <<<urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_VIEW .
+    <urn:uuid:6951ba17-ba8b-5d12-a1d8-c81bc40de0bb> rdf:reifies <<( <urn:uuid:3c9bdb26-2451-443c-9ece-edf285639dcc> :hasRole britnet:BritnetEditor )>> ;
+        :hasDefaultDataPermission :DATA_VIEW .
 
     <https://orcid.org/0000-0003-1485-4923> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -105,11 +112,15 @@
         :hasRole :Unknown, hyha:HyperHamletMember ;
         :isActive true .
 
-    <<<https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
+    <urn:uuid:12bf6b6b-b133-5606-8872-923b29e5cb53> rdf:reifies <<( <https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet )>> ;
+        :hasAdminPermission :ADMIN_RESOURCES, :ADMIN_CREATE, :ADMIN_LISTS .
 
-    <<<https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet>> :hasAdminPermission :ADMIN_RESOURCES .
-    <<<https://orcid.org/0000-0003-1485-4923> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_VIEW .
-    <<<https://orcid.org/0000-0003-1485-4923> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_UPDATE .
+    <urn:uuid:12bf6b6b-b133-5606-8872-923b29e5cb53> rdf:reifies <<( <https://orcid.org/0000-0003-1485-4923> :inProject :HyperHamlet )>> ;
+        :hasAdminPermission :ADMIN_RESOURCES .
+    <urn:uuid:8c0d75c2-8f53-5069-a4ba-87495beb54a6> rdf:reifies <<( <https://orcid.org/0000-0003-1485-4923> :hasRole :Unknown )>> ;
+        :hasDefaultDataPermission :DATA_VIEW .
+    <urn:uuid:6635a71c-57d2-5ecd-963f-aeea61162436> rdf:reifies <<( <https://orcid.org/0000-0003-1485-4923> :hasRole hyha:HyperHamletMember )>> ;
+        :hasDefaultDataPermission :DATA_UPDATE .
 
     <https://orcid.org/0000-0002-7403-9595> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -125,11 +136,15 @@
         :hasRole :Unknown, hyha:HyperHamletMember, britnet:BritnetEditor ;
         :isActive true .
 
-    <<<https://orcid.org/0000-0002-7403-9595> :inProject <http://www.salsah.org/version/2.0/SwissBritNet>>> :hasAdminPermission :ADMIN_RESOURCES .
+    <urn:uuid:77ba5bdc-4f42-5660-ad27-5f9c0d166ea1> rdf:reifies <<( <https://orcid.org/0000-0002-7403-9595> :inProject <http://www.salsah.org/version/2.0/SwissBritNet> )>> ;
+        :hasAdminPermission :ADMIN_RESOURCES .
 
-    <<<https://orcid.org/0000-0002-7403-9595> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_VIEW .
-    <<<https://orcid.org/0000-0002-7403-9595> :hasRole hyha:HyperHamletMember>> :hasDefaultDataPermission :DATA_UPDATE .
-    <<<https://orcid.org/0000-0002-7403-9595> :hasRole britnet:BritnetEditor>> :hasDefaultDataPermission :DATA_UPDATE .
+    <urn:uuid:20c08dfa-69ba-578b-9fcf-d6f3e2ddb924> rdf:reifies <<( <https://orcid.org/0000-0002-7403-9595> :hasRole :Unknown )>> ;
+        :hasDefaultDataPermission :DATA_VIEW .
+    <urn:uuid:a17fd2b3-5691-544a-8e10-2013c4453b90> rdf:reifies <<( <https://orcid.org/0000-0002-7403-9595> :hasRole hyha:HyperHamletMember )>> ;
+        :hasDefaultDataPermission :DATA_UPDATE .
+    <urn:uuid:af0e8f1f-594d-5c24-9a5a-4ceb2f6a24cd> rdf:reifies <<( <https://orcid.org/0000-0002-7403-9595> :hasRole britnet:BritnetEditor )>> ;
+        :hasDefaultDataPermission :DATA_UPDATE .
 
     <https://orcid.org/0000-0001-9277-3921> a oldap:User ;
         dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
@@ -145,17 +160,40 @@
         :hasRole :Unknown ;
         :isActive false .
 
-    <<<https://orcid.org/0000-0001-9277-3921> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_RESTRICTED .
+    <urn:uuid:d6006260-d77c-5c94-9e12-9b0f5ce3859c> rdf:reifies <<( <https://orcid.org/0000-0001-9277-3921> :hasRole :Unknown )>> ;
+        :hasDefaultDataPermission :DATA_RESTRICTED .
 
 }
 
 hyha:shacl {
-   hyha:shapes schema:version "0.1.0"^^xsd:string .
+    hyha:shapes schema:version "0.1.0"^^xsd:string .
+
+    hyha:HyhaUserShape
+        dcterms:contributor <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:created "2026-05-12T22:56:28.864641+02:00"^^xsd:dateTime ;
+        dcterms:creator <https://orcid.org/0000-0003-1681-4036> ;
+        dcterms:modified "2026-05-12T22:56:28.864641+02:00"^^xsd:dateTime ;
+        rdf:type sh:NodeShape ;
+        sh:node oldap:UserShape ;
+        sh:property [
+            sh:path hyha:userExtension ;
+            sh:datatype xsd:string ;
+            sh:maxCount "1"^^xsd:integer
+        ] ;
+        sh:targetClass hyha:HyhaUser .
+
 }
 
 hyha:onto {
-        hyha:ontology rdf:type owl:Ontology ;
-            owl:versionInfo "0.1.0"^^xsd:string .
+    hyha:ontology
+        rdf:type owl:Ontology ;
+        owl:versionInfo "0.1.0"^^xsd:string .
+
+    hyha:HyhaUser
+        rdf:type owl:Class ;
+        rdfs:subClassOf oldap:User .
+
+    hyha:userExtension rdf:type owl:DatatypeProperty .
 }
 
 britnet:shacl {

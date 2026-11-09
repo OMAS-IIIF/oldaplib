@@ -9,7 +9,7 @@
 @prefix oldap: <http://oldap.org/base#> .
 @prefix dmtest: <http://oldap.org/dmtest#> .
 @prefix : <http://oldap.org/dmtest#> .
-@prefix schema: <http://schema.org/> .
+@prefix schema: <https://schema.org/> .
 
 :shacl {
 

@@ -145,6 +145,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import partial
 from pprint import pprint
+from collections.abc import Iterable, Mapping
 from typing import List, Self, Optional, Any, Tuple
 
 import bcrypt
@@ -153,17 +154,24 @@ from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
 from oldaplib.src.enums.userattr import UserAttr
+from oldaplib.src.helpers.authentication_revocation import AuthenticationRevocation
 from oldaplib.src.helpers.context import Context
+from oldaplib.src.helpers.convert2datatype import convert2datatype
 from oldaplib.src.helpers.irincname import IriOrNCName
 from oldaplib.src.helpers.observable_dict import ObservableDict
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.userdataclass import UserData
+from oldaplib.src.datamodel import DataModel
+from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.resourceclass import ResourceClass
+from oldaplib.src.xsd.xsd import Xsd
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
 from oldaplib.src.xsd.xsd_string import Xsd_string
 from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorAlreadyExists, OldapErrorNotFound, OldapErrorUpdateFailed, \
@@ -194,6 +202,12 @@ class User(Model):
     :ivar credentials: The user’s hashed credentials for secure authentication.
     :type credentials: Xsd_string
     """
+
+    _AUTH_VERSION_ATTRIBUTES = {
+        UserAttr.CREDENTIALS,
+        UserAttr.HAS_ROLE,
+        UserAttr.IN_PROJECT,
+    }
 
     def __init__(self, *,
                  con: IConnection,
@@ -237,7 +251,19 @@ class User(Model):
                          contributor=contributor,
                          validate=validate)
 
+        userclass = kwargs.pop('userclass', Xsd_QName('oldap:User'))
+        additional_properties = kwargs.pop('additionalProperties', None)
+        if additional_properties is None:
+            additional_properties = kwargs.pop('additional_properties', None)
+        self._userclass = userclass if isinstance(userclass, Xsd_QName) else Xsd_QName(userclass, validate=validate)
+        self._additional_properties = ObservableDict(on_change=self.__additional_properties_cb)
+        if additional_properties:
+            self.additionalProperties = additional_properties
+
         self.set_attributes(kwargs, UserAttr)
+        if UserAttr.AUTH_VERSION not in self._attributes:
+            # Missing persisted values are migration-compatible with version 0.
+            self._attributes[UserAttr.AUTH_VERSION] = Xsd_nonNegativeInteger(0)
 
         #
         # maybe we have to change the default data permissionss for the user
@@ -278,9 +304,13 @@ class User(Model):
                 partial(User._set_value, attr=attr),
                 partial(User._del_value, attr=attr)))
         self.clear_changeset()
+        self._additional_properties.clear_changeset()
 
     def _as_dict(self):
-        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict()
+        return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
+            'userclass': self._userclass,
+            **({'additionalProperties': self._additional_properties} if self._additional_properties else {})
+        }
 
     def __deepcopy__(self, memo: dict[Any, Any]) -> Self:
         if id(self) in memo:
@@ -297,7 +327,174 @@ class User(Model):
         # Copy internals of Model:
         instance._attributes = deepcopy(self._attributes, memo)
         instance._changset = deepcopy(self._changeset, memo)
+        instance._userclass = deepcopy(self._userclass, memo)
+        instance._additional_properties = deepcopy(self._additional_properties, memo)
         return instance
+
+    @property
+    def userclass(self) -> Xsd_QName:
+        return self._userclass
+
+    @property
+    def additionalProperties(self) -> ObservableDict:
+        return self._additional_properties
+
+    @additionalProperties.setter
+    def additionalProperties(self, value: Mapping[Xsd_QName | str, Any] | None) -> None:
+        old_value = deepcopy(self._additional_properties) if self._additional_properties else ObservableDict()
+        new_value = {}
+        if value:
+            for prop, val in value.items():
+                prop_iri = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+                new_value[prop_iri] = val
+        self._additional_properties = ObservableDict(new_value, on_change=self.__additional_properties_cb)
+        for prop_iri in old_value.keys() | self._additional_properties.keys():
+            if prop_iri not in old_value:
+                self._additional_properties._changeset[prop_iri] = AttributeChange(None, Action.CREATE)
+            elif prop_iri not in self._additional_properties:
+                self._additional_properties._changeset[prop_iri] = AttributeChange(old_value[prop_iri], Action.DELETE)
+            elif old_value[prop_iri] != self._additional_properties[prop_iri]:
+                self._additional_properties._changeset[prop_iri] = AttributeChange(old_value[prop_iri], Action.MODIFY)
+
+    def get_additional_property(self, prop: Xsd_QName | str) -> Any | None:
+        prop = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+        return self._additional_properties.get(prop)
+
+    def set_additional_property(self, prop: Xsd_QName | str, value: Any) -> None:
+        prop = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+        self._additional_properties[prop] = value
+
+    def del_additional_property(self, prop: Xsd_QName | str) -> None:
+        prop = prop if isinstance(prop, Xsd_QName) else Xsd_QName(prop, validate=self._validate)
+        del self._additional_properties[prop]
+
+    def clear_changeset(self) -> None:
+        super().clear_changeset()
+        if hasattr(self, '_additional_properties'):
+            self._additional_properties.clear_changeset()
+        for attr in (UserAttr.IN_PROJECT, UserAttr.HAS_ROLE):
+            value = self._attributes.get(attr)
+            if hasattr(value, 'clear_changeset'):
+                value.clear_changeset()
+
+    def __requires_auth_version_increment(self) -> bool:
+        """Return whether pending user changes revoke existing refresh tokens."""
+        if self._AUTH_VERSION_ATTRIBUTES & self._changeset.keys():
+            return True
+        return (
+            UserAttr.ACTIVE in self._changeset
+            and not bool(self._attributes.get(UserAttr.ACTIVE))
+        )
+
+    def __prepare_auth_version_increment(self) -> tuple[Xsd_nonNegativeInteger, Xsd_nonNegativeInteger] | None:
+        """Add one internal auth-version change for a security-sensitive update."""
+        if not self.__requires_auth_version_increment():
+            return None
+        existing = self._changeset.get(UserAttr.AUTH_VERSION)
+        if existing is not None:
+            # Keep retries idempotent after validation or transaction failures.
+            return Xsd_nonNegativeInteger(existing.old_value), self._attributes[UserAttr.AUTH_VERSION]
+        current = self._attributes.get(UserAttr.AUTH_VERSION) or Xsd_nonNegativeInteger(0)
+        updated = Xsd_nonNegativeInteger(int(current) + 1)
+        self._attributes[UserAttr.AUTH_VERSION] = updated
+        self._changeset[UserAttr.AUTH_VERSION] = AttributeChange(current, Action.REPLACE)
+        return current, updated
+
+    def __auth_version_update_sparql(
+            self,
+            expected: Xsd_nonNegativeInteger,
+            updated: Xsd_nonNegativeInteger,
+            indent: int,
+            indent_inc: int) -> str:
+        """Build a migration-safe, conflict-detectable auth-version update."""
+        blank = ''
+        sparql = f'{blank:{indent * indent_inc}}# Increment global authentication version\n'
+        sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+        sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:authVersion ?storedVersion .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?user oldap:authVersion {updated.toRdf} .\n'
+        sparql += f'{blank:{indent * indent_inc}}}}\n'
+        sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} AS ?user)\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
+        sparql += f'{blank:{(indent + 1) * indent_inc}}OPTIONAL {{ ?user oldap:authVersion ?storedVersion . }}\n'
+        sparql += (
+            f'{blank:{(indent + 1) * indent_inc}}'
+            f'FILTER(COALESCE(?storedVersion, "0"^^xsd:nonNegativeInteger) = {expected.toRdf})\n'
+        )
+        sparql += f'{blank:{indent * indent_inc}}}}'
+        return sparql
+
+    def __read_auth_version_in_transaction(self, context: Context) -> Xsd_nonNegativeInteger:
+        """Read the persisted auth version inside the active transaction."""
+        query = context.sparql_context
+        query += f"""
+        SELECT ?authVersion
+        FROM oldap:admin
+        WHERE {{
+            {self.userIri.toRdf} oldap:authVersion ?authVersion .
+        }}
+        """
+        result = QueryProcessor(context, self._con.transaction_query(query))
+        if len(result) != 1 or result[0].get('authVersion') is None:
+            raise OldapErrorUpdateFailed(
+                f'Authentication version update for user "{self.userId}" did not persist a value.'
+            )
+        return Xsd_nonNegativeInteger(result[0]['authVersion'])
+
+    def revoke_authentication(self) -> Xsd_nonNegativeInteger:
+        """Revoke all refresh tokens by atomically incrementing ``authVersion``.
+
+        The operation is allowed for the user itself or an administrator who
+        may manage the target user. It uses both the expected authentication
+        version and the model modification timestamp as optimistic guards.
+        Concurrent revocations therefore fail explicitly instead of losing an
+        increment.
+
+        Returns:
+            The newly persisted authentication version.
+
+        Raises:
+            OldapErrorNoPermission: If the actor may not manage the user.
+            OldapErrorUpdateFailed: If the user changed concurrently.
+            OldapError: If the transaction cannot be completed.
+        """
+        if self._con is None:
+            raise OldapError("Cannot revoke authentication: no connection")
+
+        actor = self._con.userdata
+        if actor.userIri != self.userIri:
+            permitted, message = self.check_for_permissions()
+            if not permitted:
+                raise OldapErrorNoPermission(message)
+
+        context = Context(name=self._con.context_name)
+        expected = self.authVersion or Xsd_nonNegativeInteger(0)
+        updated = Xsd_nonNegativeInteger(int(expected) + 1)
+        timestamp = Xsd_dateTime.now()
+        command = AuthenticationRevocation.prepare(
+            context=context, user=self.userIri, actor=self._con.userIri,
+            expected=expected, previous_modified=self.modified, modified=timestamp,
+        )
+
+        def verify_legacy_write() -> None:
+            """Check the fixed revocation postconditions in the active transaction."""
+            persisted = self.__read_auth_version_in_transaction(context)
+            modified = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
+            if persisted != updated or modified != timestamp:
+                raise OldapErrorUpdateFailed(
+                    f'Authentication revocation for user "{self.userId}" conflicted with another update.'
+                )
+
+        self._con._persist_authentication_revocation(command, verify_legacy_write)
+
+        self._attributes[UserAttr.AUTH_VERSION] = updated
+        self._modified = timestamp
+        self._contributor = self._con.userIri
+        CacheSingletonRedis().delete(self.userIri)
+        return updated
 
     def cleanup_setter(self, attr: UserAttr, value: Any):
         if attr == UserAttr.CREDENTIALS:
@@ -360,6 +557,142 @@ class User(Model):
         if self._changeset.get(UserAttr.IN_PROJECT) is None:
             self._changeset[UserAttr.IN_PROJECT] = AttributeChange(None, Action.MODIFY)
 
+    def __additional_properties_cb(self, old_value: ObservableDict) -> None:
+        pass
+
+    @staticmethod
+    def __is_multi_value(value: Any) -> bool:
+        return isinstance(value, Iterable) and not isinstance(value, (str, Xsd, Iri, Xsd_QName))
+
+    @classmethod
+    def __as_value_list(cls, value: Any) -> list[Any]:
+        if value is None:
+            return []
+        return list(value) if cls.__is_multi_value(value) else [value]
+
+    @staticmethod
+    def __project_from_qname(qname: Xsd_QName) -> str:
+        return str(qname.prefix)
+
+    def __read_datamodel_for(self, qname: Xsd_QName) -> DataModel:
+        return DataModel.read(self._con, self.__project_from_qname(qname), ignore_cache=False)
+
+    def __collect_userclass_properties(self, userclass: Xsd_QName | None = None) -> tuple[dict[Xsd_QName, PropertyClass], set[Xsd_QName]]:
+        userclass = userclass or self._userclass
+        seen: set[Xsd_QName] = set()
+        classes: set[Xsd_QName] = set()
+        properties: dict[Xsd_QName, PropertyClass] = {}
+
+        def collect(class_iri: Xsd_QName) -> None:
+            if class_iri in seen:
+                return
+            seen.add(class_iri)
+            classes.add(class_iri)
+            if class_iri == Xsd_QName('oldap:Thing'):
+                return
+            dm = self.__read_datamodel_for(class_iri)
+            resclass = dm.get(class_iri)
+            if not isinstance(resclass, ResourceClass):
+                raise OldapErrorValue(f'User class "{class_iri}" is not defined as a ResourceClass.')
+            properties.update(resclass.properties)
+            superclass = resclass.superclass
+            if superclass:
+                for superclass_iri in superclass.keys():
+                    collect(Xsd_QName(superclass_iri, validate=False))
+
+        collect(userclass)
+        if Xsd_QName('oldap:User') not in classes:
+            raise OldapErrorValue(f'User class "{userclass}" is not a subclass of oldap:User.')
+        return properties, classes
+
+    def __validate_and_prepare_additional_properties(self, preserve_changes: bool = False) -> None:
+        if not self._additional_properties and self._userclass == Xsd_QName('oldap:User'):
+            return
+        allowed_properties, _ = self.__collect_userclass_properties()
+        standard_properties = {
+            Xsd_QName('rdf:type'),
+            Xsd_QName('dcterms:creator'),
+            Xsd_QName('dcterms:created'),
+            Xsd_QName('dcterms:contributor'),
+            Xsd_QName('dcterms:modified'),
+        } | {attr.value for attr in UserAttr}
+        old_changeset = dict(self._additional_properties._changeset)
+        normalized = ObservableDict(on_change=self.__additional_properties_cb)
+        for prop_iri, raw_value in self._additional_properties.items():
+            if prop_iri in standard_properties:
+                raise OldapErrorValue(f'Property "{prop_iri}" is a built-in User property and cannot be used in additionalProperties.')
+            propclass = allowed_properties.get(prop_iri)
+            if propclass is None:
+                raise OldapErrorValue(f'Property "{prop_iri}" is not allowed for user class "{self._userclass}".')
+            values = self.__as_value_list(raw_value)
+            min_count = int(propclass.minCount) if propclass.minCount is not None else 0
+            max_count = int(propclass.maxCount) if propclass.maxCount is not None else None
+            if len(values) < min_count:
+                raise OldapErrorValue(f'Property "{prop_iri}" requires at least {min_count} value(s).')
+            if max_count is not None and len(values) > max_count:
+                raise OldapErrorValue(f'Property "{prop_iri}" allows at most {max_count} value(s).')
+            converted = [self.__convert_additional_value(propclass, value) for value in values]
+            normalized[prop_iri] = converted if self.__is_multi_value(raw_value) else (converted[0] if converted else None)
+        for prop_iri, propclass in allowed_properties.items():
+            if prop_iri in standard_properties:
+                continue
+            min_count = int(propclass.minCount) if propclass.minCount is not None else 0
+            if min_count > 0 and prop_iri not in normalized:
+                raise OldapErrorValue(f'Mandatory property "{prop_iri}" is missing for user class "{self._userclass}".')
+        normalized.clear_changeset()
+        if preserve_changes:
+            for prop_iri, change in old_changeset.items():
+                propclass = allowed_properties.get(prop_iri)
+                if propclass is None:
+                    raise OldapErrorValue(f'Property "{prop_iri}" is not allowed for user class "{self._userclass}".')
+                old_values = [self.__convert_additional_value(propclass, value) for value in self.__as_value_list(change.old_value)]
+                old_value = old_values if self.__is_multi_value(change.old_value) else (old_values[0] if old_values else None)
+                normalized._changeset[prop_iri] = AttributeChange(old_value, change.action)
+        self._additional_properties = normalized
+
+    def __convert_additional_value(self, propclass: PropertyClass, value: Any) -> Xsd | Iri:
+        if propclass.datatype is not None:
+            if isinstance(value, Xsd):
+                return value
+            return convert2datatype(value, propclass.datatype, validate=self._validate)
+        return value if isinstance(value, Iri) else Iri(value, validate=self._validate)
+
+    def __additional_properties_to_trig(self, indent: int = 0, indent_inc: int = 4) -> str:
+        blank = ''
+        sparql = ''
+        for prop_iri, value in self._additional_properties.items():
+            for item in self.__as_value_list(value):
+                sparql += f' ;\n{blank:{indent * indent_inc}}{prop_iri.toRdf} {item.toRdf}'
+        return sparql
+
+    def __additional_properties_update_sparql(self, indent: int = 0, indent_inc: int = 4) -> list[str]:
+        blank = ''
+        sparql_list = []
+        for prop_iri, change in self._additional_properties._changeset.items():
+            old_values = self.__as_value_list(change.old_value)
+            new_values = self.__as_value_list(self._additional_properties.get(prop_iri))
+            sparql = f'{blank:{indent * indent_inc}}# Additional User property "{prop_iri}" with action "{change.action.value}"\n'
+            sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
+            if change.action != Action.CREATE and old_values:
+                sparql += f'{blank:{indent * indent_inc}}DELETE {{\n'
+                for old_value in old_values:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user {prop_iri.toRdf} {old_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            if change.action != Action.DELETE and new_values:
+                sparql += f'{blank:{indent * indent_inc}}INSERT {{\n'
+                for new_value in new_values:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user {prop_iri.toRdf} {new_value.toRdf} .\n'
+                sparql += f'{blank:{indent * indent_inc}}}}\n'
+            sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}BIND({self.userIri.toRdf} as ?user)\n'
+            sparql += f'{blank:{(indent + 1) * indent_inc}}?user a oldap:User .\n'
+            if change.action != Action.CREATE and old_values:
+                for old_value in old_values:
+                    sparql += f'{blank:{(indent + 1) * indent_inc}}?user {prop_iri.toRdf} {old_value.toRdf} .\n'
+            sparql += f'{blank:{indent * indent_inc}}}}'
+            sparql_list.append(sparql)
+        return sparql_list
+
     def add_project_permission(self, project: Iri | str, permission: AdminPermission | None) -> None:
         if self._attributes[UserAttr.IN_PROJECT].get(project) is None:
             if self._changeset.get(UserAttr.IN_PROJECT) is None:
@@ -379,6 +712,15 @@ class User(Model):
             self._changeset[UserAttr.IN_PROJECT] = AttributeChange(self._attributes[UserAttr.IN_PROJECT], Action.MODIFY)
         self._attributes[UserAttr.IN_PROJECT][project].remove(permission)
 
+    def _permission_annotation(self, predicate: str, target: str, permission: str) -> str:
+        """Serialize a user permission using the connection's RDF dialect."""
+        if getattr(self._con, '_user_permissions_rdf12', False) is True:
+            from oldaplib.src.helpers.jena_permission_write import permission_annotation
+            return permission_annotation(self.userIri.toRdf, predicate, target, permission)
+        annotation = ('oldap:hasAdminPermission' if predicate == 'oldap:inProject'
+                      else 'oldap:hasDefaultDataPermission')
+        return f'<<{self.userIri.toRdf} {predicate} {target}>> {annotation} {permission} .\n'
+
     def trig_to_str(self,
                     creator: Iri,
                     created: Xsd_dateTime,
@@ -387,7 +729,10 @@ class User(Model):
                     indent: int = 0, indent_inc: int = 4):
         blank = ''
         sparql = ''
-        sparql += f'{blank:{indent * indent_inc}}{self.userIri.toRdf} a oldap:User'
+        usertypes = ['oldap:User']
+        if self._userclass != Xsd_QName('oldap:User'):
+            usertypes.append(self._userclass.toRdf)
+        sparql += f'{blank:{indent * indent_inc}}{self.userIri.toRdf} a {", ".join(usertypes)}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:creator {creator.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:created {created.toRdf}'
         sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}dcterms:contributor {contributor.toRdf}'
@@ -406,13 +751,18 @@ class User(Model):
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:inProject {rdfstr}'
             for p in self.inProject.keys():
                 for admin_p in self.inProject[p]:  # TODO: May be use .get() instead of [] !!!!!!!!!!!!!!!!!!!!!!!!!
-                    star += f'{blank:{indent * indent_inc}}<<{self.userIri.toRdf} oldap:inProject {p.toRdf}>> oldap:hasAdminPermission {admin_p.value} .\n'
+                    star += f'{blank:{indent * indent_inc}}' + self._permission_annotation('oldap:inProject', p.toRdf, admin_p.value)
         if self.hasRole:
             rdfstr = ", ".join([str(x) for x in self.hasRole.keys()])
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:hasRole {rdfstr}'
             for r, p in self.hasRole.items():
                 if p:
-                    star += f'{blank:{(indent + 1) * indent_inc}}<<{self.userIri.toRdf} oldap:hasRole {r.toRdf}>> oldap:hasDefaultDataPermission {p.value} .\n'
+                    star += f'{blank:{(indent + 1) * indent_inc}}' + self._permission_annotation('oldap:hasRole', r.toRdf, p.value)
+        if self.passwordResetRequestAt:
+            sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:passwordResetRequestAt {self.passwordResetRequestAt.toRdf}'
+        sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}oldap:authVersion {self.authVersion.toRdf}'
+        if self._additional_properties:
+            sparql += self.__additional_properties_to_trig(indent=indent + 1, indent_inc=indent_inc)
         sparql += " .\n\n"
         sparql += star
         return sparql
@@ -444,6 +794,7 @@ class User(Model):
 
         if self.userIri is None:
             self.userIri = Iri()
+        self.__validate_and_prepare_additional_properties()
         context = Context(name=self._con.context_name)
         sparql1 = context.sparql_context
         #
@@ -626,7 +977,7 @@ class User(Model):
                     return tmp
 
         context = Context(name=con.context_name)
-        jsonobj = con.query(UserData.sparql_query(context, userId))
+        jsonobj = con.query(con._user_read_query(context, userId))
         res = QueryProcessor(context, jsonobj)
         if len(res) == 0:
             raise OldapErrorNotFound(f'User "{userId}" not found.')
@@ -646,15 +997,21 @@ class User(Model):
                        credentials=userdata.credentials,
                        isActive=userdata.isActive,
                        inProject=userdata.inProject,
-                       hasRole=userdata.hasRole)
+                       hasRole=userdata.hasRole,
+                       passwordResetRequestAt=userdata.passwordResetRequestAt,
+                       authVersion=userdata.authVersion,
+                       userclass=userdata.userclass,
+                       additionalProperties=userdata.additionalProperties)
         cache = CacheSingletonRedis()
         cache.set(instance.userIri, instance)
         instance.clear_changeset()
+        instance._additional_properties.clear_changeset()
         return instance
 
     @staticmethod
     def search(*, con: IConnection,
                userId: Optional[Xsd_NCName | str] = None,
+               email: Optional[str | Xsd_string] = None,
                familyName: Optional[str | Xsd_string] = None,
                givenName: Optional[str | Xsd_string] = None,
                inProject: Optional[Iri | str] = None) -> List[Xsd_anyURI]:
@@ -685,6 +1042,7 @@ class User(Model):
         """
         if userId and not isinstance(userId, Xsd_NCName):
             userId = Xsd_NCName(userId, validate=True)
+        email = Xsd_string(email, validate=True) if email else None
         familyName = Xsd_string(familyName, validate=True) if familyName else None
         givenName = Xsd_string(givenName, validate=True) if givenName else None
         if not isinstance(inProject, Iri):
@@ -701,6 +1059,9 @@ class User(Model):
         if userId is not None:
             sparql += '       ?user oldap:userId ?user_id .\n'
             sparql += f'       FILTER(?user_id = {userId.toRdf})\n'
+        if email is not None:
+            sparql += '       ?user schema:email ?email .\n'
+            sparql += f'       FILTER(STR(?email) = {email.toRdf})\n'
         if familyName is not None:
             sparql += '       ?user schema:familyName ?family_name .\n'
             sparql += f'       FILTER(STR(?family_name) = {familyName.toRdf})\n'
@@ -765,8 +1126,18 @@ class User(Model):
             ?user ?prop ?val .
         }} 
         """
-        # TODO: use transaction for error handling
-        self._con.update_query(sparql)
+        if getattr(self._con, '_user_permissions_rdf12', False) is True:
+            from oldaplib.src.helpers.jena_permission_write import delete_user, require_exclusive_reifiers
+            self._con.transaction_start()
+            try:
+                require_exclusive_reifiers(self._con, self.userIri.toRdf, ('oldap:inProject', 'oldap:hasRole'))
+                self._con.transaction_update(context.sparql_context + delete_user(self.userIri.toRdf))
+            except OldapError:
+                self._con.transaction_abort()
+                raise
+            self._con.transaction_commit()
+        else:
+            self._con.update_query(sparql)
         cache = CacheSingletonRedis()
         cache.delete(self.userIri)
 
@@ -807,8 +1178,10 @@ class User(Model):
             if not result:
                 raise OldapErrorNoPermission(message)
 
+        auth_version_change = self.__prepare_auth_version_increment()
         timestamp = Xsd_dateTime.now()
         context = Context(name=self._con.context_name)
+        self.__validate_and_prepare_additional_properties(preserve_changes=True)
 
         ptest = None
         ptest_len = 0
@@ -818,7 +1191,7 @@ class User(Model):
         blank = ''
         sparql_list = []
         for field, change in self._changeset.items():
-            if field == UserAttr.HAS_ROLE or field == UserAttr.IN_PROJECT:
+            if field in (UserAttr.HAS_ROLE, UserAttr.IN_PROJECT, UserAttr.AUTH_VERSION):
                 continue
             sparql = f'{blank:{indent * indent_inc}}# User field "{field.value}" with action "{change.action.value}"\n'
             sparql += f'{blank:{indent * indent_inc}}WITH oldap:admin\n'
@@ -837,7 +1210,8 @@ class User(Model):
             sparql += f'{blank:{indent * indent_inc}}}}'
             sparql_list.append(sparql)
 
-        if UserAttr.HAS_ROLE in self._changeset:
+        rdf12 = getattr(self._con, '_user_permissions_rdf12', False) is True
+        if UserAttr.HAS_ROLE in self._changeset and not rdf12:
             added = {}
             removed = {}
             changed = {}
@@ -959,7 +1333,16 @@ class User(Model):
                 """
                 ptest_len = len(added)
 
-        if UserAttr.IN_PROJECT in self._changeset:
+        if auth_version_change is not None:
+            expected_auth_version, updated_auth_version = auth_version_change
+            sparql_list.append(self.__auth_version_update_sparql(
+                expected_auth_version,
+                updated_auth_version,
+                indent,
+                indent_inc,
+            ))
+
+        if UserAttr.IN_PROJECT in self._changeset and not rdf12:
             addedprojs = {}
             deletedprojs = {}
             if self._changeset[UserAttr.IN_PROJECT].action == Action.CREATE:
@@ -1086,6 +1469,31 @@ class User(Model):
                         sparql += f'{blank:{indent * indent_inc}}}}\n'
                         sparql_list.append(sparql)
 
+        if rdf12:
+            from oldaplib.src.helpers.jena_permission_write import replace_memberships
+            # Replace only changed permission maps within the existing optimistic
+            # transaction. Preserve bare memberships and validate every target.
+            if UserAttr.HAS_ROLE in self._changeset:
+                roles = self.hasRole or {}
+                mapping = {role.toRdf: [permission.toRdf] if permission else []
+                           for role, permission in roles.items()}
+                sparql_list.append(replace_memberships(self.userIri.toRdf, 'oldap:hasRole', mapping))
+                if roles:
+                    ptest = ('SELECT ?role FROM oldap:admin WHERE { ?role a oldap:Role . '
+                             + 'FILTER (?role IN (' + ', '.join(mapping) + ')) }')
+                    ptest_len = len(roles)
+            if UserAttr.IN_PROJECT in self._changeset:
+                projects = self.inProject or {}
+                mapping = {project.toRdf: [permission.value for permission in permissions]
+                           for project, permissions in projects.items()}
+                sparql_list.append(replace_memberships(self.userIri.toRdf, 'oldap:inProject', mapping))
+                if projects:
+                    proj_test = ('SELECT ?project FROM oldap:admin WHERE { ?project a oldap:Project . '
+                                 + 'FILTER (?project IN (' + ', '.join(mapping) + ')) }')
+                    proj_test_len = len(projects)
+
+        sparql_list.extend(self.__additional_properties_update_sparql(indent=indent, indent_inc=indent_inc))
+
         sparql = context.sparql_context
         sparql += " ;\n".join(sparql_list)
         self._con.transaction_start()
@@ -1117,14 +1525,26 @@ class User(Model):
                 raise OldapErrorValue("One of the projects is not existing!")
 
         try:
+            if rdf12:
+                from oldaplib.src.helpers.jena_permission_write import require_exclusive_reifiers
+                changed_memberships = [predicate for attribute, predicate in (
+                    (UserAttr.IN_PROJECT, 'oldap:inProject'), (UserAttr.HAS_ROLE, 'oldap:hasRole'))
+                    if attribute in self._changeset]
+                require_exclusive_reifiers(self._con, self.userIri.toRdf, changed_memberships)
             self._con.transaction_update(sparql)
             self.set_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri, self.modified, timestamp)
             modtime = self.get_modified_by_iri(Xsd_QName('oldap:admin'), self.userIri)
+            if auth_version_change is not None:
+                persisted_auth_version = self.__read_auth_version_in_transaction(context)
+                if persisted_auth_version != auth_version_change[1]:
+                    raise OldapErrorUpdateFailed(
+                        f'Authentication version update for user "{self.userId}" conflicted with another update.'
+                    )
         except OldapError:
-            print(sparql)
             self._con.transaction_abort()
             raise
         if timestamp != modtime:
+            self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (timestamp: {timestamp}, modtime: {modtime}).")
         try:
             self._con.transaction_commit()
@@ -1133,6 +1553,6 @@ class User(Model):
             raise
         self._modified = timestamp
         self._contributor = self._con.userIri
+        self.clear_changeset()
         cache = CacheSingletonRedis()
         cache.set(self.userIri, self)
-

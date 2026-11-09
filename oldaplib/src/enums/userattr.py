@@ -7,7 +7,9 @@ from oldaplib.src.helpers.serializeableset import SerializeableSet
 from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
+from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
@@ -35,4 +37,5 @@ class UserAttr(AttributeClass):
     ACTIVE = ('oldap:isActive', False, False, Xsd_boolean)
     IN_PROJECT = ('oldap:inProject', False, False, InProjectClass)
     HAS_ROLE = ('oldap:hasRole', False, False, ObservableDict)
-
+    PASSWORD_RESET_REQUEST_AT = ('oldap:passwordResetRequestAt', False, False, Xsd_dateTimeStamp)
+    AUTH_VERSION = ('oldap:authVersion', False, True, Xsd_nonNegativeInteger)

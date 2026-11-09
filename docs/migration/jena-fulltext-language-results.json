@@ -1,0 +1,345 @@
+{
+  "fixture": {
+    "title": [
+      "Laterne BMG Stamm",
+      "de"
+    ],
+    "plural": [
+      "Laternen",
+      "de"
+    ],
+    "umlaut": [
+      "Zürich München Straße",
+      "de"
+    ],
+    "ascii": [
+      "Zurich Munchen Strasse",
+      "de"
+    ],
+    "compound": [
+      "Fasnachtslaterne",
+      "de"
+    ],
+    "hyphen": [
+      "BMG-Stamm",
+      "de"
+    ],
+    "phrase": [
+      "Basler Fasnacht",
+      "de"
+    ],
+    "reverse": [
+      "Fasnacht Basler",
+      "de"
+    ],
+    "french": [
+      "École française",
+      "fr"
+    ],
+    "apostrophe": [
+      "L'art",
+      "fr"
+    ],
+    "decomposed": [
+      "Zürich",
+      "de"
+    ],
+    "stopword": [
+      "Die Laterne",
+      "de"
+    ],
+    "private": [
+      "Sprachprivat",
+      "de"
+    ]
+  },
+  "observations": [
+    {
+      "case": "lowercase",
+      "query": "laterne",
+      "status": "accepted",
+      "matches": [
+        "stopword",
+        "title"
+      ]
+    },
+    {
+      "case": "uppercase",
+      "query": "LATERNE",
+      "status": "accepted",
+      "matches": [
+        "stopword",
+        "title"
+      ]
+    },
+    {
+      "case": "word_order",
+      "query": "Stamm Laterne",
+      "status": "accepted",
+      "matches": [
+        "title"
+      ]
+    },
+    {
+      "case": "singular",
+      "query": "Laterne",
+      "status": "accepted",
+      "matches": [
+        "stopword",
+        "title"
+      ]
+    },
+    {
+      "case": "plural",
+      "query": "Laternen",
+      "status": "accepted",
+      "matches": [
+        "plural"
+      ]
+    },
+    {
+      "case": "prefix",
+      "query": "Latern*",
+      "status": "accepted",
+      "matches": [
+        "plural",
+        "stopword",
+        "title"
+      ]
+    },
+    {
+      "case": "compound_exact",
+      "query": "Fasnachtslaterne",
+      "status": "accepted",
+      "matches": [
+        "compound"
+      ]
+    },
+    {
+      "case": "compound_part",
+      "query": "Fasnachts",
+      "status": "accepted",
+      "matches": []
+    },
+    {
+      "case": "umlaut",
+      "query": "Zürich",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "decomposed",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "ascii",
+      "query": "Zurich",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "decomposed",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "transliteration",
+      "query": "Zuerich",
+      "status": "accepted",
+      "matches": []
+    },
+    {
+      "case": "eszett",
+      "query": "Straße",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "double_s",
+      "query": "Strasse",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "accent",
+      "query": "école",
+      "status": "accepted",
+      "matches": [
+        "french"
+      ]
+    },
+    {
+      "case": "accentless",
+      "query": "ecole",
+      "status": "accepted",
+      "matches": [
+        "french"
+      ]
+    },
+    {
+      "case": "french_uppercase",
+      "query": "ÉCOLE",
+      "status": "accepted",
+      "matches": [
+        "french"
+      ]
+    },
+    {
+      "case": "french_and",
+      "query": "française école",
+      "status": "accepted",
+      "matches": [
+        "french"
+      ]
+    },
+    {
+      "case": "hyphen_input",
+      "query": "BMG-Stamm",
+      "status": "accepted",
+      "matches": [
+        "hyphen",
+        "title"
+      ]
+    },
+    {
+      "case": "hyphen_as_words",
+      "query": "BMG Stamm",
+      "status": "accepted",
+      "matches": [
+        "hyphen",
+        "title"
+      ]
+    },
+    {
+      "case": "apostrophe_input",
+      "query": "L'art",
+      "status": "accepted",
+      "matches": [
+        "apostrophe"
+      ]
+    },
+    {
+      "case": "apostrophe_suffix",
+      "query": "art",
+      "status": "accepted",
+      "matches": []
+    },
+    {
+      "case": "phrase",
+      "query": "\"Basler Fasnacht\"",
+      "status": "accepted",
+      "matches": [
+        "phrase"
+      ]
+    },
+    {
+      "case": "phrase_reverse",
+      "query": "\"Fasnacht Basler\"",
+      "status": "accepted",
+      "matches": [
+        "reverse"
+      ]
+    },
+    {
+      "case": "phrase_over_hyphen",
+      "query": "\"BMG Stamm\"",
+      "status": "accepted",
+      "matches": [
+        "hyphen",
+        "title"
+      ]
+    },
+    {
+      "case": "stopword",
+      "query": "die",
+      "status": "accepted",
+      "matches": [
+        "stopword"
+      ]
+    },
+    {
+      "case": "canonical_decomposed_input",
+      "query": "Zürich",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "decomposed",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "umlaut_prefix",
+      "query": "Zür*",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "decomposed",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "ascii_prefix",
+      "query": "Zur*",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "decomposed",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "eszett_prefix",
+      "query": "Straß*",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "ascii_eszett_prefix",
+      "query": "Strass*",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "accent_prefix",
+      "query": "éco*",
+      "status": "accepted",
+      "matches": [
+        "french"
+      ]
+    },
+    {
+      "case": "ascii_accent_prefix",
+      "query": "eco*",
+      "status": "accepted",
+      "matches": [
+        "french"
+      ]
+    },
+    {
+      "case": "folded_phrase",
+      "query": "\"zurich munchen strasse\"",
+      "status": "accepted",
+      "matches": [
+        "ascii",
+        "umlaut"
+      ]
+    },
+    {
+      "case": "private",
+      "query": "Sprachprivat",
+      "status": "accepted",
+      "matches": []
+    }
+  ]
+}

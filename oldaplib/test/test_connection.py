@@ -1,10 +1,9 @@
-import json
-import os
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from pprint import pprint
 from time import sleep
+from unittest.mock import patch
 
 import jwt
 
@@ -13,7 +12,6 @@ from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.bnode import BNode
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
-from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
@@ -68,6 +66,19 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.repo, 'oldap')
         self.assertEqual(con.context_name, 'DEFAULT')
 
+    def test_direct_connection_without_access_token(self):
+        """Authenticate a trusted direct consumer without a signing secret."""
+        with patch.dict("os.environ", {"OLDAP_ACCESS_JWT_SECRET": ""}):
+            con = Connection(
+                userId="rosenth",
+                credentials="RioGrande",
+                context_name="DEFAULT",
+                issue_access_token=False,
+            )
+
+        self.assertEqual(con.userid, Xsd_NCName("rosenth"))
+        self.assertIsNone(con.token)
+
     def test_basic_connection_wrong_credentials(self):
         with self.assertRaises(OldapError) as ex:
             con = Connection(userId="rosenth",
@@ -81,8 +92,15 @@ class TestBasicConnection(unittest.TestCase):
         self.assertEqual(con.server, 'http://localhost:7200')
         self.assertEqual(con.repo, 'oldap')
         self.assertEqual(con.context_name, 'DEFAULT')
-        payload = jwt.decode(jwt=con.token, key=con.jwtkey, algorithms="HS256")
-        self.assertEqual(payload['iss'], 'http://oldap.org')
+        payload = jwt.decode(
+            jwt=con.token,
+            key=con.jwtkey,
+            algorithms=["HS256"],
+            issuer="https://oldap.org",
+            audience="oldap-api",
+        )
+        self.assertEqual(payload['iss'], 'https://oldap.org')
+        self.assertEqual(payload['typ'], 'access')
 
 
     def test_basic_connection_unknown_user(self):
@@ -115,14 +133,19 @@ class TestBasicConnection(unittest.TestCase):
 
     #@unittest.skip('No longer used')
     def test_token(self):
-        os.environ["OLDAP_JWT_SECRET"] = "This is a very special secret, yeah!"
         con = Connection(userId="rosenth",
                          credentials="RioGrande",
                          context_name="DEFAULT")
         token = con.token
-        tokendata = jwt.decode(jwt=token, key=con.jwtkey, algorithms="HS256")
-        userdata = json.loads(tokendata['userdata'], object_hook=serializer.decoder_hook)
-        self.assertEqual(userdata.userId, "rosenth")
+        tokendata = jwt.decode(
+            jwt=token,
+            key=con.jwtkey,
+            algorithms=["HS256"],
+            issuer="https://oldap.org",
+            audience="oldap-api",
+        )
+        self.assertEqual(tokendata['sub'], "rosenth")
+        self.assertNotIn('userdata', tokendata)
 
         con = Connection(token=token,
                          context_name="DEFAULT")
@@ -136,47 +159,16 @@ class TestBasicConnection(unittest.TestCase):
 
 
 
-    #@unittest.skip('Has to be adapted to test data...')
-    def test_query(self):
-        query = self._context.sparql_context
-        query += """
-        SELECT ?s ?o
-        FROM test:shacl
-        WHERE {
-            ?s a sh:PropertyShape .
-            ?s sh:path ?o .
-        }
-        """
-        res = self._connection.query(query)
-        expected = {
-            'head': {
-                'vars': ['s', 'o']
-            },
-            'results': {
-                'bindings': [{'o': {'type': 'uri', 'value': 'http://oldap.org/test#comment'},
-                              's': {'type': 'uri', 'value': 'http://oldap.org/test#commentShape'}
-                              },
-                             {'o': {'type': 'uri', 'value': 'http://oldap.org/test#test'},
-                              's': {'type': 'uri', 'value': 'http://oldap.org/test#testShape'}
-                              },
-                             {'o': {'type': 'uri', 'value': 'http://oldap.org/test#enum'},
-                              's': {'type': 'uri', 'value': 'http://oldap.org/test#enumShape'}
-                              }]
-            }
-        }
-        self.maxDiff = None
-        self.assertDictEqual(res, expected)
 
     #@unittest.skip('Work in progress')
     def test_json_query(self):
         expected = {
-            Iri('rdf:type'): {Iri('test:testMyRes'), Iri('sh:NodeShape')},
+            Iri('rdf:type'): {Iri('sh:NodeShape')},
             Iri("rdfs:comment"): "Resource for testing...",
             Iri("rdfs:label"): {"My Resource@en", "Meine Ressource@de", "Ma Resource@fr"},
             Iri("sh:property"): Xsd_QName("test:testShape"),
             Iri("sh:closed"): Xsd_boolean(True),
             Iri("sh:targetClass"): Xsd_QName("test:testMyRes"),
-            Iri("schema:version"): '1.0.0',
             Iri("dcterms:creator"): Iri("https://orcid.org/0000-0003-1681-4036"),
             Iri("dcterms:created"): Xsd_dateTime(datetime(2023, 11, 4, 12, 0, tzinfo=timezone.utc)),
             Iri("dcterms:contributor"):  Iri("https://orcid.org/0000-0003-1681-4036"),

@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "checks": [
+    "Real Project.read resolves fixture namespace",
+    "Real DataModel.read loads repository SHACL and OWL",
+    "Factory resolves inherited properties from model metadata",
+    "Factory reads a permitted RDF 1.2 resource with inherited field",
+    "Factory retains concrete type and direct property",
+    "Multiple resource grants retain the correct role-permission association",
+    "Other project data does not enter the resource read",
+    "Generic read_data keeps asserted type distinct from inferred ancestors",
+    "Scoped resource read explicitly entails superclass type",
+    "Factory denies denied resource",
+    "Factory denies orphan resource",
+    "Factory denies missing resource",
+    "Factory denies restricted resource",
+    "Factory denies creatorOnly resource",
+    "Class read preserves the explicit creator exception",
+    "Generic read_data preserves its creator exception",
+    "Read checks current role membership after revocation",
+    "Plain Jena does not silently infer superclass rdf:type",
+    "Explicit subclass path derives membership from model graph"
+  ],
+  "read_queries": 301
+}

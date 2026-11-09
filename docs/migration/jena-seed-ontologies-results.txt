@@ -1,0 +1,25 @@
+PASS Native Jena parses admin-testing.trig
+PASS Native Jena parses admin.trig
+PASS Native Jena parses example.trig
+PASS Native Jena parses oldap.trig
+PASS Native Jena parses oldap.ttl
+PASS Native Jena parses shared.trig
+PASS Native Jena parses standard/dcterms.ttl
+PASS Native Jena parses standard/schemaorg.ttl
+PASS Native Jena parses standard/skos.ttl
+PASS Native Jena parses standard/skos.xml
+PASS All 29 original permission values preserved
+PASS 18 distinct membership reifiers, including merged duplicate annotation
+PASS Every grant retains its separately asserted membership
+PASS No reifier describes two different memberships
+PASS All seed reifiers have stable IRIs
+PASS Reload does not duplicate permission reifiers or values
+PASS admin.trig preserves ordinary triples in http://oldap.org/base#admin
+PASS admin.trig preserves default graph
+PASS admin-testing.trig preserves ordinary triples in http://www.salsah.org/version/2.0/SwissBritNet#onto
+PASS admin-testing.trig preserves ordinary triples in http://hyperhamlet.unibas.ch/shacl
+PASS admin-testing.trig preserves ordinary triples in http://hyperhamlet.unibas.ch/onto
+PASS admin-testing.trig preserves ordinary triples in http://oldap.org/base#admin
+PASS admin-testing.trig preserves ordinary triples in http://www.salsah.org/version/2.0/SwissBritNet#shacl
+PASS admin-testing.trig preserves default graph
+PASS total=24; no reasoner or external service used

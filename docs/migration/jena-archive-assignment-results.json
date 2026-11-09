@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-30",
+  "status": "passed",
+  "scope": "Owned synthetic Jena fixture; no live data or full Fasnacht model API import",
+  "native_checks": 152,
+  "archive_assignment_checks": [
+    "Archive assignment YAML explicitly clears the legacy inverse",
+    "Archive fixture reproduces the obsolete inverse inference",
+    "Archive cleanup removes both legacy axiom orientations",
+    "Archive single read retains the directly assigned unit",
+    "Archive single read preserves independent subject data",
+    "Archive subject links no longer manufacture assignments",
+    "Archive summaries retain only asserted assignments",
+    "Archive assignment filter and count agree",
+    "Archive subject-only unit does not match placement search",
+    "Archive removing assignment preserves the subject relation",
+    "Archive acceptance abort removes its fixture data"
+  ],
+  "offline_checks": 57,
+  "limitations": [
+    "Target axiom cleanup uses explicit SPARQL in the fixture; the complete HTTP model-update workflow is not exercised here.",
+    "The fixture uses test:Cat resources with the real fasnacht:archiveUnit predicate and target/cardinality checked against the migration YAML.",
+    "General inverse-field implementation and real-project migration acceptance remain separate."
+  ]
+}

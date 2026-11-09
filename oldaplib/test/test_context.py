@@ -1,7 +1,11 @@
 import unittest
 
+from rdflib import Graph, URIRef
+
+from oldaplib.src.helpers.construct_processor import ConstructProcessor
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.helpers.oldaperror import OldapError
@@ -53,9 +57,30 @@ class TestContext(unittest.TestCase):
         self.assertEqual(qn, 'skos:node')
         qn = context.iri2qname(Xsd_anyURI('http://www.gaga.org#label'))
         self.assertIsNone(qn)
+        context['badfrag'] = 'http://www.gaga.org/badfrag#'
+        qn = context.iri2qname('http://www.gaga.org/badfrag#CreativeCommons#CC_BY-NC-ND', validate=False)
+        self.assertIsNone(qn)
         with self.assertRaises(OldapError) as ex:
             qn = context.iri2qname('waseliwas/soll')
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas/soll" for anyURI (no urn:/http:)')
+
+    def test_construct_processor_external_uri_ref(self):
+        context = Context(name="construct_external_uri")
+        context['test'] = "http://oldap.org/test#"
+        iiif_url = "http://localhost:8088/iiif/3/yAlunuap_TKi/full/max/0/default.jpg"
+        graph = Graph()
+        graph.add((
+            URIRef("http://oldap.org/test#resource"),
+            URIRef("http://oldap.org/test#leadImage"),
+            URIRef(iiif_url)
+        ))
+
+        res = ConstructProcessor.process(context, graph)
+
+        self.assertEqual(
+            res[Xsd_QName("test:resource")][Xsd_QName("test:leadImage")],
+            Iri(iiif_url)
+        )
 
     def test_context_qname2iri(self):
         context = Context(name='qname2iri')
@@ -80,7 +105,8 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX xml: <http://www.w3.org/XML/1998/namespace#>
 PREFIX sh: <http://www.w3.org/ns/shacl#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX schema: <http://schema.org/>
+PREFIX schema: <https://schema.org/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
 PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX dcmitype: <http://purl.org/dc/dcmitype/>
 PREFIX dash: <http://datashapes.org/dash#>
@@ -88,6 +114,7 @@ PREFIX oldap: <http://oldap.org/base#>
 PREFIX shared: <http://oldap.org/shared#>
 PREFIX test: <http://www.test.org/gaga#>
 """
+        self.maxDiff = None
         self.assertEqual(context.sparql_context, expected)
 
     def test_context_turtle(self):
@@ -103,7 +130,8 @@ PREFIX test: <http://www.test.org/gaga#>
 @prefix xml: <http://www.w3.org/XML/1998/namespace#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix schema: <http://schema.org/> .
+@prefix schema: <https://schema.org/> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix dcmitype: <http://purl.org/dc/dcmitype/> .
 @prefix dash: <http://datashapes.org/dash#> .
@@ -113,5 +141,3 @@ PREFIX test: <http://www.test.org/gaga#>
 """
         self.maxDiff = None
         self.assertEqual(context.turtle_context, expected)
-
-

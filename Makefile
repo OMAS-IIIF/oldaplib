@@ -66,7 +66,15 @@ getontos:
 	curl -L -o oldaplib/ontologies/standard/schemaorg.ttl https://schema.org/version/latest/schemaorg-current-https.ttl
 	./rdf_xml2ttl.sh oldaplib/ontologies/standard/skos.xml oldaplib/ontologies/standard/skos.ttl
 
+loadamintest:
+	curl -X POST -H 'Content-Type: application/x-trig' --data-binary @oldaplib/ontologies/admin-testing.trig 'http://localhost:7200/repositories/oldap/statements'
+
+
 loadontos:
+	curl -X POST \
+	  -H "Content-Type: application/sparql-update" \
+	  --data "CLEAR ALL" \
+	  http://localhost:7200/repositories/oldap/statements
 	curl -X POST \
 	  -H 'Content-Type: application/x-trig' \
 	  --data-binary @oldaplib/ontologies/oldap.trig \

@@ -27,12 +27,13 @@ class Xsd_hexBinary(Xsd):
         if isinstance(value, Xsd_hexBinary):
             self.__value = value.__value
         else:
+            sval = str(value)
             if validate:
-                if not bool(re.match(r'^[0-9A-Fa-f]*$', value)) or len(value) % 2 != 0:
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
-                if not XsdValidator.validate(XsdDatatypes.hexBinary, value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:hexBinary.')
-            self.__value = value
+                if not bool(re.match(r'^[0-9A-Fa-f]*$', sval)) or len(sval) % 2 != 0:
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:hexBinary.')
+                if not XsdValidator.validate(XsdDatatypes.hexBinary, sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:hexBinary.')
+            self.__value = sval
 
     def __str__(self):
         """
@@ -60,7 +61,7 @@ class Xsd_hexBinary(Xsd):
         if isinstance(other, Xsd_hexBinary):
             return self.__value == other.__value
         else:
-            return self.__value == Xsd_hexBinary(str(other))
+            return self.__value == Xsd_hexBinary(str(other)).value
 
     def __hash__(self) -> int:
         """

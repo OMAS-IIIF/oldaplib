@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "checks": [
+    "Committed literals are indexed with graph isolation",
+    "Case-insensitive token search",
+    "Phrase search",
+    "Wildcard search",
+    "Boolean query within one literal",
+    "Other graph cannot supply matching text for same subject",
+    "Language-tag restriction",
+    "Wrong language does not match",
+    "StandardAnalyzer does not promise accent folding",
+    "Default triple documents cannot satisfy raw cross-field AND",
+    "Independent text joins implement entity-level field AND",
+    "Default documents do not combine two values of the same field",
+    "Independent joins can combine two values of one field",
+    "Field OR can use an explicit union",
+    "RDF 1.2 ACL excludes denied, orphan and below-threshold hits",
+    "Distinct count does not count multiple matching literals",
+    "Permissions precede final page without an early text limit",
+    "Rolled-back insertion leaves no text hit",
+    "Rolled-back deletion retains text hit",
+    "Committed replacement removes old text",
+    "Committed replacement indexes new text",
+    "Committed deletion removes its index document",
+    "Clean reopen preserves committed index",
+    "Clean reopen preserves deletions and rollback"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "checks": [
+    "Real callback sees newly inserted mobile receipt inside outer transaction",
+    "Separate reader cannot see resource/audit/outbox before commit",
+    "Nested real decorator and callback commit exactly once",
+    "Real structural audit preserves before/after and operation ID",
+    "Real late callback failure rolls back resource, audit and outbox",
+    "Caught nested callback failure still poisons outer transaction",
+    "Owner final precondition rolls back successful inner callbacks",
+    "Real worker claim reads and updates the committed event",
+    "Real completion rejects stale claim and accepts exact duplicate",
+    "Real callback emits no event for non-mobile media",
+    "Client disconnect aborts uncommitted callback work before dataset reopen"
+  ]
+}

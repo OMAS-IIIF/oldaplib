@@ -1,0 +1,135 @@
+{
+  "java": "openjdk version \"25.0.2\" 2026-01-20\nOpenJDK Runtime Environment Homebrew (build 25.0.2)\nOpenJDK 64-Bit Server VM Homebrew (build 25.0.2, mixed mode, sharing)",
+  "jar_sha512": "59c5d0fd4e3f2c51819816dd178ee7d619552aae12400286338cc55c6955653e6c503d58b6cb12f3124407c903a81a2ecf4a9b0d5ba8028e7fcdc7c5c98710d4",
+  "port": 3032,
+  "checks": [
+    "Java transaction probe",
+    "Bounded HTTP composition probe",
+    "Pinned server version",
+    "Explicit reifier permission join",
+    "Admin permission annotation",
+    "Membership does not invent a default permission",
+    "Explicit default permission annotation",
+    "Annotations stay in their named graph",
+    "Repeated anonymous shorthand creates distinct reifiers",
+    "Stable reifier repeated INSERT is idempotent",
+    "Triple term JSON result",
+    "Reification does not assert the base triple",
+    "Turtle export/reimport preserves reifier",
+    "Role revocation removes effective access",
+    "Grant deletion leaves no annotation residue",
+    "HTTP update visible in a separate request",
+    "Runtime failure returns an error",
+    "One HTTP update request rolls back all operations",
+    "Earlier HTTP request is not rolled back",
+    "No RDF4J transaction endpoint on stock dataset",
+    "False WHERE does not abort a following unguarded receipt",
+    "Guarded stale mutation creates no receipt",
+    "One guarded update changes data and records receipt",
+    "Exact synthetic retry leaves one receipt",
+    "Concurrent guarded HTTP mutations have exactly one receipt",
+    "Concurrent guarded mutations advance the revision only once",
+    "Revocation: legacy missing version becomes one with metadata and receipt",
+    "Revocation: exact replay does not increment twice",
+    "Revocation: stale model produces no receipt or mutation",
+    "Revocation: reused operation ID rejects changed payload without effects",
+    "Revocation: receipt identity binds actor",
+    "Revocation: old replay returns its own result after later revocation",
+    "Revocation: matching version with stale timestamp changes nothing",
+    "Revocation: concurrent distinct commands have one winner",
+    "Revocation: concurrent identical retries increment once",
+    "Revocation: receipt reconciles simulated lost acknowledgement",
+    "Revocation: exact retry after lost acknowledgement is safe",
+    "Revocation: missing receipt alone does not prove rollback",
+    "Public User: unchanged return type, object metadata and cache invalidation",
+    "Public User: stale call raises existing conflict without local/cache mutation",
+    "Public User: confirmed receipt resolves lost acknowledgement before success",
+    "Public User: unknown result preserves object/cache and recovery identity",
+    "Public User: exact retained attempt recovers once without stale object publication",
+    "Authorization: all target projects authorized",
+    "Authorization: one missing project grant denies",
+    "Authorization: membership without annotation denies",
+    "Authorization: reifier without asserted membership denies",
+    "Authorization: grants in another graph deny",
+    "Authorization: no target project denies ordinary administrator",
+    "Authorization: root can manage user without projects",
+    "Authorization: root can manage multiple projects",
+    "Authorization: root annotation without membership denies",
+    "Authorization: root membership without annotation denies",
+    "Authorization: grant removed after preparation denies atomically",
+    "Authorization: denied receipt remains denied after permission restoration",
+    "Authorization: new target membership cannot bypass all-project check",
+    "Authorization: committed replay stays successful after later grant removal",
+    "Authorization public User: project administrator succeeds",
+    "Authorization public User: root administrator succeeds without target projects",
+    "Authorization public User: stale permission denies without local/cache effects",
+    "Authorization: concurrent grant removal yields consistent atomic decisions (six runs)",
+    "Recovery: prepared unsent command survives writer exit and Redis SIGKILL",
+    "Recovery: explicit exact retry after restart commits only once",
+    "Recovery: committed outcome discovered after writer exit and Redis SIGKILL",
+    "Recovery: denied outcome survives writer exit and Redis SIGKILL",
+    "Recovery: public User call durably journals before HTTP and invalidates after commit",
+    "Revocation: receipt and user state survive restart",
+    "HTTP dataset persists across server restart",
+    "Aborted HTTP writes remain absent after restart"
+  ],
+  "java_transaction_checks": [
+    "PASS read-own-writes, concurrent-reader isolation, full rollback",
+    "PASS resource-and-receipt commit visibility",
+    "PASS concurrent read-check-write claims: exactly one winner",
+    "PASS dataset close/reopen retains committed data (not a crash test)"
+  ],
+  "composition_checks": [
+    "PASS permission guard has no resource/audit/outbox/receipt effects",
+    "PASS stale guard has no resource/audit/outbox/receipt effects",
+    "PASS full rollback at resources",
+    "PASS full rollback at audit",
+    "PASS full rollback at outbox",
+    "PASS full rollback at receipt",
+    "PASS full rollback at postcondition",
+    "PASS one HTTP command commits both resources, before/after audit, outbox and receipt",
+    "PASS exact replay is unchanged; changed ID payload is rejected",
+    "PASS concurrent commands have one winner; old replay returns its original revision",
+    "PASS non-mobile resource does not emit lifecycle work",
+    "PASS unchanged structure does not emit structural history",
+    "PASS all committed graph contents survive close/reopen"
+  ],
+  "triple_term_json": {
+    "head": {
+      "vars": [
+        "term"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "term": {
+            "type": "triple",
+            "value": {
+              "subject": {
+                "type": "uri",
+                "value": "urn:jena-probe:item"
+              },
+              "predicate": {
+                "type": "uri",
+                "value": "http://oldap.org/base#attachedToRole"
+              },
+              "object": {
+                "type": "uri",
+                "value": "urn:jena-probe:readerRole"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "failed_update_status": 400,
+  "rdf4j_transaction_endpoint_status": 405,
+  "status": "passed",
+  "source_sha256": {
+    "tools/migration/JenaCompositionProbe.java": "22e4001d96961df2ff5c1237ef2f2933e56a65ecb4daf2dc85252e69068e2a82",
+    "tools/migration/probe_jena.py": "37442c5afe1ece29ca48425f9e0b18ab291bd306e04a9b7f1f38d508bf404900"
+  },
+  "scope": "Bounded synthetic Java HTTP/TDB2 composition proof; no production resource port, ACL/schema parity or Python callback execution; existing migration suites included."
+}

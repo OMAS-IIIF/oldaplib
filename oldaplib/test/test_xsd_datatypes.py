@@ -280,6 +280,16 @@ class TestXsdDatatypes(unittest.TestCase):
         val1 = Xsd_anyURI('http://www.ch/tescht#', validate=True)
         val2 = Xsd_anyURI('http://www.ch/tescht#', validate=True)
         self.assertEqual(hash(val1), hash(val2))
+
+        # Triple-store records may still expose an URI-shaped lexical value as
+        # xsd:string while the active ontology expects xsd:anyURI. Conversion
+        # must use the XSD value's lexical form instead of assuming a native str.
+        string_value = Xsd_string('http://localhost:8088/iiif/3/')
+        self.assertEqual(
+            Xsd_anyURI(string_value),
+            Xsd_anyURI('http://localhost:8088/iiif/3/'),
+        )
+
         with self.assertRaises(OldapErrorValue) as ex:
             val = Xsd_anyURI('waseliwas', validate=True)
         self.assertEqual(str(ex.exception), 'Invalid string "waseliwas" for anyURI (no urn:/http:)')

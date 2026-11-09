@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "checks": [
+    "Real OLDAP TokenCodec identity is accepted by Fuseki servlet",
+    "Private servlet rejects GET and TRACE",
+    "Access token alone cannot access internal transaction endpoint",
+    "Service credential alone is not an OLDAP identity",
+    "Invalid service credential is rejected",
+    "Unsigned actor header cannot substitute for a verified token",
+    "Existing codec rejects expired",
+    "Existing codec rejects wrong audience",
+    "Existing codec rejects wrong issuer",
+    "Existing codec rejects wrong purpose",
+    "Existing codec rejects malformed authorization context",
+    "Existing codec rejects forged signature",
+    "Service secret is not accepted as access token",
+    "Expired access token cannot commit an existing session",
+    "New valid token for the same actor retains session ownership",
+    "Verifier outage blocks commit without claiming success",
+    "Malformed verified identity blocks commit",
+    "Rejected identity checks leave no committed application writes",
+    "Raw Fuseki dataset endpoint is not mounted",
+    "Identity peer itself requires separate service credentials"
+  ]
+}

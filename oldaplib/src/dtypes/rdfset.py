@@ -1,11 +1,12 @@
 from typing import Set, List, Dict, Iterable, Iterator, Self, TypeVar, Generic
+from collections.abc import Hashable
 
 from oldaplib.src.helpers.Notify import Notify
 from oldaplib.src.helpers.oldaperror import OldapErrorValue, OldapErrorType, OldapErrorInconsistency
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd import Xsd
 
-T = TypeVar("T")
+T = TypeVar("T", bound=Hashable)
 
 
 @serializer

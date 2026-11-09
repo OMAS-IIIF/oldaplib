@@ -2,15 +2,24 @@ import base64
 import random
 import string
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from pprint import pprint
 from time import sleep
-import jwt
+from unittest.mock import Mock, patch
+
+from rdflib import Graph
 
 from oldaplib.src.cachesingleton import CacheSingletonRedis
+from oldaplib.src.archive_tree import ArchiveTree
 from oldaplib.src.datamodel import DataModel
+from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.adminpermissions import AdminPermission
-from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir
+from oldaplib.src.objectfactory import ResourceInstanceFactory, SortBy, ResourceInstance, SortDir, SortKind, SearchFilter, \
+    LinkedResourceSearchFilter, CompOp, LogicOp, FTSearchFilter, HLSearchFilter, _lucene_query_fields, \
+    _resource_from_construct, _read_resource_construct, _read_resource_summaries_construct, \
+    ASSERTED_TYPE_PRED, READ_PERM_BINDING_PRED, READ_PERM_ROLE_PRED, READ_PERM_VALUE_PRED, \
+    MAX_RESOURCE_SUMMARY_BATCH, MAX_RESOURCE_SUMMARY_PROPERTIES
 from oldaplib.src.connection import Connection
 from oldaplib.src.enums.action import Action
 from oldaplib.src.enums.datapermissions import DataPermission
@@ -19,7 +28,7 @@ from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.langstring import LangString
 from oldaplib.src.helpers.oldaperror import OldapErrorNotFound, OldapErrorValue, OldapErrorNoPermission, \
-    OldapErrorInUse, OldapErrorKey
+    OldapErrorInUse, OldapErrorKey, OldapErrorInconsistency
 from oldaplib.src.role import Role
 from oldaplib.src.project import Project
 from oldaplib.src.user import User
@@ -64,6 +73,8 @@ from oldaplib.src.xsd.xsd_unsignedbyte import Xsd_unsignedByte
 from oldaplib.src.xsd.xsd_unsignedint import Xsd_unsignedInt
 from oldaplib.src.xsd.xsd_unsignedlong import Xsd_unsignedLong
 from oldaplib.src.xsd.xsd_unsignedshort import Xsd_unsignedShort
+from oldaplib.src.xsd.dating import Dating, DatePrecision
+from oldaplib.src.xsd.listnode import HListNode, HListNodeRef
 from redis.commands.search.aggregation import SortDirection
 
 from oldaplib.src.helpers.query_processor import QueryProcessor
@@ -78,6 +89,536 @@ def find_project_root(current_path):
             raise RuntimeError('Project root not found')
         path = path.parent
     return path
+
+
+class TestLuceneFulltextFilter(unittest.TestCase):
+
+    def test_ftfilter_uses_ncname_field_name(self):
+        ftfilter = FTSearchFilter('storyContent', 'geschichte')
+
+        self.assertEqual(str(ftfilter.field_name), 'storyContent')
+        self.assertEqual(_lucene_query_fields([ftfilter]), 'storyContent:geschichte')
+        self.assertNotIn('fasnacht:storyContent', _lucene_query_fields([ftfilter]))
+
+    def test_ftfilter_rejects_qname_field_name(self):
+        with self.assertRaises(OldapErrorValue):
+            FTSearchFilter('fasnacht:storyContent', 'geschichte')
+
+    def test_ftfilter_keeps_lucene_logic_and_escapes_sparql_string_literal(self):
+        fields = _lucene_query_fields([
+            FTSearchFilter('storyContent', 'Basel "Morgestraich"'),
+            'AND',
+            FTSearchFilter('abstract', 'Larve'),
+        ])
+
+        self.assertEqual(fields, 'storyContent:Basel \\"Morgestraich\\" AND abstract:Larve')
+
+
+class TestResourceConstructModelFiltering(unittest.TestCase):
+
+    @staticmethod
+    def construct_with_inferred_descriptions():
+        resource_iri = Iri('urn:uuid:86fe799c-c562-4c76-a744-5112ab94e12e', validate=False)
+        description = Xsd_string('Beschriebener Entwurf')
+        model_predicate = Xsd_QName('schema:description', validate=False)
+        return resource_iri, description, model_predicate, {
+            resource_iri: {
+                Xsd_QName('rdf:type', validate=False): Xsd_QName('fasnacht:ArchiveMediaObject', validate=False),
+                model_predicate: description,
+                Iri('http://ogp.me/ns#description', validate=False): description,
+                Xsd_QName('dcterms:description', validate=False): description,
+            },
+        }
+
+    def test_ignores_inferred_predicate_outside_resource_model(self):
+        resource_iri, description, model_predicate, construct_data = self.construct_with_inferred_descriptions()
+
+        _, kwargs = _resource_from_construct(
+            resource_iri,
+            construct_data,
+            {model_predicate: None},
+        )
+
+        self.assertEqual(kwargs['description'], description)
+        self.assertEqual(kwargs['attachedToRole'], {})
+        self.assertEqual(set(kwargs), {'description', 'attachedToRole'})
+
+    def test_read_data_ignores_inferred_predicates_outside_resource_model(self):
+        resource_iri, description, model_predicate, construct_data = self.construct_with_inferred_descriptions()
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://example.org/users/editor', validate=False),
+        )
+
+        with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
+                patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data):
+            data = ResourceInstance.read_data(
+                con=con,
+                projectShortName='fasnacht',
+                iri=resource_iri,
+                allowed_properties={model_predicate: None},
+            )
+
+        self.assertEqual(data['schema:description'], [description])
+        self.assertEqual(data['rdf:type'], [Xsd_QName('fasnacht:ArchiveMediaObject', validate=False)])
+        self.assertNotIn('dcterms:description', data)
+
+    def test_factory_read_data_returns_asserted_types_from_same_construct(self):
+        """Factory reads must not require a preliminary type query."""
+        resource_iri, description, model_predicate, construct_data = self.construct_with_inferred_descriptions()
+        concrete_type = Xsd_QName('fasnacht:ArchiveMediaObject', validate=False)
+        inferred_type = Xsd_QName('oldap:Thing', validate=False)
+        construct_data[resource_iri][Xsd_QName('rdf:type', validate=False)] = [
+            concrete_type,
+            inferred_type,
+        ]
+        construct_data[resource_iri][ASSERTED_TYPE_PRED] = concrete_type
+        construct_data[resource_iri][READ_PERM_BINDING_PRED] = [
+            {
+                READ_PERM_ROLE_PRED: Xsd_QName('oldap:Unknown', validate=False),
+                READ_PERM_VALUE_PRED: Xsd_QName('oldap:DATA_VIEW', validate=False),
+            },
+            {
+                READ_PERM_ROLE_PRED: Xsd_QName('chama:Editors', validate=False),
+                READ_PERM_VALUE_PRED: Xsd_QName('oldap:DATA_UPDATE', validate=False),
+            },
+        ]
+
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://example.org/users/editor', validate=False),
+        )
+        factory = object.__new__(ResourceInstanceFactory)
+        factory._con = con
+        factory._project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+        instance_class = Mock()
+        instance_class.resolved_properties.return_value = {model_predicate: None}
+
+        with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
+                patch('oldaplib.src.objectfactory._read_resource_construct', return_value=construct_data) as read, \
+                patch.object(
+                    ResourceInstanceFactory,
+                    '_ResourceInstanceFactory__select_resource_type',
+                    return_value=concrete_type,
+                ), \
+                patch.object(factory, 'createObjectInstance', return_value=instance_class):
+            result = factory.read_data(resource_iri)
+
+        read.assert_called_once()
+        self.assertEqual(result.resource_class, concrete_type)
+        self.assertEqual(result.asserted_types, (concrete_type,))
+        self.assertEqual(result.data['rdf:type'], [concrete_type, inferred_type])
+        self.assertEqual(result.data['schema:description'], [description])
+        self.assertEqual(result.data[Xsd_QName('oldap:attachedToRole')], {
+            Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW,
+            Xsd_QName('chama:Editors'): DataPermission.DATA_UPDATE,
+        })
+        self.assertNotIn(str(ASSERTED_TYPE_PRED), result.data)
+
+    def test_resource_construct_marks_explicit_project_graph_types(self):
+        """The main CONSTRUCT must carry asserted types without another query."""
+        context_name = f'ASSERTED_TYPES_{self.id()}'
+        context = Context(name=context_name)
+        context['fasnacht'] = NamespaceIRI('http://example.org/fasnacht#')
+        con = Mock()
+        con.context_name = context_name
+        con.query.return_value = Graph()
+
+        # Exercise the real default query boundary on this lightweight connection.
+        from oldaplib.src.iconnection import IConnection
+        con._resource_read_query.side_effect = lambda *args, **kwargs: IConnection._resource_read_query(con, *args, **kwargs)
+
+        _read_resource_construct(
+            con=con,
+            graph=Xsd_NCName('fasnacht'),
+            iri=Iri('fasnacht:Photo', validate=False),
+            user_iri=Iri('oldap:User', validate=False),
+            include_creator=True,
+        )
+
+        con.query.assert_called_once()
+        query = con.query.call_args.args[0]
+        self.assertIn('oldap:_assertedType ?assertedType', query)
+        self.assertIn('GRAPH fasnacht:data', query)
+        self.assertIn('fasnacht:Photo a ?assertedType', query)
+        self.assertIn('oldap:_readRole ?attachedRole', query)
+        self.assertIn('oldap:_readDataPermission ?attachedDataperm', query)
+
+    def test_summary_construct_batches_resources_and_requested_properties(self):
+        """Summary query generation must use one bounded VALUES request."""
+        context_name = f'RESOURCE_SUMMARIES_{self.id()}'
+        context = Context(name=context_name)
+        context['chama'] = NamespaceIRI('http://chama.salsah.org/ns/')
+        con = Mock()
+        con.context_name = context_name
+        con.userIri = Iri('oldap:User', validate=False)
+        con.query.return_value = Graph()
+
+        from oldaplib.src.iconnection import IConnection
+        con._resource_summaries_query.side_effect = lambda *args, **kwargs: IConnection._resource_summaries_query(con, *args, **kwargs)
+
+        _read_resource_summaries_construct(
+            con=con,
+            graph=Xsd_NCName('chama'),
+            iris=[Iri('chama:One', validate=False), Iri('chama:Two', validate=False)],
+            include_properties={Xsd_QName('schema:name')},
+        )
+
+        con.query.assert_called_once()
+        query = con.query.call_args.args[0]
+        self.assertIn('VALUES ?resource { chama:One chama:Two }', query)
+        self.assertIn('VALUES ?predicate { rdf:type schema:name }', query)
+        self.assertIn('?resource oldap:createdBy oldap:User', query)
+        self.assertIn('?resource oldap:attachedToRole ?accessRole', query)
+
+    def test_factory_summary_batch_is_ordered_and_omits_unreadable_resources(self):
+        """One factory call must return only readable summaries in input order."""
+        first = Iri('chama:First', validate=False)
+        hidden = Iri('chama:Hidden', validate=False)
+        second = Iri('chama:Second', validate=False)
+        concrete_type = Xsd_QName('chama:Photograph', validate=False)
+        name_property = Xsd_QName('schema:name', validate=False)
+        construct_data = {
+            first: {
+                Xsd_QName('rdf:type', validate=False): concrete_type,
+                ASSERTED_TYPE_PRED: concrete_type,
+                name_property: Xsd_string('First'),
+            },
+            second: {
+                Xsd_QName('rdf:type', validate=False): concrete_type,
+                ASSERTED_TYPE_PRED: concrete_type,
+                name_property: Xsd_string('Second'),
+            },
+        }
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('oldap:User', validate=False),
+        )
+        factory = object.__new__(ResourceInstanceFactory)
+        factory._con = con
+        factory._project = SimpleNamespace(projectShortName=Xsd_NCName('chama'))
+        instance_class = Mock()
+        instance_class.resolved_properties.return_value = {name_property: None}
+
+        with patch('oldaplib.src.objectfactory.OldapList.ensure_list_node_context'), \
+                patch(
+                    'oldaplib.src.objectfactory._read_resource_summaries_construct',
+                    return_value=construct_data,
+                ) as read, \
+                patch.object(
+                    ResourceInstanceFactory,
+                    '_ResourceInstanceFactory__select_resource_type',
+                    return_value=concrete_type,
+                ), \
+                patch.object(factory, 'createObjectInstance', return_value=instance_class):
+            result = factory.read_summaries(
+                [first, hidden, second, first],
+                include_properties=[name_property],
+            )
+
+        read.assert_called_once()
+        self.assertEqual(list(result), [first, second])
+        self.assertEqual(result[first].data['schema:name'], [Xsd_string('First')])
+        self.assertEqual(result[second].data['schema:name'], [Xsd_string('Second')])
+
+    def test_factory_summary_batch_rejects_more_than_bound(self):
+        """The library boundary must cap resource batches independent of HTTP."""
+        factory = object.__new__(ResourceInstanceFactory)
+        with self.assertRaisesRegex(OldapErrorValue, str(MAX_RESOURCE_SUMMARY_BATCH)):
+            factory.read_summaries(
+                [f'urn:uuid:00000000-0000-4000-8000-{index:012d}' for index in range(101)]
+            )
+
+        with self.assertRaisesRegex(OldapErrorValue, str(MAX_RESOURCE_SUMMARY_PROPERTIES)):
+            factory.read_summaries(
+                ['urn:uuid:00000000-0000-4000-8000-000000000001'],
+                include_properties=[f'test:property{index}' for index in range(33)],
+            )
+
+
+class TestSearchQueryGeneration(unittest.TestCase):
+
+    def test_optional_comparisons_require_values_per_boolean_branch(self):
+        """Missing properties must not match equality or disable another OR branch."""
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(context_name='DEFAULT',
+                              userIri=Iri('urn:test:reader'), query=query)
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+        parent = SearchFilter(Xsd_QName('shared:parentArchiveUnit'), CompOp.EQ,
+                              Iri('urn:test:parent'))
+        title = SearchFilter(Xsd_QName('dcterms:title'), CompOp.EQ, Xsd_string('Match'))
+        absent = SearchFilter(Xsd_QName('shared:parentArchiveUnit'), CompOp.NOT_EXISTS,
+                              Xsd_QName('shared:parentArchiveUnit'))
+        for count_only in (False, True):
+            with self.subTest(count_only=count_only):
+                query.return_value = {
+                    'head': {'vars': ['numResult']},
+                    'results': {'bindings': [{'numResult': {'type': 'literal', 'value': '0',
+                        'datatype': 'http://www.w3.org/2001/XMLSchema#integer'}}]},
+                } if count_only else {'head': {'vars': ['res']}, 'results': {'bindings': []}}
+                with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+                    ResourceInstance.search(con=con, project='test', resClass='shared:ArchiveUnit',
+                                            filter=[parent, LogicOp.OR, title], countOnly=count_only)
+                sparql = query.call_args[0][0]
+                self.assertIn('OPTIONAL { ?res shared:parentArchiveUnit ?parentArchiveUnit }', sparql)
+                self.assertIn('FILTER((BOUND(?parentArchiveUnit) && (?parentArchiveUnit = <urn:test:parent>))'
+                              ' || (BOUND(?title) && (?title = """Match"""^^xsd:string)))', sparql)
+        query.return_value = {'head': {'vars': ['res']}, 'results': {'bindings': []}}
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(con=con, project='test', resClass='shared:ArchiveUnit',
+                                    filter=[absent])
+        sparql = query.call_args[0][0]
+        self.assertIn('FILTER(NOT EXISTS { ?res shared:parentArchiveUnit ?parentArchiveUnit })', sparql)
+        self.assertNotIn('BOUND(?parentArchiveUnit)', sparql)
+
+
+    def test_search_archive_media_object_paging_query_uses_resource_subquery(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'assetId']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                sortBy=[SortBy('shared:assetId', SortDir.asc)],
+                limit=32,
+                offset=0,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('SELECT DISTINCT ?res ?resclass ?assetId', sparql)
+        self.assertRegex(sparql, r'\{\s*SELECT \?res \(MIN\(\?sort_0_raw\) AS \?sort_0_key\)')
+        self.assertIn('(COUNT(?sort_0_raw) = 0 AS ?sort_0_unbound)', sparql)
+        self.assertIn('OPTIONAL { ?res shared:assetId ?sort_0_raw }', sparql)
+        self.assertIn('GROUP BY ?res', sparql)
+        self.assertIn('ORDER BY ASC(?sort_0_unbound) ASC(?sort_0_key) ASC(STR(?res))', sparql)
+        self.assertIn('LIMIT 32 OFFSET 0', sparql)
+        self.assertEqual(sparql.count('LIMIT 32 OFFSET 0'), 1)
+        self.assertIn('OPTIONAL { ?res shared:assetId ?assetId }', sparql)
+
+    def test_search_outer_property_rows_deduplicate_to_resource_page(self):
+        bindings = [
+            {
+                'res': {'type': 'uri', 'value': f'urn:uuid:archive-media-object-{index:02d}'},
+                'resclass': {'type': 'uri', 'value': 'http://fasnacht.digital/ns/ArchiveMediaObject'},
+                'assetId': {'type': 'literal', 'value': f'asset-{index:02d}'},
+                'archiveMediaObjectOf': {'type': 'uri', 'value': f'urn:uuid:archive-object-{index:02d}'},
+            }
+            for index in range(32)
+        ]
+        bindings.insert(1, {
+            'res': {'type': 'uri', 'value': 'urn:uuid:archive-media-object-00'},
+            'resclass': {'type': 'uri', 'value': 'http://fasnacht.digital/ns/ArchiveMediaObject'},
+            'assetId': {'type': 'literal', 'value': 'asset-00'},
+            'archiveMediaObjectOf': {'type': 'uri', 'value': 'urn:uuid:archive-object-extra'},
+        })
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'assetId', 'archiveMediaObjectOf']},
+            'results': {'bindings': bindings},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            result = ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                includeProperties={Xsd_QName('shared:assetId'), Xsd_QName('fasnacht:archiveMediaObjectOf')},
+                sortBy=[SortBy('shared:assetId', SortDir.asc)],
+                limit=32,
+                offset=0,
+            )
+
+        self.assertEqual(len(result), 32)
+        self.assertEqual(len(result[0]['fasnacht:archiveMediaObjectOf']), 2)
+
+    def test_search_paging_should_use_resource_level_subquery_before_property_projection(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'assetId']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                includeProperties={Xsd_QName('shared:assetId'), Xsd_QName('schema:name')},
+                sortBy=[SortBy('shared:assetId', SortDir.asc)],
+                limit=32,
+                offset=32,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertRegex(sparql, r'\{\s*SELECT \?res \(MIN\(\?sort_0_raw\) AS \?sort_0_key\)')
+        self.assertRegex(
+            sparql,
+            r'ORDER BY ASC\(\?sort_0_unbound\) ASC\(\?sort_0_key\) ASC\(STR\(\?res\)\)\s+LIMIT 32 OFFSET 32\s*\}',
+        )
+        self.assertLess(sparql.index('LIMIT 32 OFFSET 32'),
+                        sparql.index('OPTIONAL { ?res schema:name ?name }'))
+
+    def test_search_without_sort_still_pages_distinct_resources_before_projection(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'archiveMediaObjectOf']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('fasnacht'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='fasnacht',
+                resClass='fasnacht:ArchiveMediaObject',
+                includeProperties={Xsd_QName('fasnacht:archiveMediaObjectOf')},
+                limit=32,
+                offset=64,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertRegex(sparql, r'\{\s*SELECT DISTINCT \?res\s+WHERE')
+        self.assertLess(sparql.index('LIMIT 32 OFFSET 64'),
+                        sparql.index('OPTIONAL { ?res fasnacht:archiveMediaObjectOf ?archiveMediaObjectOf }'))
+
+    def test_linked_resource_filter_searches_one_hop_property(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass', 'pageDesignation']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='test',
+                resClass='test:Page',
+                includeProperties={Xsd_QName('test:pageDesignation')},
+                filter=[
+                    LinkedResourceSearchFilter(
+                        linkProp='test:pageInBook',
+                        linkedClass='test:Book',
+                        prop='test:title',
+                        op=CompOp.CONTAINS,
+                        value=Xsd_string('Spez'),
+                    )
+                ],
+                limit=10,
+                offset=0,
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('?res test:pageInBook ?linked_0 .', sparql)
+        self.assertIn('?linked_0 rdf:type test:Book .', sparql)
+        self.assertIn('?linked_0 test:title ?linked_0_title .', sparql)
+        self.assertIn('CONTAINS(LCASE(STR(?linked_0_title)), LCASE(STR("Spez")))', sparql)
+        self.assertIn('(BOUND(?linked_0_title) && (CONTAINS(', sparql)
+        self.assertLess(sparql.index('?res test:pageInBook ?linked_0 .'),
+                        sparql.index('LIMIT 10 OFFSET 0'))
+        self.assertLess(sparql.index('LIMIT 10 OFFSET 0'),
+                        sparql.index('OPTIONAL { ?res test:pageDesignation ?pageDesignation }'))
+
+    def test_linked_resource_filter_can_require_linked_permissions(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project):
+            ResourceInstance.search(
+                con=con,
+                project='test',
+                resClass='test:Page',
+                filter=[
+                    LinkedResourceSearchFilter(
+                        linkProp='test:pageInBook',
+                        linkedClass='test:Book',
+                        prop='test:title',
+                        op=CompOp.CONTAINS,
+                        value=Xsd_string('Spez'),
+                        checkLinkedPermissions=True,
+                    )
+                ],
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('?linked_0 oldap:attachedToRole ?linked_0_role .', sparql)
+        self.assertIn('<< ?linked_0 oldap:attachedToRole ?linked_0_role >> oldap:hasDataPermission ?linked_0_DataPermission .', sparql)
+        self.assertIn('FILTER(?linked_0_permval >= "2"^^xsd:integer)', sparql)
+
+    def test_hlfilter_matches_resources_in_selected_subtree(self):
+        query = Mock(return_value={
+            'head': {'vars': ['res', 'resclass']},
+            'results': {'bindings': []},
+        })
+        con = SimpleNamespace(
+            context_name='DEFAULT',
+            userIri=Iri('https://orcid.org/0000-0003-1681-4036', validate=False),
+            query=query,
+        )
+        project = SimpleNamespace(projectShortName=Xsd_NCName('test'))
+        hlist = SimpleNamespace(
+            iri=Iri.fromPrefixFragment('test', 'Keywords', validate=False),
+            info={},
+        )
+        parent_node = SimpleNamespace(
+            leftIndex=Xsd_integer(10),
+            rightIndex=Xsd_integer(20),
+        )
+
+        with patch('oldaplib.src.objectfactory.Project.read', return_value=project), \
+             patch('oldaplib.src.objectfactory.OldapList.read', return_value=hlist), \
+             patch('oldaplib.src.objectfactory.OldapListNode.read', return_value=parent_node):
+            ResourceInstance.search(
+                con=con,
+                project='test',
+                resClass='test:Codex',
+                hlfilter=[HLSearchFilter('test:keyword', HListNodeRef('Keywords', 'Parent'))],
+            )
+
+        sparql = query.call_args[0][0]
+        self.assertIn('?keyword skos:inScheme test:Keywords .', sparql)
+        self.assertIn('(?keyword_lindex >= 10 && ?keyword_rindex <= 20)', sparql)
+        self.assertNotIn('10 >= ?keyword_lindex', sparql)
+
 
 class TestObjectFactory(unittest.TestCase):
 
@@ -96,6 +637,8 @@ class TestObjectFactory(unittest.TestCase):
         cls._context['test'] = 'http://oldap.org/test#'
         cls._context.use('test')
 
+        cls._connection.clear_graph(Xsd_QName('shared:shacl'))
+        cls._connection.clear_graph(Xsd_QName('shared:onto'))
         cls._connection.clear_graph(Xsd_QName('test:shacl'))
         cls._connection.clear_graph(Xsd_QName('test:onto'))
         cls._connection.clear_graph(Xsd_QName('test:data'))
@@ -108,6 +651,9 @@ class TestObjectFactory(unittest.TestCase):
         file = project_root / 'oldaplib' / 'ontologies' / 'admin-testing.trig'
         cls._connection.upload_turtle(file)
         #sleep(1)  # upload may take a while...
+
+        file = project_root / 'oldaplib' / 'ontologies' / 'shared.trig'
+        cls._connection.upload_turtle(file)
 
         file = project_root / 'oldaplib' / 'testdata' / 'objectfactory_test.trig'
         cls._connection.upload_turtle(file)
@@ -420,6 +966,7 @@ class TestObjectFactory(unittest.TestCase):
         MO = factory.createObjectInstance('shared:MediaObject')
         mo = MO(originalName='Cat.tif',
                 type='dcmitype:StillImage',
+                mediaAccessMode='local',
                 originalMimeType='image/tiff',
                 serverUrl='http://iiif.oldap.org/iiif/3/',
                 assetId='cat.tif',
@@ -430,12 +977,287 @@ class TestObjectFactory(unittest.TestCase):
         mo.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mo.iri, projectShortName='test')
         self.assertEqual(data[Xsd_QName("oldap:attachedToRole")], {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        self.assertEqual(data[Xsd_QName("shared:mediaAccessMode")], ['local'])
         self.assertEqual(data[Xsd_QName("shared:originalName")], ['Cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:originalMimeType")], ['image/tiff'])
         self.assertEqual(data[Xsd_QName("shared:serverUrl")], ['http://iiif.oldap.org/iiif/3/'])
         self.assertEqual(data[Xsd_QName("shared:assetId")], ['cat.tif'])
         self.assertEqual(data[Xsd_QName("shared:derivativeName")], ['iiif.tif'])
         mo.delete()
+
+    def test_archive_unit_reference_tree_crud_and_search(self):
+        """Exercise the archive tree and optional description metadata via generic CRUD."""
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
+        attached_to_role = {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW}
+        created_iris = []
+
+        def create_unit(*, title, level, identifier, parent=None, position=None,
+                        temporal=None, material_extent=None, record_creators=None,
+                        provenance=None, conditions_of_access=None, about=None):
+            """Create one node of the small technical archive reference tree."""
+            values = {
+                'schema:name': LangString(f'{title}@en'),
+                'shared:archiveLevel': Iri(level),
+                'schema:identifier': identifier,
+                'attachedToRole': attached_to_role,
+            }
+            if parent is not None:
+                values['shared:parentArchiveUnit'] = parent.iri
+            if position is not None:
+                values['schema:position'] = position
+            if temporal is not None:
+                values['dcterms:temporal'] = temporal
+            if material_extent is not None:
+                values['schema:materialExtent'] = material_extent
+            if record_creators:
+                values['dcterms:creator'] = record_creators
+            if provenance is not None:
+                values['dcterms:provenance'] = provenance
+            if conditions_of_access is not None:
+                values['schema:conditionsOfAccess'] = conditions_of_access
+            if about:
+                values['schema:about'] = about
+            unit = ArchiveUnit(**values)
+            unit.create()
+            created_iris.append(unit.iri)
+            return unit
+
+        try:
+            fonds = create_unit(title='Technical reference fonds',
+                                level='shared:Fonds',
+                                identifier='REF',
+                                temporal=Dating('1911', '2025'),
+                                material_extent=LangString('12 boxes and 1.8 linear metres@en'),
+                                record_creators={Iri('test:DouglasAdams')},
+                                provenance=LangString('Transferred by the record creator in 2024@en'),
+                                conditions_of_access=LangString('Available by appointment@en'),
+                                about={Iri('test:DouglasAdams')})
+            series = create_unit(title='Minutes',
+                                 level='shared:Series',
+                                 identifier='REF-01',
+                                 parent=fonds,
+                                 position=1)
+            file = create_unit(title='Committee minutes',
+                               level='shared:File',
+                               identifier='REF-01-01',
+                               parent=series,
+                               position=1)
+            item_1970 = create_unit(title='Committee minutes 1970',
+                                    level='shared:Item',
+                                    identifier='REF-01-01-001',
+                                    parent=file,
+                                    position=1)
+            item_1971 = create_unit(title='Committee minutes 1971',
+                                    level='shared:Item',
+                                    identifier='REF-01-01-002',
+                                    parent=file,
+                                    position=2)
+
+            loaded_fonds = factory.read(fonds.iri)
+            self.assertIsNone(loaded_fonds.get(Xsd_QName('shared:parentArchiveUnit')))
+            self.assertEqual(loaded_fonds[Xsd_QName('dcterms:temporal')],
+                             Dating('1911', '2025'))
+            self.assertEqual(loaded_fonds[Xsd_QName('schema:materialExtent')],
+                             LangString('12 boxes and 1.8 linear metres@en'))
+            self.assertEqual(loaded_fonds[Xsd_QName('dcterms:creator')],
+                             {Iri('test:DouglasAdams')})
+            self.assertEqual(loaded_fonds[Xsd_QName('dcterms:provenance')],
+                             LangString('Transferred by the record creator in 2024@en'))
+            self.assertEqual(loaded_fonds[Xsd_QName('schema:conditionsOfAccess')],
+                             LangString('Available by appointment@en'))
+            self.assertEqual(loaded_fonds[Xsd_QName('schema:about')],
+                             {Iri('test:DouglasAdams')})
+
+            loaded_item = factory.read(item_1970.iri)
+            self.assertEqual(loaded_item[Xsd_QName('schema:name')],
+                             LangString('Committee minutes 1970@en'))
+            self.assertEqual(loaded_item[Xsd_QName('shared:archiveLevel')],
+                             {Iri('shared:Item')})
+            self.assertEqual(loaded_item[Xsd_QName('shared:parentArchiveUnit')],
+                             {file.iri})
+
+            loaded_item.description = LangString('Digitised committee minutes@en')
+            loaded_item.update()
+            updated_item = factory.read(item_1970.iri)
+            self.assertEqual(updated_item.description,
+                             LangString('Digitised committee minutes@en'))
+
+            children = ResourceInstance.search(
+                con=self._connection,
+                project='test',
+                resClass='shared:ArchiveUnit',
+                includeProperties={
+                    Xsd_QName('schema:name'),
+                    Xsd_QName('shared:archiveLevel'),
+                    Xsd_QName('schema:position'),
+                },
+                filter=[
+                    SearchFilter('shared:parentArchiveUnit', CompOp.EQ, file.iri),
+                    LogicOp.AND,
+                    SearchFilter('shared:archiveLevel', CompOp.EQ, Iri('shared:Item')),
+                ],
+                sortBy=[SortBy('schema:position', SortDir.asc)],
+            )
+            self.assertEqual([result['iri'] for result in children],
+                             [item_1970.iri, item_1971.iri])
+            self.assertTrue(all({str(level) for level in result['shared:archiveLevel']} == {'shared:Item'}
+                                for result in children))
+
+            item_1971.delete()
+            created_iris.remove(item_1971.iri)
+            with self.assertRaises(OldapErrorNotFound):
+                factory.read(item_1971.iri)
+        finally:
+            # Remove children before parents because incoming references protect
+            # non-empty archive units from deletion.
+            for iri in reversed(created_iris):
+                try:
+                    factory.read(iri).delete()
+                except OldapErrorNotFound:
+                    pass
+
+    def test_archive_tree_path_and_cycle_safe_move(self):
+        """Load an ancestor path and move a node without permitting cycles."""
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
+        tree = ArchiveTree(con=self._connection, project='test')
+        created_iris = []
+
+        def create_unit(title, level, parent=None, position=None):
+            values = {
+                'schema:name': LangString(f'{title}@en'),
+                'shared:archiveLevel': Iri(level),
+                'attachedToRole': {Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW},
+            }
+            if parent is not None:
+                values['shared:parentArchiveUnit'] = parent.iri
+            if position is not None:
+                values['schema:position'] = position
+            unit = ArchiveUnit(**values)
+            unit.create()
+            created_iris.append(unit.iri)
+            return unit
+
+        try:
+            fonds = create_unit('Move test fonds', 'shared:Fonds')
+            series = create_unit('Move test series', 'shared:Series', fonds, 1)
+            file = create_unit('Move test file', 'shared:File', series, 1)
+
+            self.assertEqual(
+                [unit.iri for unit in tree.path_to_root(file.iri)],
+                [fonds.iri, series.iri, file.iri],
+            )
+
+            with self.assertRaises(OldapErrorInUse):
+                series.delete()
+
+            moved = tree.move(file.iri, fonds.iri, position=2)
+            self.assertEqual(moved[Xsd_QName('shared:parentArchiveUnit')], {fonds.iri})
+            self.assertEqual(moved[Xsd_QName('schema:position')], {Xsd_integer(2)})
+            self.assertEqual(
+                [unit.iri for unit in tree.path_to_root(file.iri)],
+                [fonds.iri, file.iri],
+            )
+
+            with self.assertRaises(OldapErrorInconsistency):
+                tree.move(fonds.iri, file.iri)
+
+            tree.move(file.iri, None, position=None)
+            root_file = factory.read(file.iri)
+            self.assertIsNone(root_file.get(Xsd_QName('shared:parentArchiveUnit')))
+            self.assertIsNone(root_file.get(Xsd_QName('schema:position')))
+        finally:
+            for iri in reversed(created_iris):
+                try:
+                    factory.read(iri).delete()
+                except OldapErrorNotFound:
+                    pass
+
+    def test_transform_mediaobject_keeps_iri_and_base_properties(self):
+        transaction_hooks = []
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        ArchiveUnit = factory.createObjectInstance('shared:ArchiveUnit')
+        archive_unit = ArchiveUnit(name=LangString("Transformation target@en"),
+                                   archiveLevel='shared:Item',
+                                   attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_UPDATE})
+        archive_unit.create()
+        MediaObject = factory.createObjectInstance('shared:MediaObject')
+        media = MediaObject(originalName='TransformCat.tif',
+                            type='dcmitype:StillImage',
+                            mediaAccessMode='local',
+                            originalMimeType='image/tiff',
+                            serverUrl='http://iiif.oldap.org/iiif/3/',
+                            assetId='transform-cat',
+                            path='test',
+                            protocol='iiif',
+                            derivativeName='iiif.tif',
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        media.create()
+
+        loaded = factory.read(media.iri)
+        transformed = loaded.transform_class('test:MediaLibraryEntry',
+                                             preserve_class='shared:MediaObject',
+                                             expected_source_class='shared:MediaObject',
+                                             properties={'test:caption': 'Ready for archive'},
+                                             attached_to_role={'oldap:Unknown': 'DATA_DELETE'},
+                                             link_from_iri=archive_unit.iri,
+                                             link_from_property='shared:hasMediaObject',
+                                             before_commit=lambda connection: transaction_hooks.append(connection))
+
+        self.assertEqual(transformed.iri, media.iri)
+        self.assertEqual(transaction_hooks, [self._connection])
+        data = ResourceInstance.read_data(con=self._connection, iri=media.iri, projectShortName='test')
+        self.assertEqual(set(data['rdf:type']), {Xsd_QName('oldap:Thing'),
+                                                 Xsd_QName('shared:MediaObject'),
+                                                 Xsd_QName('test:MediaLibraryEntry')})
+        self.assertEqual(data[Xsd_QName('shared:mediaAccessMode')], ['local'])
+        self.assertEqual(data[Xsd_QName('shared:assetId')], ['transform-cat'])
+        self.assertEqual(data[Xsd_QName('shared:originalName')], ['TransformCat.tif'])
+        self.assertEqual(data[Xsd_QName('test:caption')], ['Ready for archive'])
+        self.assertEqual(data[Xsd_QName('oldap:attachedToRole')], {Xsd_QName('oldap:Unknown'): DataPermission.DATA_DELETE})
+        linked_unit = factory.read(archive_unit.iri)
+        self.assertEqual(linked_unit[Xsd_QName('shared:hasMediaObject')], {media.iri})
+
+        linked_unit.delete()
+        transformed.delete()
+
+    def test_before_commit_failure_aborts_resource_transform(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MediaObject = factory.createObjectInstance('shared:MediaObject')
+        media = MediaObject(originalName='TransformRollback.tif',
+                            type='dcmitype:StillImage',
+                            mediaAccessMode='local',
+                            originalMimeType='image/tiff',
+                            serverUrl='http://iiif.oldap.org/iiif/3/',
+                            assetId='transform-rollback',
+                            path='test',
+                            protocol='iiif',
+                            derivativeName='iiif.tif',
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        media.create()
+
+        def reject(_connection):
+            raise RuntimeError("transaction side effect failed")
+
+        with self.assertRaises(RuntimeError):
+            factory.read(media.iri).transform_class(
+                'test:MediaLibraryEntry',
+                preserve_class='shared:MediaObject',
+                expected_source_class='shared:MediaObject',
+                properties={'test:caption': 'Must roll back'},
+                before_commit=reject,
+            )
+
+        data = ResourceInstance.read_data(
+            con=self._connection,
+            iri=media.iri,
+            projectShortName='test',
+        )
+        self.assertIn(Xsd_QName('shared:MediaObject'), set(data['rdf:type']))
+        self.assertNotIn(Xsd_QName('test:MediaLibraryEntry'), set(data['rdf:type']))
+        self.assertNotIn(Xsd_QName('test:caption'), data)
+        factory.read(media.iri).delete()
 
     def test_read_A(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -446,7 +1268,7 @@ class TestObjectFactory(unittest.TestCase):
                  grantsPermission=Iri('oldap:GenericView'))
         b.create()
         data = ResourceInstance.read_data(con=self._connection, iri=b.iri, projectShortName='test')
-        self.assertEqual(data['rdf:type'], ['test:Book'])
+        self.assertEqual(set(data['rdf:type']), {Xsd_QName("test:Book"), Xsd_QName("oldap:Thing")})
         self.assertEqual(data['test:title'], ['The Life and Times of Scrooge'])
         self.assertEqual(data['test:author'], ['test:TuomasHolopainen'])
 
@@ -486,6 +1308,393 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(jsonobj['test:title'], ['The Life and Times of Scrooge'])
 
         bb.delete()
+
+    def test_read_dating_fixture(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex.read(con=self._connection, iri=Iri("urn:uuid:8dd6b1aa-3f40-4c0c-908d-c8e5da114201", validate=False))
+
+        self.assertEqual(codex.name, "test:Codex")
+        self.assertEqual(codex.title, {Xsd_string("Codex Aureus")})
+        self.assertIsInstance(codex.writtenAt, Dating)
+        self.assertEqual(codex.writtenAt._datePrecision, DatePrecision.CENTURY)
+        self.assertEqual(str(codex.writtenAt), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
+
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        self.assertIsInstance(data['test:writtenAt'][0], Dating)
+        self.assertEqual(data['test:writtenAt'][0]._datePrecision, DatePrecision.CENTURY)
+        self.assertEqual(str(data['test:writtenAt'][0]), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
+
+    def test_create_read_dating_from_object(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        written_at = Dating((1200,), (1299,), verbatimDate="thirteenth century", datePrecision=DatePrecision.CENTURY)
+        codex = Codex(title="Codex Manesse", writtenAt=written_at)
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(codex2.title, {Xsd_string("Codex Manesse")})
+        self.assertIsInstance(codex2.writtenAt, Dating)
+        self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.CENTURY)
+        self.assertEqual(str(codex2.writtenAt), "1200-01-01 - 1299-12-31 (GREGORIAN, CENTURY)")
+
+    def test_create_read_dating_from_string(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Calixtinus", writtenAt="1140")
+        codex.create()
+
+        codex2 = factory.read(iri=codex.iri)
+        self.assertEqual(codex2.title, {Xsd_string("Codex Calixtinus")})
+        self.assertIsInstance(codex2.writtenAt, Dating)
+        self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.YEAR)
+        self.assertEqual(str(codex2.writtenAt), "1140-01-01 - 1140-12-31 (GREGORIAN, YEAR)")
+
+    def test_create_read_dating_from_tuple(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Leicester", writtenAt=(1510,))
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(codex2.title, {Xsd_string("Codex Leicester")})
+        self.assertIsInstance(codex2.writtenAt, Dating)
+        self.assertEqual(codex2.writtenAt._datePrecision, DatePrecision.YEAR)
+        self.assertEqual(str(codex2.writtenAt), "1510-01-01 - 1510-12-31 (GREGORIAN, YEAR)")
+
+    def test_create_read_dating_from_tuple2(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Sinaiticus",
+                      writtenAt=Dating((400,), (499,), verbatimDate="fourth century", datePrecision=DatePrecision.CENTURY))
+        codex.create()
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        pprint(data)
+
+    def test_replace_dating_value_keeps_iri(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Mutabilis", writtenAt="1140")
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        old_dating_iri = codex2.writtenAt.iri
+        codex2.writtenAt = Dating("1150")
+        transaction_hooks = []
+        codex2.update(before_commit=lambda connection: transaction_hooks.append(connection))
+
+        codex3 = Codex.read(con=self._connection, iri=codex.iri)
+        self.assertEqual(transaction_hooks, [self._connection])
+        self.assertEqual(codex3.writtenAt.iri, old_dating_iri)
+        self.assertEqual(codex3.writtenAt._datePrecision, DatePrecision.YEAR)
+        self.assertEqual(str(codex3.writtenAt), "1150-01-01 - 1150-12-31 (GREGORIAN, YEAR)")
+
+    def test_before_commit_failure_aborts_resource_update_and_delete(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        book = Book(title="Before commit", author="test:TuomasHolopainen",
+                    pubDate="2001-01-01", grantsPermission=Iri('oldap:GenericView'))
+        book.create()
+
+        loaded = factory.read(book.iri)
+        loaded.title = "Must roll back"
+
+        def reject(_connection):
+            raise RuntimeError("transaction side effect failed")
+
+        with self.assertRaises(RuntimeError):
+            loaded.update(before_commit=reject)
+        self.assertEqual(factory.read(book.iri).title, {Xsd_string("Before commit")})
+
+        with self.assertRaises(RuntimeError):
+            factory.read(book.iri).delete(before_commit=reject)
+        self.assertEqual(factory.read(book.iri).title, {Xsd_string("Before commit")})
+        factory.read(book.iri).delete()
+
+    def test_delete_optional_dating_with_none(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Deletabilis", writtenAt="1140", optionalDating="1200")
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        optional_iri = codex2.optionalDating.iri
+        codex2.optionalDating = None
+        codex2.update()
+
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        self.assertNotIn('test:optionalDating', data)
+
+        context = Context(name=self._connection.context_name)
+        sparql = context.sparql_context
+        sparql += f'ASK {{ GRAPH test:data {{ {optional_iri.toRdf} ?p ?o . }} }}'
+        self.assertFalse(self._connection.query(sparql)['boolean'])
+
+    def test_delete_optional_dating_with_del(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        codex = Codex(title="Codex Delendus", writtenAt="1140", optionalDating="1200")
+        codex.create()
+
+        codex2 = Codex.read(con=self._connection, iri=codex.iri)
+        del codex2.optionalDating
+        codex2.update()
+
+        data = ResourceInstance.read_data(con=self._connection, iri=codex.iri, projectShortName='test')
+        self.assertNotIn('test:optionalDating', data)
+
+    def test_delete_dating_referenced_by_external_before_fails(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        target = Codex(title="Codex Target", writtenAt="1140", optionalDating="1200")
+        target.create()
+
+        target2 = Codex.read(con=self._connection, iri=target.iri)
+        referring = Codex(title="Codex Referring",
+                          writtenAt=Dating("1300", before={Dating("1250", before={target2.optionalDating})}))
+        referring.create()
+
+        target3 = Codex.read(con=self._connection, iri=target.iri)
+        target3.optionalDating = None
+        with self.assertRaises(OldapErrorInUse):
+            target3.update()
+
+    def test_search_dating_filters(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Search Dating Before", writtenAt="1100").create()
+        Codex(title="Search Dating Overlap", writtenAt="1250").create()
+        Codex(title="Search Dating After", writtenAt="1400").create()
+
+        title_filter = SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Search Dating'))
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[title_filter,
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.OVERLAPS,
+                                                           Dating((1200,), (1299,), datePrecision=DatePrecision.CENTURY))])
+        self.assertEqual({str(x['test:title'][0]) for x in res}, {'Search Dating Overlap'})
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[title_filter,
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.BEFORE, Dating("1200"))])
+        self.assertEqual({str(x['test:title'][0]) for x in res}, {'Search Dating Before'})
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[title_filter,
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.AFTER, Dating("1300"))])
+        self.assertEqual({str(x['test:title'][0]) for x in res}, {'Search Dating After'})
+
+    def test_search_boolean_filters(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        SetterTester = factory.createObjectInstance('SetterTester')
+
+        SetterTester(stringSetter="Search Boolean True",
+                     langStringSetter=["Search Boolean Lang@de"],
+                     langStringSetter2=["Search Boolean Lang 2@de"],
+                     booleanSetter=True,
+                     decimalSetter=Xsd_decimal("1.11"),
+                     attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW}).create()
+
+        SetterTester(stringSetter="Search Boolean False",
+                     langStringSetter=["Search Boolean Lang@de"],
+                     langStringSetter2=["Search Boolean Lang 2@de"],
+                     booleanSetter=False,
+                     decimalSetter=Xsd_decimal("2.22"),
+                     attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW}).create()
+
+        title_filter = SearchFilter('test:stringSetter', CompOp.CONTAINS, Xsd_string('Search Boolean'))
+
+        res_true = ResourceInstance.search(con=self._connection,
+                                           project='test',
+                                           resClass='test:SetterTester',
+                                           includeProperties={Xsd_QName('test:stringSetter'),
+                                                              Xsd_QName('test:booleanSetter')},
+                                           filter=[title_filter,
+                                                   LogicOp.AND,
+                                                   SearchFilter('test:booleanSetter', CompOp.EQ, Xsd_boolean(True))])
+        self.assertEqual({str(x['test:stringSetter'][0]) for x in res_true}, {'Search Boolean True'})
+        self.assertEqual(res_true[0]['test:booleanSetter'][0], Xsd_boolean(True))
+
+        res_false = ResourceInstance.search(con=self._connection,
+                                            project='test',
+                                            resClass='test:SetterTester',
+                                            includeProperties={Xsd_QName('test:stringSetter'),
+                                                               Xsd_QName('test:booleanSetter')},
+                                            filter=[title_filter,
+                                                    LogicOp.AND,
+                                                    SearchFilter('test:booleanSetter', CompOp.EQ, Xsd_boolean(False))])
+        self.assertEqual({str(x['test:stringSetter'][0]) for x in res_false}, {'Search Boolean False'})
+        self.assertEqual(res_false[0]['test:booleanSetter'][0], Xsd_boolean(False))
+
+    def test_search_sort_by_dating_explicit_kind(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Sort Dating A", writtenAt="1300").create()
+        Codex(title="Sort Dating B", writtenAt="1100").create()
+        Codex(title="Sort Dating C", writtenAt="1200").create()
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Dating'))],
+                                      sortBy=[SortBy('test:writtenAt', SortDir.asc, SortKind.DATING)])
+        self.assertEqual([str(x['test:title'][0]) for x in res], ['Sort Dating B', 'Sort Dating C', 'Sort Dating A'])
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Dating'))],
+                                      sortBy=[SortBy('test:writtenAt', SortDir.desc, SortKind.DATING)])
+        self.assertEqual([str(x['test:title'][0]) for x in res], ['Sort Dating A', 'Sort Dating C', 'Sort Dating B'])
+
+    def test_search_sort_by_dating_keeps_unbound_values_last(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Sort Optional Dating A", writtenAt="1300", optionalDating="1300").create()
+        Codex(title="Sort Optional Dating B", writtenAt="1100").create()
+        Codex(title="Sort Optional Dating C", writtenAt="1200", optionalDating="1200").create()
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Optional Dating'))],
+                                      sortBy=[SortBy('test:optionalDating', SortDir.asc, SortKind.DATING)])
+        self.assertEqual([str(x['test:title'][0]) for x in res],
+                         ['Sort Optional Dating C', 'Sort Optional Dating A', 'Sort Optional Dating B'])
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Sort Optional Dating'))],
+                                      sortBy=[SortBy('test:optionalDating', SortDir.desc, SortKind.DATING)])
+        self.assertEqual([str(x['test:title'][0]) for x in res],
+                         ['Sort Optional Dating A', 'Sort Optional Dating C', 'Sort Optional Dating B'])
+
+    def test_search_sort_by_dating_auto_from_filter(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Codex = factory.createObjectInstance('Codex')
+        Codex(title="Auto Dating A", writtenAt="1300").create()
+        Codex(title="Auto Dating B", writtenAt="1100").create()
+        Codex(title="Auto Dating C", writtenAt="1200").create()
+
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Codex',
+                                      includeProperties={Xsd_QName('test:title')},
+                                      filter=[SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('Auto Dating')),
+                                              LogicOp.AND,
+                                              SearchFilter('test:writtenAt', CompOp.OVERLAPS,
+                                                           Dating("1000-01-01", "1400-12-31"))],
+                                      sortBy=[SortBy('test:writtenAt')])
+        self.assertEqual([str(x['test:title'][0]) for x in res], ['Auto Dating B', 'Auto Dating C', 'Auto Dating A'])
+
+    def test_search_without_filter_requires_resclass(self):
+        with self.assertRaises(OldapErrorValue):
+            ResourceInstance.search(con=self._connection, project='test')
+
+    def test_search_without_filter_lists_resclass_resources(self):
+        res = ResourceInstance.search(con=self._connection,
+                                      project='test',
+                                      resClass='test:Sort',
+                                      includeProperties={Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')},
+                                      sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.asc)])
+        self.assertEqual(len(res), 3)
+        self.assertEqual(res[0]['iri'], Xsd_QName('test:Item1'))
+        self.assertEqual(res[1]['iri'], Xsd_QName('test:Item2'))
+        self.assertEqual(res[2]['iri'], Xsd_QName('test:Item3'))
+        for row in res:
+            self.assertIsNotNone(row['test:aString'])
+            self.assertIsNotNone(row['test:aLangstring'])
+
+    def test_search_linked_resource_filter_by_book_title(self):
+        res = ResourceInstance.search(
+            con=self._connection,
+            project='test',
+            resClass='test:Page',
+            includeProperties={Xsd_QName('test:pageDesignation'), Xsd_QName('test:pageNum')},
+            filter=[
+                LinkedResourceSearchFilter(
+                    linkProp='test:pageInBook',
+                    linkedClass='test:Book',
+                    prop='test:title',
+                    op=CompOp.CONTAINS,
+                    value=Xsd_string('tQh5OAgXOaK5'),
+                    checkLinkedPermissions=True,
+                )
+            ],
+            sortBy=[SortBy('test:pageNum')],
+        )
+
+        self.assertEqual([int(x['test:pageNum'][0]) for x in res], [1, 2, 3, 4])
+
+    def test_search_linked_resource_permission_check_filters_linked_resource(self):
+        public_linked_result = ResourceInstance.search(
+            con=self._connection,
+            project='test',
+            resClass='test:Book',
+            includeProperties={Xsd_QName('test:title')},
+            filter=[
+                SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('tQh5OAgXOaK5')),
+                LogicOp.AND,
+                LinkedResourceSearchFilter(
+                    linkProp='test:author',
+                    linkedClass='test:Person',
+                    prop='schema:familyName',
+                    op=CompOp.EQ,
+                    value=Xsd_string('Adams'),
+                    checkLinkedPermissions=False,
+                )
+            ],
+        )
+        protected_linked_result = ResourceInstance.search(
+            con=self._connection,
+            project='test',
+            resClass='test:Book',
+            includeProperties={Xsd_QName('test:title')},
+            filter=[
+                SearchFilter('test:title', CompOp.CONTAINS, Xsd_string('tQh5OAgXOaK5')),
+                LogicOp.AND,
+                LinkedResourceSearchFilter(
+                    linkProp='test:author',
+                    linkedClass='test:Person',
+                    prop='schema:familyName',
+                    op=CompOp.EQ,
+                    value=Xsd_string('Adams'),
+                    checkLinkedPermissions=True,
+                )
+            ],
+        )
+
+        self.assertEqual(len(public_linked_result), 1)
+        self.assertEqual(protected_linked_result, [])
+
+    def test_hlist_node_ref_structured(self):
+        node = HListNodeRef('StoryKeywords', 'ObjekteUndSammlungen', validate=True)
+        self.assertEqual(str(node), 'StoryKeywords:ObjekteUndSammlungen')
+        self.assertEqual(str(node.as_qname), 'L-StoryKeywords:ObjekteUndSammlungen')
+
+        legacy_internal = HListNode('L-StoryKeywords:ObjekteUndSammlungen', validate=True)
+        self.assertEqual(legacy_internal.listId, 'StoryKeywords')
+        self.assertEqual(legacy_internal.nodeId, 'ObjekteUndSammlungen')
+
+        hlf = HLSearchFilter('fasnacht:storyKeywords', node)
+        self.assertEqual(str(hlf.node.listId), 'StoryKeywords')
+        self.assertEqual(str(hlf.node.nodeId), 'ObjekteUndSammlungen')
 
     def test_read_D(self):
         factory = ResourceInstanceFactory(con=self._connection, project='test')
@@ -591,7 +1800,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.stringSetter, {"This is a test string"})
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
-        self.assertFalse(obj1.booleanSetter)
+        self.assertEqual(obj1.booleanSetter, Xsd_boolean(False))
 
         obj1.delete()
 
@@ -620,7 +1829,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(obj1.stringSetter, {"This is a test string"})
         self.assertEqual(obj1.langStringSetter, LangString("Dies ist eine Test-Zeichenkette@de", "Qu'est-ce que c'est?@fr"))
         self.assertEqual(obj1.integerSetter, {Xsd_int(20), Xsd_int(42)})
-        self.assertFalse(obj1.booleanSetter)
+        self.assertEqual(obj1.booleanSetter, Xsd_boolean(False))
 
         obj1.delete()
 
@@ -831,6 +2040,23 @@ class TestObjectFactory(unittest.TestCase):
         obj = SetterTester.read(con=self._connection, iri=obj1.iri)
         obj.delete()
 
+    def test_role_map_replacement_preserves_original_permission_snapshot(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        Book = factory.createObjectInstance('Book')
+        role = Xsd_QName('oldap:Unknown')
+        book = Book(title='Role replacement regression', author=Iri('test:DouglasAdams'),
+                    pubDate='1995-09-27', attachedToRole={role: DataPermission.DATA_VIEW})
+        book.create()
+        current = factory.read(book.iri)
+        current[Xsd_QName('oldap:attachedToRole')] = {role: DataPermission.DATA_DELETE}
+        current[Xsd_QName('oldap:attachedToRole')] = {role: DataPermission.DATA_UPDATE}
+        self.assertEqual(current.changeset[Xsd_QName('oldap:attachedToRole')].old_value,
+                         {role: DataPermission.DATA_VIEW})
+        current.update()
+        loaded = factory.read(book.iri)
+        self.assertEqual(dict(loaded.attachedToRoleAnnotation), {role: DataPermission.DATA_UPDATE})
+        loaded.delete()
+
     def test_delete_resource(self):
         project = Project.read(con=self._connection, projectIri_SName='test')
         factory = ResourceInstanceFactory(con=self._connection, project=project)
@@ -911,27 +2137,30 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_A(self):
         res = ResourceInstance.search_fulltext(con=self._connection,
-                                               projectShortName='test',
-                                               resClass='test:Book',
+                                               project='test',
                                                searchstr='geschichte',
-                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
+                                               sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.desc)])
 
-        self.assertEqual(len(res), 2)
-        for x, y in res.items():
-            self.assertEqual(y[Xsd_QName("owl:Class")], Xsd_QName('test:Book'))
+        self.assertIsInstance(res, list)
+        if isinstance(res, list):
+            self.assertEqual(len(res), 2)
+            for x in res:
+                self.assertEqual(x["resclass"], Xsd_QName('test:Book'))
 
         res = ResourceInstance.search_fulltext(con=self._connection,
-                                               projectShortName='test',
+                                               project='test',
                                                searchstr='spez',
-                                               sortBy=[SortBy('oldap:creationDate', SortDir.desc)])
-
-        self.assertEqual(len(res), 5)
-        for x, y in res.items():
-            self.assertTrue(y[Xsd_QName("owl:Class")] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
+                                               sortBy=[SortBy(Xsd_QName('oldap:creationDate'), SortDir.desc)])
+        self.assertIsInstance(res, list)
+        if isinstance(res, list):
+            self.assertEqual(len(res), 6)
+            if isinstance(res, list):
+                for x in res:
+                    self.assertTrue(x['resclass'] in {Xsd_QName('test:Book'), Xsd_QName('test:Page')})
 
     def test_search_resource_B(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('oldap:creationDate'), SortDir.asc)])
@@ -947,7 +2176,7 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_C(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('test:aString'), SortDir.asc)])
@@ -958,7 +2187,7 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_D(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              includeProperties=[Xsd_QName('test:aString'), Xsd_QName('test:aLangstring')],
                                              sortBy = [SortBy(Xsd_QName('test:aLangstring'), SortDir.asc)])
@@ -969,7 +2198,7 @@ class TestObjectFactory(unittest.TestCase):
 
     def test_search_resource_E(self):
         res = ResourceInstance.all_resources(con=self._connection,
-                                             projectShortName='test',
+                                             project='test',
                                              resClass='test:Sort',
                                              sortBy = [SortBy(Xsd_QName('test:anInteger'), SortDir.desc)])
         self.assertEqual(len(res), 3)
@@ -986,13 +2215,14 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
         self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1003,6 +2233,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1010,7 +2241,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['test:caption'], [Xsd_string("This is a non-real, non-existing image")])
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1025,13 +2256,14 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b901"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_34db.tif'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.tif"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/tiff"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
         self.assertEqual(res['shared:protocol'], Xsd_string("iiif"))
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_34db.tif')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1042,6 +2274,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['iri'], Iri("urn:uuid:1b8e3f42-6d7a-4c9b-a3f8-93c2e5d7b999"))
         self.assertEqual(res['permval'], Xsd_integer(2))
         self.assertEqual(res['shared:assetId'], Xsd_string('x_42db.jpg'))
+        self.assertEqual(res['shared:mediaAccessMode'], Xsd_string('local'))
         self.assertEqual(res['shared:originalName'], Xsd_string("testfile.jpg"))
         self.assertEqual(res['shared:originalMimeType'], Xsd_string("image/jpeg"))
         self.assertEqual(res['shared:serverUrl'], Xsd_string("https://iiif.oldap.org"))
@@ -1049,7 +2282,7 @@ class TestObjectFactory(unittest.TestCase):
         self.assertEqual(res['graph'], Xsd_QName("test:data"))
         self.assertEqual(res['test:caption'], [Xsd_string("This is a non-real, non-existing image")])
         self.assertEqual(res['shared:path'], Xsd_string("test/subtest"))
-        tinfo = jwt.decode(jwt=res['token'], key=self._connection.jwtkey, algorithms="HS256")
+        tinfo = self._connection.token_codec.decode_media_token(res['token'])
         self.assertEqual(tinfo['id'], 'x_42db.jpg')
         self.assertEqual(tinfo['path'], 'test/subtest')
         self.assertEqual(tinfo['permval'], 2)
@@ -1062,6 +2295,7 @@ class TestObjectFactory(unittest.TestCase):
         MLE = factory.createObjectInstance('test:MediaLibraryEntry')
         mle = MLE(originalName='MyCarnivalImagetif',
                   type='dcmitype:StillImage',
+                  mediaAccessMode='local',
                   originalMimeType='image/tiff',
                   assetId='x_34dbY4.tif',
                   serverUrl='http://iiif.oldap.org/iiif/3/',
@@ -1073,6 +2307,7 @@ class TestObjectFactory(unittest.TestCase):
         mle.create()
         data = ResourceInstance.read_data(con=self._connection, iri=mle.iri, projectShortName='test')
         self.assertEqual(data['shared:originalName'], ["MyCarnivalImagetif"])
+        self.assertEqual(data['shared:mediaAccessMode'], ['local'])
         self.assertEqual(data['shared:originalMimeType'], ['image/tiff'])
         self.assertEqual(data['shared:serverUrl'], ['http://iiif.oldap.org/iiif/3/'])
         self.assertEqual(data['shared:assetId'], ['x_34dbY4.tif'])
@@ -1083,12 +2318,33 @@ class TestObjectFactory(unittest.TestCase):
 
 
         data2 = ResourceInstance.get_media_object_by_id(con=self._connection, mediaObjectId='x_34dbY4.tif')
+        self.assertEqual(data2['shared:mediaAccessMode'], 'local')
         self.assertEqual(data2['shared:originalName'], "MyCarnivalImagetif")
         self.assertEqual(data2['shared:originalMimeType'], 'image/tiff')
         self.assertEqual(data2['shared:serverUrl'], 'http://iiif.oldap.org/iiif/3/')
         self.assertEqual(data2['shared:protocol'], 'iiif')
         self.assertEqual(data2['shared:path'], 'test/subtest')
         mle.delete()
+
+    def test_create_external_http_media_object(self):
+        factory = ResourceInstanceFactory(con=self._connection, project='test')
+        MediaObject = factory.createObjectInstance('shared:MediaObject')
+        media = MediaObject(type='dcmitype:StillImage',
+                            mediaAccessMode='external',
+                            protocol='http',
+                            mediaUrl='https://example.org/media/full.jpg',
+                            thumbnailUrl='https://example.org/media/thumb.jpg',
+                            attachedToRole={Xsd_QName('oldap:Unknown'): DataPermission.DATA_VIEW})
+        media.create()
+
+        data = ResourceInstance.get_media_object_by_iri(con=self._connection, mediaObjectIri=media.iri)
+        self.assertEqual(data['shared:mediaAccessMode'], 'external')
+        self.assertEqual(data['shared:protocol'], 'http')
+        self.assertEqual(data['shared:mediaUrl'], 'https://example.org/media/full.jpg')
+        self.assertEqual(data['shared:thumbnailUrl'], 'https://example.org/media/thumb.jpg')
+        self.assertNotIn('shared:assetId', data)
+        self.assertNotIn('shared:path', data)
+        media.delete()
 
     def test_create_location(self):
         dm = DataModel.read(con=self._connection, project='test')
@@ -1098,7 +2354,7 @@ class TestObjectFactory(unittest.TestCase):
         loc.create()
         iri = loc.iri
         loc2 = Location.read(con=self._connection, iri=iri)
-        self.assertEqual(loc2.loc, Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))"))
+        self.assertEqual(loc2.loc, {Geo_wktLiteral("POLYGON((7.540 47.545, 7.560 47.545, 7.560 47.555, 7.540 47.555, 7.540 47.545))")})
         loc.delete()
 
 if __name__ == '__main__':

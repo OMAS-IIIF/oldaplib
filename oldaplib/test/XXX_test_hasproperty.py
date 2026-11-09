@@ -91,7 +91,7 @@ class TestHasProperty(unittest.TestCase):
                            label=LangString(["HAsProptestA@en", "PropeTesteA@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         r1 = ResourceClass.read(con=self._connection,
@@ -129,7 +129,7 @@ class TestHasProperty(unittest.TestCase):
                            label=LangString(["HasProptestB@en", "PropeTesteB@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         r1 = ResourceClass.read(con=self._connection,
@@ -184,7 +184,7 @@ class TestHasProperty(unittest.TestCase):
                            label=LangString(["HasProptestC@en", "PropeTesteC@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         r1 = ResourceClass.read(con=self._connection,
@@ -229,7 +229,7 @@ class TestHasProperty(unittest.TestCase):
                            label=LangString(["HasProptestC@en", "PropeTesteC@fr"]),
                            comment=LangString("For testing purposes@en"),
                            closed=Xsd_boolean(True),
-                           hasproperties=hasproperties)
+                           properties=hasproperties)
         r1.create()
 
         r1 = ResourceClass.read(con=self._connection,

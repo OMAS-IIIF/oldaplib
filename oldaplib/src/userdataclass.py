@@ -1,6 +1,6 @@
 import textwrap
 from datetime import datetime
-from typing import Self, Dict
+from typing import Self, Dict, Any
 
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.helpers.context import Context
@@ -14,7 +14,9 @@ from oldaplib.src.in_project import InProjectClass
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
+from oldaplib.src.xsd.xsd_datetimestamp import Xsd_dateTimeStamp
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+from oldaplib.src.xsd.xsd_nonnegativeinteger import Xsd_nonNegativeInteger
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
@@ -54,6 +56,8 @@ class UserData:
     :type inProject: InProjectClass | None
     :ivar hasRole: A serializable set containing the roles or permissions assigned to the user.
     :type hasRole: SerializeableSet[Iri] | None
+    :ivar authVersion: Global version used to revoke all refresh tokens for the user.
+    :type authVersion: Xsd_nonNegativeInteger
     """
     _creator: Iri | None
     _created: Xsd_dateTime | datetime | None
@@ -68,6 +72,10 @@ class UserData:
     _isActive: Xsd_boolean
     _inProject: InProjectClass | None
     _hasRole: ObservableDict | None
+    _passwordResetRequestAt: Xsd_dateTimeStamp | None
+    _authVersion: Xsd_nonNegativeInteger
+    _userclass: Xsd_QName
+    _additionalProperties: dict[Xsd_QName, Any]
 
     def __init__(self, *,
                  creator: Iri | None = None,
@@ -83,6 +91,10 @@ class UserData:
                  isActive: Xsd_boolean,
                  inProject: InProjectClass | None = None,
                  hasRole: ObservableDict | Dict[Xsd_QName, Xsd_QName | None] | Dict[str, str] | None = None,
+                 passwordResetRequestAt: Xsd_dateTimeStamp | None = None,
+                 authVersion: Xsd_nonNegativeInteger | int = 0,
+                 userclass: Xsd_QName | str = Xsd_QName('oldap:User'),
+                 additionalProperties: dict[Xsd_QName, Any] | None = None,
                  validate: bool = False):
         self._creator = creator
         self._created = created
@@ -95,6 +107,14 @@ class UserData:
         self._email = email
         self._credentials = credentials
         self._isActive = isActive
+        self._passwordResetRequestAt = passwordResetRequestAt
+        self._authVersion = (
+            authVersion
+            if isinstance(authVersion, Xsd_nonNegativeInteger)
+            else Xsd_nonNegativeInteger(authVersion, validate=validate)
+        )
+        self._userclass = userclass if isinstance(userclass, Xsd_QName) else Xsd_QName(userclass, validate=validate)
+        self._additionalProperties = additionalProperties or {}
         self._inProject = inProject or InProjectClass()
         if isinstance(hasRole, ObservableDict):
             self._hasRole = hasRole
@@ -161,12 +181,29 @@ class UserData:
         return self._isActive
 
     @property
+    def passwordResetRequestAt(self) -> Xsd_dateTimeStamp | None:
+        return self._passwordResetRequestAt
+
+    @property
+    def authVersion(self) -> Xsd_nonNegativeInteger:
+        """Return the user's global authentication revocation version."""
+        return self._authVersion
+
+    @property
     def inProject(self) -> InProjectClass | None:
         return self._inProject
 
     @property
     def hasRole(self) -> Dict[Xsd_QName, Xsd_QName | None] | None:
         return self._hasRole
+
+    @property
+    def userclass(self) -> Xsd_QName:
+        return self._userclass
+
+    @property
+    def additionalProperties(self) -> dict[Xsd_QName, Any]:
+        return self._additionalProperties
 
     @staticmethod
     def sparql_query(context: Context, userId: IriOrNCName, validate: bool = False) -> str:
@@ -244,6 +281,9 @@ class UserData:
         and metadata from the query result and constructs a corresponding instance
         of the class.
 
+        Membership and annotation rows may arrive in any order. Plain membership
+        rows retain permissions/defaults already parsed from annotation rows.
+
         :param queryresult: Query result data obtained from a QueryProcessor.
         :type queryresult: QueryProcessor
         :return: An instance of the class with attributes populated based on query
@@ -268,8 +308,15 @@ class UserData:
         isActive: Xsd_boolean | None = None
         inProjectDict: dict[Iri | str, set[AdminPermission]] | None = None
         hasRoleDict: ObservableDict | None = None
+        passwordResetRequestAt: Xsd_dateTimeStamp | None = None
+        authVersion = Xsd_nonNegativeInteger(0)
+        userclass = Xsd_QName('oldap:User')
+        additionalProperties: dict[Xsd_QName, Any] = {}
         for r in queryresult:
             match str(r.get('prop')):
+                case 'rdf:type':
+                    if r['val'] != Xsd_QName('oldap:User'):
+                        userclass = r['val']
                 case 'dcterms:creator':
                     userIri = r['user']
                     creator = r['val']
@@ -291,16 +338,23 @@ class UserData:
                     credentials = r['val']
                 case 'oldap:isActive':
                     isActive = r['val']
+                case 'oldap:passwordResetRequestAt':
+                    passwordResetRequestAt = r['val']
+                case 'oldap:authVersion':
+                    authVersion = Xsd_nonNegativeInteger(r['val'])
                 case 'oldap:inProject':
                     if not inProjectDict:
                         inProjectDict = {r['val']: set()}
                     else:
-                        inProjectDict[r['val']] = set()
+                        # SPARQL results are unordered: a membership row must
+                        # not erase permissions read from earlier annotations.
+                        inProjectDict.setdefault(r['val'], set())
                 case 'oldap:hasRole':
                     if not hasRoleDict:
                         hasRoleDict = ObservableDict({r['val']: None})
                     else:
-                        hasRoleDict[r['val']] = None
+                        if r['val'] not in hasRoleDict:
+                            hasRoleDict[r['val']] = None
                 case _:
                     if r.get('proj') and r.get('rval'):
                         if not inProjectDict:
@@ -314,6 +368,14 @@ class UserData:
                         if hasRoleDict.get(r['role']) is None:
                             hasRoleDict[r['role']] = None
                         hasRoleDict[r['role']] = r['defdp']
+                    elif r.get('prop') is not None and r.get('val') is not None:
+                        prop = r['prop']
+                        if additionalProperties.get(prop) is None:
+                            additionalProperties[prop] = r['val']
+                        else:
+                            if not isinstance(additionalProperties[prop], list):
+                                additionalProperties[prop] = [additionalProperties[prop]]
+                            additionalProperties[prop].append(r['val'])
         inProject = InProjectClass(inProjectDict) if inProjectDict else InProjectClass()
         return cls(created=created,
                    creator=creator,
@@ -326,8 +388,12 @@ class UserData:
                    email=email,
                    credentials=credentials,
                    isActive=isActive,
+                   passwordResetRequestAt=passwordResetRequestAt,
+                   authVersion=authVersion,
                    inProject=inProject,
                    hasRole=hasRoleDict,
+                   userclass=userclass,
+                   additionalProperties=additionalProperties,
                    validate=False)
 
     def _as_dict(self) -> dict:
@@ -338,7 +404,10 @@ class UserData:
                 'givenName': self._givenName,
                 'email': self._email,
                 'isActive': self._isActive,
+                'passwordResetRequestAt': self._passwordResetRequestAt,
+                'authVersion': self._authVersion,
                 'hasRole': self._hasRole,
-                'inProject': self._inProject
+                'inProject': self._inProject,
+                'userclass': self._userclass,
+                'additionalProperties': {str(key): value for key, value in self._additionalProperties.items()}
         }
-

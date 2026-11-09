@@ -29,7 +29,6 @@ from oldaplib.src.enums.resourceclassattr import ResClassAttribute
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
 from oldaplib.src.propertyclass import PropertyClass
 from oldaplib.src.resourceclass import ResourceClass
-from oldaplib.src.hasproperty import HasProperty
 
 class TestDataModel(unittest.TestCase):
     _context: Context

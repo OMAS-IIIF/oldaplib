@@ -1,0 +1,124 @@
+{
+  "java": "openjdk version \"25.0.2\" 2026-01-20\nOpenJDK Runtime Environment Homebrew (build 25.0.2)\nOpenJDK 64-Bit Server VM Homebrew (build 25.0.2, mixed mode, sharing)",
+  "jar_sha512": "59c5d0fd4e3f2c51819816dd178ee7d619552aae12400286338cc55c6955653e6c503d58b6cb12f3124407c903a81a2ecf4a9b0d5ba8028e7fcdc7c5c98710d4",
+  "port": 3032,
+  "checks": [
+    "Java transaction probe",
+    "Pinned server version",
+    "Explicit reifier permission join",
+    "Admin permission annotation",
+    "Membership does not invent a default permission",
+    "Explicit default permission annotation",
+    "Annotations stay in their named graph",
+    "Repeated anonymous shorthand creates distinct reifiers",
+    "Stable reifier repeated INSERT is idempotent",
+    "Triple term JSON result",
+    "Reification does not assert the base triple",
+    "Turtle export/reimport preserves reifier",
+    "Role revocation removes effective access",
+    "Grant deletion leaves no annotation residue",
+    "HTTP update visible in a separate request",
+    "Runtime failure returns an error",
+    "One HTTP update request rolls back all operations",
+    "Earlier HTTP request is not rolled back",
+    "No RDF4J transaction endpoint on stock dataset",
+    "False WHERE does not abort a following unguarded receipt",
+    "Guarded stale mutation creates no receipt",
+    "One guarded update changes data and records receipt",
+    "Exact synthetic retry leaves one receipt",
+    "Concurrent guarded HTTP mutations have exactly one receipt",
+    "Concurrent guarded mutations advance the revision only once",
+    "Revocation: legacy missing version becomes one with metadata and receipt",
+    "Revocation: exact replay does not increment twice",
+    "Revocation: stale model produces no receipt or mutation",
+    "Revocation: reused operation ID rejects changed payload without effects",
+    "Revocation: receipt identity binds actor",
+    "Revocation: old replay returns its own result after later revocation",
+    "Revocation: matching version with stale timestamp changes nothing",
+    "Revocation: concurrent distinct commands have one winner",
+    "Revocation: concurrent identical retries increment once",
+    "Revocation: receipt reconciles simulated lost acknowledgement",
+    "Revocation: exact retry after lost acknowledgement is safe",
+    "Revocation: missing receipt alone does not prove rollback",
+    "Public User: unchanged return type, object metadata and cache invalidation",
+    "Public User: stale call raises existing conflict without local/cache mutation",
+    "Public User: confirmed receipt resolves lost acknowledgement before success",
+    "Public User: unknown result preserves object/cache and recovery identity",
+    "Public User: exact retained attempt recovers once without stale object publication",
+    "Authorization: all target projects authorized",
+    "Authorization: one missing project grant denies",
+    "Authorization: membership without annotation denies",
+    "Authorization: reifier without asserted membership denies",
+    "Authorization: grants in another graph deny",
+    "Authorization: no target project denies ordinary administrator",
+    "Authorization: root can manage user without projects",
+    "Authorization: root can manage multiple projects",
+    "Authorization: root annotation without membership denies",
+    "Authorization: root membership without annotation denies",
+    "Authorization: grant removed after preparation denies atomically",
+    "Authorization: denied receipt remains denied after permission restoration",
+    "Authorization: new target membership cannot bypass all-project check",
+    "Authorization: committed replay stays successful after later grant removal",
+    "Authorization public User: project administrator succeeds",
+    "Authorization public User: root administrator succeeds without target projects",
+    "Authorization public User: stale permission denies without local/cache effects",
+    "Authorization: concurrent grant removal yields consistent atomic decisions (six runs)",
+    "Recovery: prepared unsent command survives writer exit and Redis SIGKILL",
+    "Recovery: explicit exact retry after restart commits only once",
+    "Recovery: committed outcome discovered after writer exit and Redis SIGKILL",
+    "Recovery: denied outcome survives writer exit and Redis SIGKILL",
+    "Recovery: public User call durably journals before HTTP and invalidates after commit",
+    "Revocation: receipt and user state survive restart",
+    "HTTP dataset persists across server restart",
+    "Aborted HTTP writes remain absent after restart"
+  ],
+  "java_transaction_checks": [
+    "PASS read-own-writes, concurrent-reader isolation, full rollback",
+    "PASS resource-and-receipt commit visibility",
+    "PASS concurrent read-check-write claims: exactly one winner",
+    "PASS dataset close/reopen retains committed data (not a crash test)"
+  ],
+  "triple_term_json": {
+    "head": {
+      "vars": [
+        "term"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "term": {
+            "type": "triple",
+            "value": {
+              "subject": {
+                "type": "uri",
+                "value": "urn:jena-probe:item"
+              },
+              "predicate": {
+                "type": "uri",
+                "value": "http://oldap.org/base#attachedToRole"
+              },
+              "object": {
+                "type": "uri",
+                "value": "urn:jena-probe:readerRole"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "failed_update_status": 400,
+  "rdf4j_transaction_endpoint_status": 405,
+  "status": "passed",
+  "source_sha256": {
+    "oldaplib/src/helpers/revocation_journal.py": "b5bbd1ca24e9c4c2b424f1b5479aa4354c3311a46c12b533e845aad264703c19",
+    "oldaplib/src/helpers/jena_authentication_revocation.py": "62e18e43dff4e452250b2b2f190d3131c616b30fb9c7bc36239c9f66c17d0f9f",
+    "oldaplib/src/helpers/authentication_revocation.py": "7ce2bb5dbbfb2946469481e7ae920041252d8dbe42cc8440fd35510366077398",
+    "oldaplib/test/test_revocation_journal.py": "67a8f18e1cea1e39d7bbad28a5d33bf0949b9faaccfed3899b65bc495c872445",
+    "tools/migration/probe_revocation_recovery.py": "e22f4b0f085649d3040f50008d984b68b730400120c3278e4ec0363a6be346cd",
+    "tools/migration/probe_revocation_connection.py": "2cb016a2eae15fbfd146a952fb7fc89d4545d0c732d81f0c6bfb3c2af85835db",
+    "tools/migration/probe_jena.py": "a4b4ac470d0f8f53fb56ddc4b18049a3bdb60ad95e07dcad90fe3f8f7d3d8c35"
+  },
+  "scope": "Owned Fuseki and private Unix-socket AOF Redis; abrupt child writer exits and Redis SIGKILL/restart; cache mocked; no power-loss/failover guarantee."
+}

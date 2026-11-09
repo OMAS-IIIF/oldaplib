@@ -1,0 +1,28 @@
+archive: include('archive')
+---
+archive:
+  version: enum(1)
+  language: str()
+  units: list(include('archive_unit'), min=1)
+
+archive_unit:
+  id: str()
+  level: enum('ArchiveGroup', 'Fonds', 'Subfonds', 'Series', 'Subseries', 'File', 'Item')
+  title: any(str(), map(str(), str()))
+  parent: str(required=False)
+  identifier: str(required=False)
+  description: any(str(), map(str(), str()), required=False)
+  date: include('dating', required=False)
+  extent: any(str(), map(str(), str()), required=False)
+  creators: list(str(), required=False)
+  provenance: any(str(), map(str(), str()), required=False)
+  access_conditions: any(str(), map(str(), str()), required=False)
+  about: list(str(), required=False)
+  position: int(required=False)
+  children: list(include('archive_unit'), required=False)
+
+dating:
+  start: str()
+  end: str(required=False)
+  verbatim: str(required=False)
+  calendar: enum('GREGORIAN', 'JULIAN', 'HEBREW', 'ISLAMIC', 'PERSIAN', required=False)

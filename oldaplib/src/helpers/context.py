@@ -48,12 +48,11 @@ class ContextSingleton(type):
             Xsd_NCName('xml'): NamespaceIRI('http://www.w3.org/XML/1998/namespace#'),
             Xsd_NCName('sh'): NamespaceIRI('http://www.w3.org/ns/shacl#'),
             Xsd_NCName('skos'): NamespaceIRI('http://www.w3.org/2004/02/skos/core#'),
-            Xsd_NCName('schema'): NamespaceIRI('http://schema.org/'),
-            #Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
+            Xsd_NCName('schema'): NamespaceIRI('https://schema.org/'),
+            Xsd_NCName('dc'): NamespaceIRI('http://purl.org/dc/elements/1.1/'),
             Xsd_NCName('dcterms'): NamespaceIRI('http://purl.org/dc/terms/'),
             Xsd_NCName('dcmitype'): NamespaceIRI('http://purl.org/dc/dcmitype/'),
             Xsd_NCName('dash'): NamespaceIRI('http://datashapes.org/dash#'),
-            #Xsd_NCName('foaf'): NamespaceIRI('http://xmlns.com/foaf/0.1/'),
             Xsd_NCName('oldap'): NamespaceIRI('http://oldap.org/base#'),
             Xsd_NCName('shared'): NamespaceIRI('http://oldap.org/shared#')
         }
@@ -68,12 +67,11 @@ class ContextSingleton(type):
             NamespaceIRI('http://www.w3.org/XML/1998/namespace#'): Xsd_NCName('xml'),
             NamespaceIRI('http://www.w3.org/ns/shacl#'): Xsd_NCName('sh'),
             NamespaceIRI('http://www.w3.org/2004/02/skos/core#'): Xsd_NCName('skos'),
-            NamespaceIRI('http://schema.org/'): Xsd_NCName('schema'),
-            #NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
+            NamespaceIRI('https://schema.org/'): Xsd_NCName('schema'),
+            NamespaceIRI('http://purl.org/dc/elements/1.1/'): Xsd_NCName('dc'),
             NamespaceIRI('http://purl.org/dc/terms/'): Xsd_NCName('dcterms'),
             NamespaceIRI('http://purl.org/dc/dcmitype/'): Xsd_NCName('dcmitype'),
             NamespaceIRI('http://datashapes.org/dash#'): Xsd_NCName('dash'),
-            #NamespaceIRI('http://xmlns.com/foaf/0.1/'): Xsd_NCName('foaf'),
             NamespaceIRI('http://oldap.org/base#'): Xsd_NCName('oldap'),
             NamespaceIRI('http://oldap.org/shared#'): Xsd_NCName('shared'),
         }
@@ -244,7 +242,10 @@ class Context(metaclass=ContextSingleton):
                     matchlen = len(str(t))
         if matchlen > 0:
             fragment = str(iri)[len(trunk):]
-            return Xsd_QName(prefix, fragment, validate=validate)
+            try:
+                return Xsd_QName(prefix, fragment, validate=validate)
+            except OldapErrorValue:
+                return None
         return None
 
     def qname2iri(self, qname: Xsd_QName | str, validate: bool = True) -> Xsd_anyURI:

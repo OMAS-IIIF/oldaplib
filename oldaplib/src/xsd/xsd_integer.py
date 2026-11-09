@@ -5,6 +5,7 @@ from pystrict import strict
 from oldaplib.src.helpers.oldaperror import OldapErrorValue
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.xsd import Xsd
+from oldaplib.src.xsd.xsd_string import Xsd_string
 
 
 #@strict
@@ -27,6 +28,13 @@ class Xsd_integer(Xsd):
             self._value = value._value
         elif isinstance(value, int):
             self._value = value
+        elif isinstance(value, Xsd_string):
+            if not value.value:
+                raise OldapErrorValue(f'Value {value.value} cannot be converted to Xsd_integer')
+            try:
+                self._value = int(value.value)
+            except ValueError as err:
+                raise OldapErrorValue(str(err))
         else:
             try:
                 self._value = int(value)

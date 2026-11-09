@@ -1,7 +1,7 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix schema: <http://schema.org/> .
+@prefix schema: <https://schema.org/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix oldap: <http://oldap.org/base#> .
 @prefix : <http://oldap.org/base#> .
@@ -12,6 +12,8 @@
 #
 # Here we define the basic instances in order to use the OLDAP system
 #
+# RDF 1.2 permission grants use stable reifier IRIs. The membership triples
+# remain asserted separately; rdf:reifies alone never grants membership.
 :admin {
 
     #==================================================================
@@ -132,9 +134,12 @@
         :hasRole :Unknown ;
         :isActive true .
 
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject>> :hasAdminPermission :ADMIN_OLDAP .
-    <<<https://orcid.org/0000-0003-1681-4036> :inProject :SharedProject>> :hasAdminPermission :ADMIN_OLDAP .
-    <<<https://orcid.org/0000-0003-1681-4036> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_PERMISSIONS .
+    <urn:uuid:855d91e6-f740-509b-937c-3d1be6903827> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :inProject :SystemProject )>> ;
+        :hasAdminPermission :ADMIN_OLDAP .
+    <urn:uuid:81edd491-234d-5b95-884a-e6908f39d725> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :inProject :SharedProject )>> ;
+        :hasAdminPermission :ADMIN_OLDAP .
+    <urn:uuid:83fa1da7-e63f-5e88-aa4a-1697e3e4e75b> rdf:reifies <<( <https://orcid.org/0000-0003-1681-4036> :hasRole :Unknown )>> ;
+        :hasDefaultDataPermission :DATA_PERMISSIONS .
 
 
     <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> a oldap:User ;
@@ -150,6 +155,7 @@
         :hasRole :Unknown ;
         :isActive true .
 
-    <<<urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> :hasRole :Unknown>> :hasDefaultDataPermission :DATA_RESTRICTED .
+    <urn:uuid:2d2d4472-3414-56db-8b0a-fe8000a9fa64> rdf:reifies <<( <urn:uuid:7e56b6c4-42e5-4a9d-94cf-d6e22577fb4b> :hasRole :Unknown )>> ;
+        :hasDefaultDataPermission :DATA_RESTRICTED .
 
 }

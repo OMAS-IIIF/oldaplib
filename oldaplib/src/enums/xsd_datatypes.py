@@ -2,6 +2,7 @@
 # XSD Datatypes, IRI Validator, XSD Validator
 """
 import re
+from functools import lru_cache
 from urllib.parse import urlparse
 
 import xmlschema
@@ -136,6 +137,21 @@ class IriValidator:
         except Exception:
             return False
 
+@lru_cache(maxsize=len(XsdDatatypes))
+def _datatype_schema(datatype: XsdDatatypes) -> xmlschema.XMLSchema11:
+    """Compile each fixed datatype schema once, without retaining user values.
+
+    Only the finite datatype definition is reused. XMLSchema builds a fresh
+    validation context for each is_valid call; QName namespaces and all values
+    are still validated on every invocation. No data/authorization result is cached.
+    """
+    return xmlschema.XMLSchema11(f"""
+        <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+            <xsd:element name="tag" type="{datatype.value}"/>
+        </xsd:schema>
+    """)
+
+
 @strict
 class XsdValidator:
     """
@@ -153,11 +169,6 @@ class XsdValidator:
         :param value: A value to be validated
         :return: True or False
         """
-        xsd_string = f"""
-        <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-            <xsd:element name="tag" type="{datatype.value}"/>
-        </xsd:schema>
-        """
         namespace = ""
         if datatype == XsdDatatypes.QName:
             parts = str(value).split(':')
@@ -168,7 +179,7 @@ class XsdValidator:
         elif datatype == XsdDatatypes.anyURI:
             return IriValidator.validate(value)
         try:
-            xsd_validator = xmlschema.XMLSchema11(xsd_string)
+            xsd_validator = _datatype_schema(datatype)
             return xsd_validator.is_valid(f"""<?xml version="1.0" encoding="UTF-8"?><tag {namespace}>""" + str(value) + "</tag>")
         except xmlschema.XMLSchemaParseError as e:
             return False

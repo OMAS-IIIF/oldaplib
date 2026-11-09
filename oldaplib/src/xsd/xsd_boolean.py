@@ -23,6 +23,8 @@ class Xsd_boolean(Xsd):
         :param validate: Boolean value that determines whether or not the value should be validated (not used!)
         :raises OldapErrorValue: If the value is not a boolean
         """
+        if isinstance(value, Xsd_boolean):
+            self.__value = value.__value
         if isinstance(value, str):
             if value.lower() in ('yes', 'true', 't', 'y', '1'):
                 self.__value = True

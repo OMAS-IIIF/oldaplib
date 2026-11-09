@@ -1,0 +1,19 @@
+# Portable fulltext sections keyed by fixture project. Each field is a forward
+# property path; the final property contains text. No GraphDB options are implied.
+# Production ontology YAML will embed one such fulltext section per project.
+test:
+  graph: http://oldap.org/test#data
+  fulltext:
+    fields:
+      name: [http://oldap.org/test#name]
+      description: [http://oldap.org/test#subName]
+      representedName: [http://oldap.org/test#friend, http://oldap.org/test#name]
+      representedDescription: [http://oldap.org/test#friend, http://oldap.org/test#subName]
+      twoHopName: [http://oldap.org/test#friend, http://oldap.org/test#friend, http://oldap.org/test#name]
+other:
+  graph: http://example.org/other#data
+  fulltext:
+    fields:
+      headline: [http://example.org/other#headline]
+      # A different project's name field uses a different predicate.
+      name: [http://example.org/other#headline]

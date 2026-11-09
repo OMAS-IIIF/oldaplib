@@ -4,8 +4,11 @@ from oldaplib.src.connection import Connection
 import unittest
 
 from oldaplib.src.datamodel import DataModel
+from oldaplib.src.helpers.context import Context
 from oldaplib.src.project import Project
-from oldaplib.src.objectfactory import ResourceInstanceFactory, ResourceInstance, SortBy, SortDir
+from oldaplib.src.objectfactory import ResourceInstanceFactory, ResourceInstance, SortBy, SortDir, FTSearchFilter, \
+    LogicOp, SearchFilter, CompOp
+from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 
 class TestDataModel(unittest.TestCase):
@@ -64,4 +67,39 @@ class TestDataModel(unittest.TestCase):
                                              resClass="fasnacht:NewsItem",
                                              sortBy=[SortBy('fasnacht:newsItemStartDate', SortDir.desc)]
                                              )
+        pprint(res)
+
+    def test_combined_search(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        searchstr = 'Gluggsi'
+        res = ResourceInstance.search(con=con,
+                                      project='fasnacht',
+                                      ftfilter=[FTSearchFilter(field='archiveObjectDescription', query=searchstr),
+                                                'OR',
+                                                FTSearchFilter(field='representedArchiveObjectDescription', query=searchstr)])
+        pprint(res)
+
+    def test_read_instance(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        project = Project.read(con, 'dmtest')
+        dm = DataModel.read(con=con, project=project)
+        context = Context(name=con.context_name)
+        factory = ResourceInstanceFactory(con=con, project='dmtest')
+        instance = factory.read('urn:uuid:32abf755-2b5b-4e06-8a83-92fd1610489b')
+        # urn:uuid:ba81f700-8f07-4969-824b-30b080acf5a3
+        print(instance)
+
+    def test_search_not_exists(self):
+        con = Connection(userId="rosenth",
+                         credentials="RioGrande",
+                         context_name="DEFAULT")
+        res = ResourceInstance.search(con=con,
+                                      project='fasnacht',
+                                      filter=[SearchFilter(prop=Xsd_QName('fasnacht:externalSource'),
+                                                           op=CompOp.NOT_EXISTS,
+                                                           value=Xsd_QName('fasnacht:externalSource'))])
         pprint(res)

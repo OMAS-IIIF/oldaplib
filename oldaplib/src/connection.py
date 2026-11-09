@@ -1,31 +1,32 @@
-import json
 import os
+import secrets
 import time
 
 import bcrypt
-import jwt
 import requests
 import logging
 
-from jwt import InvalidTokenError
-from typing import Dict, Optional, Any
-from datetime import datetime, timedelta
+from typing import Dict, Mapping, Optional, Any
+
+from rdflib import Graph
 from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
 from pathlib import Path
 
+from requests import Response
 from requests.auth import HTTPBasicAuth
 
 from oldaplib.src.version import __version__
 
+from oldaplib.src.authentication import AuthorizationContext, TokenCodec, TokenSettings
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
+from oldaplib.src.mutation_gate import transaction_opened, track_transaction_end
 from oldaplib.src.enums.adminpermissions import AdminPermission
 from oldaplib.src.userdataclass import UserData
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, OldapErrorNotFound
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorNoPermission, OldapErrorNotFound, OldapErrorToken
 from oldaplib.src.helpers.context import Context, DEFAULT_CONTEXT
 from oldaplib.src.helpers.query_processor import QueryProcessor
-from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.xsd.xsd_string import Xsd_string
@@ -40,14 +41,24 @@ from oldaplib.src.xsd.xsd_string import Xsd_string
 # Then, executing the __main__ of the file "connection.py" will initialize the triple store with all the data
 # needed to run the tests
 #
-jwt_format = {
-    "userId": "https://orcid.org/0000-0003-1681-4036",
-    "exp": "2023-11-04T12:00:00+00:00",
-    "iat": datetime.now().astimezone().isoformat(),
-    "iss": "http://oldap.org"
-}
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIkMmIkMTIkaldDSloucWRYRTlNU0NQZFVjMHk0Ljlzd1dZSmNnTFpuMGVQdFJUdS83VThxSC9PWFhrQjIiLCJleHAiOiIyMDI0LTExLTA0VDEyOjAwOjAwKzAwOjAwIiwiaWF0IjoiMjAyNC0wMS0xOVQyMzo0MTozMS45NTI5MTkiLCJpc3MiOiJodHRwOi8vb2xkYXAub3JnIn0.Vsc2qamfyeTW6Xz5l2Wca-mFnA5PcLuOoWPVEo__4Z4"
+def process_jsonld(res: Response) -> Graph:
+    g = Graph()
+    g.parse(data=res.text, format="json-ld")
+    return g
 
+
+def _bootstrap_token_codec() -> TokenCodec:
+    """Create the token codec used only by the interactive bootstrap utility.
+
+    Production connections still require ``OLDAP_ACCESS_JWT_SECRET``. The
+    standalone module does not expose its token, so an ephemeral key keeps the
+    database bootstrap runnable without weakening runtime configuration.
+    """
+    return TokenCodec(
+        TokenSettings(
+            access_secret=os.getenv("OLDAP_ACCESS_JWT_SECRET") or secrets.token_urlsafe(32)
+        )
+    )
 
 class Connection(IConnection):
     """
@@ -89,24 +100,25 @@ class Connection(IConnection):
     _userId: str
     _dbuser: str
     _dbpassword: str
-    _userdata: Optional[UserData]
+    _userdata: Optional[AuthorizationContext]
     _token: Optional[str]
     _context_name: str = DEFAULT_CONTEXT
     _store: SPARQLUpdateStore
     _query_url: str
     _update_url: str
     _transaction_url: Optional[str]
-    __jwtkey: str
+    __token_codec: TokenCodec
+    _auth_version: int | None
     _switcher = {
         SparqlResultFormat.XML: lambda a: a.text,
         SparqlResultFormat.JSON: lambda a: a.json(),
         SparqlResultFormat.TURTLE: lambda a: a.text,
         SparqlResultFormat.N3: lambda a: a.text,
         SparqlResultFormat.NQUADS: lambda a: a.text,
-        SparqlResultFormat.JSONLD: lambda a: a.json(),
+        SparqlResultFormat.JSONLD: process_jsonld,
         SparqlResultFormat.TRIX: lambda a: a.text,
         SparqlResultFormat.TRIG: lambda a: a.text,
-        SparqlResultFormat.TEXT: lambda a: a.text
+        SparqlResultFormat.TEXT: lambda a: a.text,
     }
 
     def __init__(self, *,
@@ -117,7 +129,9 @@ class Connection(IConnection):
                  token: Optional[str] = None,
                  dbuser: Optional[str] = None,
                  dbpassword: Optional[str] = None,
-                 context_name: Optional[str] = DEFAULT_CONTEXT) -> None:
+                 context_name: Optional[str] = DEFAULT_CONTEXT,
+                 token_codec: TokenCodec | None = None,
+                 issue_access_token: bool = True) -> None:
         """
         Constructor that establishes the connection parameters.
 
@@ -135,12 +149,23 @@ class Connection(IConnection):
         :param context_name: A name of the Context to be used (see ~Context). If no such context exists,
                              a new context with this name is created.
         :type context_name: Optional[str]
+        :param token_codec: Optional explicit token codec, primarily for
+                            isolated consumers and tests. Environment-backed
+                            settings are used by default.
+        :type token_codec: Optional[TokenCodec]
+        :param issue_access_token: Issue an access JWT after credential
+                                   authentication. Trusted direct consumers
+                                   that never expose or reuse a bearer token may
+                                   disable issuance and avoid access to the JWT
+                                   signing secret.
+        :type issue_access_token: bool
         :raises OldapError: Raised when invalid credentials or token are provided, or if there is
                             an issue during the authentication process. Also raised on login failure
                             in specific scenarios.
         """
         super().__init__(context_name=context_name)
-        self.__jwtkey = os.getenv("OLDAP_JWT_SECRET", "You have to change this!!! +D&RWG+")
+        self.__token_codec = token_codec or TokenCodec.from_environment()
+        self._auth_version = None
         self._server = server or os.getenv("OLDAP_TS_SERVER", "http://localhost:7200")
         self._repo = repo or os.getenv("OLDAP_TS_REPO", "oldap")
         self._dbuser = dbuser or os.getenv("OLDAP_TS_USER", "")
@@ -150,15 +175,15 @@ class Connection(IConnection):
         self._store = SPARQLUpdateStore(self._query_url, self._update_url)
 
         logger = logging.getLogger(__name__)
+        logger.info(f'OLDAPLIB v{__version__}: Connecting to triplestore at {self._server} with repo {self._repo}')
 
         context = Context(name=context_name)
         if token is not None:
             try:
-                payload = jwt.decode(jwt=token, key=self.__jwtkey, algorithms="HS256")
-            except InvalidTokenError:
+                self._userdata = self.__token_codec.decode_access_token(token)
+            except OldapErrorToken:
                 logger.error("Connection with invalid token")
-                raise OldapError("Wrong credentials")
-            self._userdata = json.loads(payload['userdata'], object_hook=serializer.decoder_hook)
+                raise OldapError("Wrong credentials") from None
             self._token = token
             return
         if userId is None and credentials is None:
@@ -169,7 +194,6 @@ class Connection(IConnection):
             logger.error("Connection with wrong credentials")
             raise OldapError("Wrong credentials")
 
-        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         #
         # Get projects and add to Context
         #
@@ -187,67 +211,66 @@ class Connection(IConnection):
             }
         }
         """
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
-        }
-        data = {
-            'query': sparql,
-        }
-        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
-        if res.status_code == 200:
-            jsonobj = res.json()
-        else:
-            logger.error(f"Could not connect to triplestore: {res.text}")
-            raise OldapError(res.status_code, res.text)
-        res = QueryProcessor(context=context, query_result=jsonobj)
+        res = QueryProcessor(context=context, query_result=self._bootstrap_query(sparql))
         for r in res:
             context[r['sname']] = r['ns']
 
         #
         # Query the user data
         #
-        sparql = UserData.sparql_query(context=context, userId=userId)
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
-        }
-        data = {
-            'query': sparql,
-        }
-        #
-        # if we have protected the triplestore by a user/password, add it to the request
-        #
-        res = requests.post(url=self._query_url, headers=headers, data=data, auth=auth)
-        if res.status_code == 200:
-            jsonobj = res.json()
-        else:
-            logger.error(f"Could not connect to triplestore: {res.text}")
-            raise OldapError(res.status_code, res.text)
-        res = QueryProcessor(context=context, query_result=jsonobj)
+        sparql = self._bootstrap_user_query(context, userId)
+        res = QueryProcessor(context=context, query_result=self._bootstrap_query(sparql))
 
-        self._userdata = UserData.from_query(res)
-        if not self._userdata.isActive:
+        userdata = UserData.from_query(res)
+        if not userdata.isActive:
             logger.error("Connection with wrong credentials")
             raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
         if userId != "unknown":
-            hashed = str(self._userdata.credentials).encode('utf-8')
+            hashed = str(userdata.credentials).encode('utf-8')
             if not bcrypt.checkpw(credentials.encode('utf-8'), hashed):
                 logger.error("Connection with wrong credentials")
                 raise OldapError("Wrong credentials")  # On purpose, we are not providing too much information why the login failed
 
-        expiration = datetime.now().astimezone() + timedelta(days=1)
-        payload = {
-            "userdata": json.dumps(self._userdata, default=serializer.encoder_default),
-            "exp": expiration.timestamp(),
-            "iat": int(datetime.now().astimezone().timestamp()),
-            "iss": "http://oldap.org"
-        }
-        self._token = jwt.encode(
-            payload=payload,
-            key=self.__jwtkey,
-            algorithm="HS256")
+        self._auth_version = int(userdata.authVersion)
+        self._userdata = AuthorizationContext.from_user_data(userdata)
+        if issue_access_token:
+            self._token = self.__token_codec.issue_access_token(self._userdata)
         logger.info(f'Connection established. User "{str(self._userdata.userId)}".')
+
+    def _bootstrap_query(self, sparql: str) -> dict[str, Any]:
+        """Read initialization data using the backend service credentials.
+
+        Args:
+            sparql: Project namespace or user-data SELECT query.
+
+        Returns:
+            SPARQL JSON results consumed by the existing QueryProcessor.
+
+        Raises:
+            OldapError: If the triplestore rejects the request.
+
+        The GraphDB default preserves the existing request format. An alternate
+        backend may override this internal boundary without copying password or
+        token validation, or changing the public constructor.
+        """
+        auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
+        response = requests.post(
+            url=self._query_url,
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                "Accept": "application/x-sparqlstar-results+json, application/sparql-results+json;q=0.9, */*;q=0.8",
+            },
+            data={'query': sparql},
+            auth=auth,
+        )
+        if response.status_code != 200:
+            logging.getLogger(__name__).error("Could not connect to triplestore: %s", response.text)
+            raise OldapError(response.status_code, response.text)
+        return response.json()
+
+    def _bootstrap_user_query(self, context: Context, user_id: Xsd_NCName) -> str:
+        """Select the backend's user query; the default remains GraphDB RDF*."""
+        return UserData.sparql_query(context=context, userId=user_id)
 
     @staticmethod
     def version(self) -> str:
@@ -255,8 +278,37 @@ class Connection(IConnection):
 
     @property
     def jwtkey(self) -> str:
-        """Getter for the JWT token"""
-        return self.__jwtkey
+        """Return the access-token key for legacy integrations.
+
+        Media tokens no longer use this key. New code should use the
+        purpose-specific :attr:`token_codec` operations instead.
+        """
+        return self.__token_codec.settings.require_access_secret()
+
+    def issue_media_token(self, claims: Mapping[str, Any]) -> str:
+        """Issue a media capability bound to the authenticated user.
+
+        Args:
+            claims: Asset-specific claims consumed by the media server.
+
+        Returns:
+            A short-lived token signed with ``OLDAP_MEDIA_JWT_SECRET``.
+        """
+        return self.__token_codec.issue_media_token(self.userid, claims)
+
+    @property
+    def token_codec(self) -> TokenCodec:
+        """Return the purpose-specific codec used by this connection."""
+        return self.__token_codec
+
+    @property
+    def auth_version(self) -> int | None:
+        """Return the version loaded during credential authentication.
+
+        Access tokens intentionally do not carry this refresh-only state, so
+        connections reconstructed from an access token return ``None``.
+        """
+        return self._auth_version
 
     @property
     def server(self) -> str:
@@ -473,7 +525,7 @@ class Connection(IConnection):
 
         logger.info(f'File "{filename}" uploaded synchronously via /statements.')
 
-    def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
+    def query(self, query: str, format: SparqlResultFormat = SparqlResultFormat.JSON, *, timeout: float | tuple[float, float] | None = None) -> Any:
         """
         Send a SPARQL-query and return the result. The result may be nested dict (in case of JSON) or a text.
 
@@ -481,6 +533,7 @@ class Connection(IConnection):
         :type query: str
         :param format: The format desired (see ~SparqlResultFormat)
         :type format: SparqlResultFormat
+        :param timeout: Optional requests connect/read timeout; omitted preserves existing behavior.
         :return: Query results or an error message (as text)
         :rtype: Any
         :raises OldapError: Raised if not logged in or if there is an issue with the query execution.
@@ -498,6 +551,7 @@ class Connection(IConnection):
         }
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
         res = requests.post(url=self._query_url,
+                            **({'timeout': timeout} if timeout is not None else {}),
                             headers=headers,
                             data=data,
                             auth=auth)
@@ -557,6 +611,7 @@ class Connection(IConnection):
         if res.headers.get('location') is None:
             raise OldapError('GraphDB start of transaction failed')
         self._transaction_url = res.headers['location']
+        transaction_opened(self._transaction_url)
 
     def transaction_query(self, query: str, result_format: SparqlResultFormat = SparqlResultFormat.JSON) -> Any:
         """
@@ -598,10 +653,13 @@ class Connection(IConnection):
         """
         Updates the current GraphDB transaction with a specified SPARQL update query.
 
-        This method sends a POST request to the specified transaction URL with the
+        This method sends a raw UTF-8 SPARQL UPDATE request to the specified transaction URL with the
         provided SPARQL `query`. It throws an error if the user is not logged in or
         if no GraphDB transaction URL is available. If the request fails, an exception
         is raised containing the reason for the failure.
+
+        The raw request body avoids servlet form-parameter size limits for large
+        RDF literals. Transaction and authorization semantics remain unchanged.
 
         :param query: The SPARQL update query to execute as part of the current GraphDB
                       transaction.
@@ -613,19 +671,21 @@ class Connection(IConnection):
         if not self._userdata:
             raise OldapError("No login")
         headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "Content-Type": "application/sparql-update; charset=UTF-8",
             "Accept": "*/*"
         }
         if self._transaction_url is None:
             raise OldapError("No GraphDB transaction started")
         auth = HTTPBasicAuth(self._dbuser, self._dbpassword) if self._dbuser and self._dbpassword else None
-        res = requests.post(self._transaction_url,
-                            data={'action': 'UPDATE', 'update': query},
+        res = requests.put(self._transaction_url,
+                            params={'action': 'UPDATE'},
+                            data=query.encode('utf-8'),
                             headers=headers,
                             auth=auth)
         if not res.ok:
             raise OldapError(f'GraphDB Transaction update failed. Reason: "{res.text}"')
 
+    @track_transaction_end
     def transaction_commit(self) -> None:
         """
         Commits the current transaction for the GraphDB session. This method ensures that
@@ -650,6 +710,7 @@ class Connection(IConnection):
             raise OldapError(f'GraphDB transaction commit failed. Reason: "{res.text}"')
         self._transaction_url = None
 
+    @track_transaction_end
     def transaction_abort(self) -> None:
         """
         Aborts an ongoing GraphDB transaction if it exists. This method ensures that
@@ -688,11 +749,15 @@ class Connection(IConnection):
 
 
 if __name__ == "__main__":
+    # The bootstrap utility does not expose its short-lived token externally.
+    # Use the configured access secret when present and otherwise an ephemeral
+    # process-local key; production library usage still fails closed.
     con = Connection(server='http://localhost:7200',
                      userId="rosenth",
                      credentials="RioGrande",
                      repo="oldap",
-                     context_name="DEFAULT")
+                     context_name="DEFAULT",
+                     token_codec=_bootstrap_token_codec())
     cache = CacheSingletonRedis()
     cache.clear()
     exitus = input("Nur cache löschen? [Y/N] ?(N):").strip().lower()
@@ -712,4 +777,3 @@ if __name__ == "__main__":
     else:
         print("Testinstanzen übersprungen.")
     cache.clear()
-

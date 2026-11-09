@@ -1,0 +1,73 @@
+{
+  "java": "openjdk version \"25.0.2\" 2026-01-20\nOpenJDK Runtime Environment Homebrew (build 25.0.2)\nOpenJDK 64-Bit Server VM Homebrew (build 25.0.2, mixed mode, sharing)",
+  "jar_sha512": "59c5d0fd4e3f2c51819816dd178ee7d619552aae12400286338cc55c6955653e6c503d58b6cb12f3124407c903a81a2ecf4a9b0d5ba8028e7fcdc7c5c98710d4",
+  "port": 3032,
+  "checks": [
+    "Java transaction probe",
+    "Pinned server version",
+    "Explicit reifier permission join",
+    "Admin permission annotation",
+    "Membership does not invent a default permission",
+    "Explicit default permission annotation",
+    "Annotations stay in their named graph",
+    "Repeated anonymous shorthand creates distinct reifiers",
+    "Stable reifier repeated INSERT is idempotent",
+    "Triple term JSON result",
+    "Reification does not assert the base triple",
+    "Turtle export/reimport preserves reifier",
+    "Role revocation removes effective access",
+    "Grant deletion leaves no annotation residue",
+    "HTTP update visible in a separate request",
+    "Runtime failure returns an error",
+    "One HTTP update request rolls back all operations",
+    "Earlier HTTP request is not rolled back",
+    "No RDF4J transaction endpoint on stock dataset",
+    "False WHERE does not abort a following unguarded receipt",
+    "Guarded stale mutation creates no receipt",
+    "One guarded update changes data and records receipt",
+    "Exact synthetic retry leaves one receipt",
+    "Concurrent guarded HTTP mutations have exactly one receipt",
+    "Concurrent guarded mutations advance the revision only once",
+    "HTTP dataset persists across server restart",
+    "Aborted HTTP writes remain absent after restart"
+  ],
+  "java_transaction_checks": [
+    "PASS read-own-writes, concurrent-reader isolation, full rollback",
+    "PASS resource-and-receipt commit visibility",
+    "PASS concurrent read-check-write claims: exactly one winner",
+    "PASS dataset close/reopen retains committed data (not a crash test)"
+  ],
+  "triple_term_json": {
+    "head": {
+      "vars": [
+        "term"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "term": {
+            "type": "triple",
+            "value": {
+              "subject": {
+                "type": "uri",
+                "value": "urn:jena-probe:item"
+              },
+              "predicate": {
+                "type": "uri",
+                "value": "http://oldap.org/base#attachedToRole"
+              },
+              "object": {
+                "type": "uri",
+                "value": "urn:jena-probe:readerRole"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "failed_update_status": 400,
+  "rdf4j_transaction_endpoint_status": 405,
+  "status": "passed"
+}

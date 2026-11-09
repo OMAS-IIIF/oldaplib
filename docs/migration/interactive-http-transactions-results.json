@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "checks": [
+    "Unauthenticated request is rejected",
+    "Owner reads uncommitted data over HTTP",
+    "Independent HTTP reader sees committed snapshot only",
+    "Another identity cannot query or commit the session",
+    "Competing writer is rejected without disrupting owner",
+    "Missing receipt remains unknown while transaction is active",
+    "Lost commit reply reconciles from atomic receipt",
+    "Committed identifier cannot begin again",
+    "Receipt cannot be read by another probe identity",
+    "Receipt and data survive server kill and restart",
+    "Missing commit receipt raises uncertainty without automatic replay",
+    "Query failure aborts the session",
+    "Server kill loses pending writes without inventing an abort receipt",
+    "Abandoned session expires and cannot commit",
+    "Expiry rolls back pending writes",
+    "Expiry releases writer and stale request cannot affect new session",
+    "Expired identifier cannot be reused within this server lifetime"
+  ]
+}

@@ -1,0 +1,40 @@
+PASS Verification accepts global blank-node renaming and reordered quads
+PASS Verification rejects split identity or changed graph/value/predicate
+PASS Verification rejects split identity or changed graph/value/predicate
+PASS Verification rejects split identity or changed graph/value/predicate
+PASS Verification rejects split identity or changed graph/value/predicate
+PASS Verification preserves blank graph-name identity
+PASS Stable reifier identities on repeated conversion
+PASS All four ordinary source quads remain unchanged
+PASS Generated identity collision with existing predicates refused
+PASS Literal quotation marks, language and cross-graph blank-node identity preserved
+PASS Repeated annotations merge permission values and additional metadata
+PASS Graph-scoped identity and orphan counts are explicit
+PASS Conversion never asserts missing memberships
+PASS Converted dataset imports losslessly into owned TDB2
+PASS Mismatched permission kind refused
+PASS Quoted triples as objects refused
+PASS Nested quoted triples refused
+PASS Unknown membership predicate refused
+PASS Blank-node membership identity refused
+PASS Mixed native RDF 1.2 input refused
+PASS Serialized user side-channel refused instead of discarded
+PASS Unbased relative IRI refused
+PASS Default-graph permission annotation refused
+PASS Encoded RDF4J triple URI refused
+2026-10-28T22:58:39.909968Z main ERROR [line: 1, col: 90] Out of place: [KEYWORD:BROKEN]
+PASS Malformed TriG refused
+PASS Plain RDF needs no generated reifiers
+PASS Original GraphDB admin.trig converts to the migrated seed permission relations
+PASS Original GraphDB admin-testing.trig converts to the migrated seed permission relations
+PASS total=28; offline only, no inference
+
+PASS real CLI validates .trig conversion, hashes and private output
+PASS real CLI validates .gz conversion, hashes and private output
+PASS existing output is never overwritten
+PASS invalid input leaves no partial output: bad.trig
+PASS invalid input leaves no partial output: encoding.trig
+PASS invalid input leaves no partial output: large.trig.gz
+PASS invalid input leaves no partial output: users.trig
+PASS original input files remain unchanged
+PASS total=8; temporary CLI files removed

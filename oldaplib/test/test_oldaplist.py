@@ -8,7 +8,6 @@ from oldaplib.src.connection import Connection
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.language import Language
-from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.json_encoder import SpecialEncoder
 from oldaplib.src.helpers.langstring import LangString
@@ -353,15 +352,16 @@ class TestOldapList(unittest.TestCase):
                                   project=self._project,
                                   property_class_iri=Xsd_QName(f'{dm_name}:selection'),
                                   toClass=node_classIri,
-                                  name=LangString(["Selection@en", "Selektion@de"]))
+                                  name=LangString(["Selection@en", "Selektion@de"]),
+                                  maxCount=Xsd_integer(1),
+                                  minCount=Xsd_integer(1),
+                                  order=1)
 
         resobj = ResourceClass(con=self._connection,
                                project=self._project,
                                owlclass_iri=Xsd_QName(f'{dm_name}:Resobj'),
                                label=LangString(["Resobj@en", "Resobj@de"]),
-                               hasproperties=[
-                                   HasProperty(con=self._connection, project=self._project, prop=selection, maxCount=Xsd_integer(1),
-                                               minCount=Xsd_integer(1), order=1)])
+                               properties=[selection])
         dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)

@@ -318,6 +318,70 @@ class OldapList(Model):
     def node_prefix(self) -> Xsd_NCName:
         return self.__node_prefix
 
+    @staticmethod
+    def ensure_list_node_context(con: IConnection, project: Project | Iri | Xsd_NCName | str) -> None:
+        """
+        Register the list-node prefixes for all hierarchical lists of a project.
+
+        List nodes use the special QName prefix ``L-<list_id>`` instead of the project
+        prefix. This method prepares the shared connection context for reading data
+        that may contain concrete list-node IRIs, without loading the list nodes
+        themselves.
+
+        :param con: Active connection to the OLDAP server.
+        :type con: IConnection
+        :param project: Project object, project short name, or project IRI.
+        :type project: Project | Iri | Xsd_NCName | str
+        Repeated calls for the same connection and project do not query the
+        triplestore again. New connections always perform their own discovery,
+        which keeps the optimization bounded to one logical connection/request.
+
+        :return: None
+        """
+        if not isinstance(con, IConnection):
+            raise TypeError("con must be an IConnection object")
+
+        loaded_projects = con._list_node_context_projects
+        if isinstance(project, (Xsd_NCName, str)) and ':' not in str(project):
+            project_key = str(project)
+            if project_key in loaded_projects:
+                return
+
+        if not isinstance(project, Project):
+            if not isinstance(project, (Iri, Xsd_NCName)):
+                project = IriOrNCName(project, validate=True)
+            project = Project.read(con, project)
+
+        project_key = str(project.projectShortName)
+        if project_key in loaded_projects:
+            return
+
+        context = Context(name=con.context_name)
+        context[project.projectShortName] = project.namespaceIri
+
+        sparql = context.sparql_context
+        sparql += f"""
+        SELECT DISTINCT ?list
+        FROM {project.projectShortName}:lists
+        WHERE {{
+            ?list a oldap:OldapList .
+        }}
+        ORDER BY ?list
+        """
+
+        # We only need the list IDs to register the deterministic L-<list_id>
+        # namespaces used by OldapListNode; loading all nodes would be unnecessary.
+        for row in QueryProcessor(context, con.query(sparql)):
+            list_id = row['list'].fragment
+            node_prefix = Xsd_NCName("L-") + list_id
+            context[node_prefix] = project.namespaceIri.expand(list_id)
+            if node_prefix not in context.graphs:
+                context.use(node_prefix)
+
+        # Mark the project only after successful query processing. A failed
+        # discovery must remain retryable on the same connection.
+        loaded_projects.add(project_key)
+
     @property
     def iri(self) -> Iri:
         return self.__iri
@@ -831,13 +895,23 @@ class OldapList(Model):
         #
         context = Context(name=self._con.context_name)
         query2 = context.sparql_context
+        # query2 += f'''
+        # ASK {{
+        #     GRAPH {self.__graph}:shacl {{
+        #         ?propobj sh:class {self.__node_class_iri.toRdf} .
+        #     }}
+        # }}
+        # '''
         query2 += f'''
         ASK {{
             GRAPH {self.__graph}:shacl {{
-                ?propobj sh:class {self.__node_class_iri.toRdf} .
+                ?node a sh:NodeShape .
+                ?node sh:property ?propnode .
+                ?propnode sh:class {self.__node_class_iri.toRdf} .
             }}
         }}
         '''
+
         return query1, query2
 
     def in_use(self) -> bool:
@@ -956,4 +1030,3 @@ class OldapList(Model):
         self.safe_commit()
         cache = CacheSingletonRedis()
         cache.delete(self.__iri)
-

@@ -28,12 +28,13 @@ class Xsd_normalizedString(Xsd):
         if isinstance(value, Xsd_normalizedString):
             self.__value = value.__value
         else:
+            sval = str(value)
             if validate:
-                if not XsdValidator.validate(XsdDatatypes.normalizedString, value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
-                if re.match("^[^\r\n\t]*$", value) is None:
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:normalizedString.')
-            self.__value = value
+                if not XsdValidator.validate(XsdDatatypes.normalizedString, sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:normalizedString.')
+                if re.match("^[^\r\n\t]*$", sval) is None:
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:normalizedString.')
+            self.__value = sval
 
     @classmethod
     def fromRdf(cls, value: str) -> Self:

@@ -37,12 +37,13 @@ class Xsd_language(Xsd):
         elif isinstance(value, Language):
             self.__value = value.name.lower()
         else:
+            sval = str(value)
             if validate:
-                if not XsdValidator.validate(XsdDatatypes.language, value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:language.')
-                if not re.match('^[a-zA-Z]{2}(-[a-zA-Z]{2})?$', value):
-                    raise OldapErrorValue(f'Invalid string "{value}" for xsd:language.')
-            self.__value = value
+                if not XsdValidator.validate(XsdDatatypes.language, sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:language.')
+                if not re.match('^[a-zA-Z]{2}(-[a-zA-Z]{2})?$', sval):
+                    raise OldapErrorValue(f'Invalid string "{sval}" for xsd:language.')
+            self.__value = sval
 
     def __str__(self):
         """
@@ -99,4 +100,3 @@ class Xsd_language(Xsd):
         :rtype: str
         """
         return f'"{self.__value}"^^xsd:language'
-

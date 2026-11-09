@@ -10,7 +10,6 @@ from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
 from oldaplib.src.enums.roleattr import RoleAttr
 from oldaplib.src.enums.xsd_datatypes import XsdDatatypes
-from oldaplib.src.hasproperty import HasProperty
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.objectfactory import ResourceInstanceFactory
 from oldaplib.src.role import Role
@@ -409,8 +408,10 @@ class TestPermissionSet(unittest.TestCase):
                                   project=self._project,
                                   property_class_iri=Xsd_QName(f'{dm_name}:irgendwas'),
                                   datatype=XsdDatatypes.string,
-                                  name=LangString(["AnyString@en", "Irgendwas@de"]))
-
+                                  name=LangString(["AnyString@en", "Irgendwas@de"]),
+                                  maxCount=Xsd_integer(1),
+                                  minCount=Xsd_integer(1),
+                                  order=1)
         #
         # Now we create a simple data model
         #
@@ -418,9 +419,7 @@ class TestPermissionSet(unittest.TestCase):
                                project=self._project,
                                owlclass_iri=Xsd_QName(f'{dm_name}:DummyClass'),
                                label=LangString(["Dummy@en", "Dummy@de"]),
-                               hasproperties=[
-                                   HasProperty(con=self._connection, project=self._project, prop=irgendwas, maxCount=Xsd_integer(1),
-                                               minCount=Xsd_integer(1), order=1)])
+                               properties=[irgendwas])
         dm[Xsd_QName(f'{dm_name}:resobj')] = resobj
         dm.update()
         dm = DataModel.read(self._connection, self._project, ignore_cache=True)
