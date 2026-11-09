@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Jena mainline integration (2026-11-09): the accepted migration is integrated into `main` with its complete ancestry. Core runtime/package versions remain the tested RC versions; this Git integration does not publish final 1.0.0 packages or change deployed images. Prior primary ref is retained by `pre-jena-merge-20261109`; this tag records Git history, not the deployed GraphDB baseline. Migration branches and old GraphDB checkouts are retained. Coordinated evidence: ../oldap-setup/docs/jena-mainline-merge-20261109.md. Older pending-merge notes below are historical.
+
 - Production migration follow-up (2026-11-08): setup now contains the tested offline Fasnacht model cleanup, complete source fulltext inventory and selective target-copy cache eviction. Two-host rollback, six-project model reads and cold-cache API comparisons pass. Core production archives are prepared with pinned accepted images; final source/private/operational acceptance remains open. No library code or public signature changed. See ../oldap-setup/docs/production-model-package.md and the cutover index.
 
 - Night maintenance (2026-11-07): compaction admission now requires a configured local-time window (default 01:00–03:00 Europe/Zurich); all seven policy keys are required. An admitted run finishes safely even after window end. Coordinate backups and measure runtime before home activation; not deployed.
