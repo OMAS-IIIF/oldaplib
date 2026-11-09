@@ -1,3 +1,9 @@
+### Update 2026-11-09 18:17
+- Decisions: Complete the approved final release; preserve existing tags and database namespace.
+- Implementation: Published exact core 1.0.0 wheels/images and app 0.2.8, mainline commits/tags; scoped production activation changes only API, identity and app. Evidence in oldap-setup/docs/oldap-1.0.0-release-results.json.
+- Open: Observe routine operations; retain accepted Zod 3 finding and intermittent browser timeout observation. Home unchanged.
+- Risks/Assumptions: Real service and both-architecture integration checks pass; public desktop/mobile repeat passes. Read-only production smoke does not cover authenticated writes/uploads; old Compose/images retained for rollback.
+
 ### Update 2026-11-09 18:00
 - Decisions: Prepare the owner-approved final 1.0.0 release; preserve independent component version lines and exact accepted runtime behavior.
 - Implementation: Updated package/runtime/bump metadata where applicable; core API/Tools require final library >=1.0.0,<2.0.0 and locks retain its exact wheel hash. App includes the previously tested dependency patches; Zod 3 remains the owner's accepted temporary risk. Native service 1.0.0 compiles byte-identically to the deployed RC JAR.

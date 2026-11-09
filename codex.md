@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Final release live (2026-11-09): oldaplib 1.0.0 is released; core PyPI wheels and immutable Docker tags are verified. Production API/library 1.0.0 and app 0.2.8 are active. Tools is an operator image; Jena retains its byte-identical existing JAR and namespace. Exact evidence/rollback: ../oldap-setup/docs/oldap-1.0.0-release.md. This supersedes earlier pending-release entries. Home is unchanged; accepted Zod 3 risk and intermittent browser timeout observation remain documented.
+
 - Final release preparation (2026-11-09): package 1.0.0; core metadata/locks move from RC to final while public API contracts remain unchanged. Final artifact acceptance/publication/deployment is coordinated by oldap-setup. Zod 3 remains an explicitly accepted temporary risk for oldap-app.
 
 - Jena mainline integration (2026-11-09): the accepted migration is integrated into `main` with its complete ancestry. Core runtime/package versions remain the tested RC versions; this Git integration does not publish final 1.0.0 packages or change deployed images. Prior primary ref is retained by `pre-jena-merge-20261109`; this tag records Git history, not the deployed GraphDB baseline. Migration branches and old GraphDB checkouts are retained. Coordinated evidence: ../oldap-setup/docs/jena-mainline-merge-20261109.md. Older pending-merge notes below are historical.
