@@ -16,7 +16,8 @@ import org.apache.jena.sparql.util.Context;
 
 /** Official Fuseki UI and protocols over the service-owned application dataset.
  *
- * The second listener is private to the Docker bridge. The authenticated reverse
+ * The second listener is private to the Docker bridge, or explicitly loopback-bound
+ * for native development. The authenticated reverse
  * proxy supplies a separate administrator secret; no normal OLDAP token grants
  * access. Native Fuseki handles SPARQL, graph-store uploads, validation and stats.
  * Dataset creation/deletion/compaction remain service lifecycle operations.
@@ -25,11 +26,11 @@ public final class JenaAdministration {
     private JenaAdministration() {}
 
     /** Build without opening storage again or copying/modifying Apache UI assets. */
-    static FusekiServer build(JenaSessionEngine engine, int port, String secret, String origin) {
+    static FusekiServer build(JenaSessionEngine engine, int port, String secret, String origin, boolean loopback) {
         String resource = JenaAdministration.class.getResource("/webapp/index.html").toString();
         String webapp = resource.substring(0, resource.lastIndexOf('/'));
         byte[] expected = secret.getBytes(StandardCharsets.UTF_8);
-        return FusekiServer.create().port(port)
+        return FusekiServer.create().port(port).loopback(loopback)
             .staticFileBase(webapp).enableCors(false)
             .enablePing(true).enableStats(true).enableMetrics(false)
             .enableTasks(false).enableCompact(false)

@@ -23,7 +23,7 @@ from oldaplib.src.helpers.jena_fulltext import jena_fulltext_fields, jena_fullte
 from oldaplib.src.objectfactory import FTSearchFilter
 
 
-def run(distribution, java_home, output, *, compaction=False):
+def run(distribution, java_home, output, *, compaction=False, loopback=False):
     """Start the built artifact; retain sanitized evidence and private diagnostics."""
     os.umask(0o077)
     output.mkdir(parents=True, exist_ok=False)
@@ -34,7 +34,7 @@ def run(distribution, java_home, output, *, compaction=False):
             return s.getsockname()[1]
     service_port, admin_port = port(), port()
     base, admin = f'http://127.0.0.1:{service_port}', f'http://127.0.0.1:{admin_port}'
-    origin = 'https://fuseki.home.org'
+    origin = 'http://127.0.0.1:3030' if loopback else 'https://fuseki.home.org'
     key, bootstrap, fulltext = (secrets.token_urlsafe(32) for _ in range(3))
     auth = {'X-Oldap-Admin-Key': key, 'Origin': origin}
     api_auth = {'X-Oldap-Service-Key': peer.transport_secret, 'Authorization': 'Bearer ' + peer.token('actor')}
@@ -51,6 +51,9 @@ adminPort={admin_port}
 adminSecret={key}
 adminOrigin={origin}
 ''')
+    if loopback:
+        with config.open('a') as stream:
+            stream.write('adminLoopback=true\n')
     if compaction:
         from datetime import datetime, timedelta, timezone
         instant = datetime.now(timezone.utc)
@@ -94,6 +97,18 @@ adminOrigin={origin}
         r.raise_for_status()
         return r.json()
     try:
+        if loopback:
+            accepted_config = config.read_text()
+            for name, invalid in (
+                ('HTTP requires explicit loopback', accepted_config.replace('adminLoopback=true', 'adminLoopback=false')),
+                ('Loopback HTTP rejects nonlocal origins', accepted_config.replace(origin, 'http://example.org')),
+            ):
+                config.write_text(invalid)
+                refused = subprocess.run([str(distribution / 'start'), str(config)],
+                    env={**os.environ, 'JAVA_HOME': str(java_home), 'JAVA_HEAP_MB': '512'},
+                    capture_output=True, text=True, timeout=20)
+                check(name, refused.returncode != 0 and 'Administrator origin requires' in refused.stderr)
+            config.write_text(accepted_config)
         start(True)
         check('Native Apache UI', 'Apache Jena Fuseki' in requests.get(admin, headers=auth).text)
         for path in ['/', '/$/server', '/oldap/query', '/$/datasets']:
@@ -170,5 +185,6 @@ if __name__ == '__main__':
     for name in ['distribution','java-home','output']:
         parser.add_argument('--'+name, type=Path, required=True)
     parser.add_argument("--compaction", action="store_true")
+    parser.add_argument("--loopback", action="store_true")
     args=parser.parse_args()
-    run(args.distribution.resolve(),args.java_home.resolve(),args.output.resolve(), compaction=args.compaction)
+    run(args.distribution.resolve(),args.java_home.resolve(),args.output.resolve(), compaction=args.compaction, loopback=args.loopback)

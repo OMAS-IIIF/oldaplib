@@ -1,3 +1,9 @@
+### Update 2026-11-10 23:04
+- Decisions: Support authenticated local official Fuseki UI without a second database process or a local certificate exception; preserve existing server defaults.
+- Implementation: Added optional strict adminLoopback property, loopback listener binding, and HTTP-origin allowance limited to explicit loopback plus 127.0.0.1. Extended native acceptance probe with loopback and configuration rejection cases; documented settings. API checkout manages native proxy/install/lifecycle.
+- Open: Local development artifact only; no package publication or home/production deployment.
+- Risks/Assumptions: 20 existing HTTPS and 22 loopback native checks pass, including transactions/index updates/restart and invalid HTTP-origin refusals. Local UI byte equality, write/readback/cleanup and full service cycle pass. Dataset lifecycle remains engine-owned; no public Python signatures changed.
+
 ### Update 2026-11-10 00:22
 - Decisions: Owner-authorized Docker publication and production promotion of API/library 1.0.1; preserve existing tags, namespace and other services.
 - Implementation: Published accepted AMD64/ARM64 IDs and multiarch digest 7fed616c31b8c298d02778e807bb0713746f0f21cb722662548796d9a573070a. Scoped maintenance-locked rollout replaced API/identity only; saved Compose before-api-1.0.1-20261110T002006. Readiness/auth/media/search checks pass. Browser comparison: text 1845→1500 ms, year 1621→1324, image 1934→1478, detail 2387→2289; three repeats, equal visible content, 231 successful API responses.

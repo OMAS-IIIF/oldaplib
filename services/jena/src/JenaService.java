@@ -31,7 +31,10 @@ public final class JenaService {
         Properties values = new Properties();
         try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) { values.load(reader); }
         Set<String> expected = new HashSet<>(KEYS);
-        if (values.containsKey("adminPort")) expected.addAll(Set.of("adminPort", "adminSecret", "adminOrigin"));
+        if (values.containsKey("adminPort")) {
+            expected.addAll(Set.of("adminPort", "adminSecret", "adminOrigin"));
+            if (values.containsKey("adminLoopback")) expected.add("adminLoopback");
+        }
         Set<String> compactionKeys = Set.of("compactionCheckSeconds", "compactionMinSeconds", "compactionGrowthBytes", "compactionGrowthRatio", "compactionZone", "compactionWindowStart", "compactionWindowEnd");
         if (values.stringPropertyNames().stream().anyMatch(compactionKeys::contains)) expected.addAll(compactionKeys);
         if (!values.stringPropertyNames().equals(expected))
@@ -46,9 +49,15 @@ public final class JenaService {
                 || values.getProperty("adminSecret").length() < 32)
                 throw new IllegalArgumentException("Invalid administration listener configuration");
             URI origin = URI.create(values.getProperty("adminOrigin"));
-            if (!"https".equals(origin.getScheme()) || origin.getHost() == null || origin.getUserInfo() != null
+            String local = values.getProperty("adminLoopback", "false");
+            if (!Set.of("true", "false").contains(local))
+                throw new IllegalArgumentException("adminLoopback must be true or false");
+            // HTTP is allowed only for explicitly loopback-bound native development.
+            boolean localHttp = "true".equals(local) && "http".equals(origin.getScheme())
+                && "127.0.0.1".equals(origin.getHost());
+            if ((!"https".equals(origin.getScheme()) && !localHttp) || origin.getHost() == null || origin.getUserInfo() != null
                 || origin.getQuery() != null || origin.getFragment() != null || !origin.getPath().isEmpty())
-                throw new IllegalArgumentException("Administrator origin must be an HTTPS origin");
+                throw new IllegalArgumentException("Administrator origin requires HTTPS or explicit loopback HTTP");
         }
         return values;
     }
@@ -112,7 +121,8 @@ public final class JenaService {
             server.start();
             if (values.containsKey("adminPort")) {
                 administration = JenaAdministration.build(engine, Integer.parseInt(values.getProperty("adminPort")),
-                    values.getProperty("adminSecret"), values.getProperty("adminOrigin"));
+                    values.getProperty("adminSecret"), values.getProperty("adminOrigin"),
+                    Boolean.parseBoolean(values.getProperty("adminLoopback", "false")));
                 administration.getJettyServer().setStopTimeout(65000);
                 administration.start();
             }

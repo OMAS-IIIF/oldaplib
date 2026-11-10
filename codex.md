@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Native console (2026-11-10): optional adminLoopback=true binds official administration to loopback and permits an exact 127.0.0.1 HTTP origin for local authenticated proxy use. Defaults retain server HTTPS behavior. Same-JVM storage ownership and secret/Origin enforcement are unchanged. Local-only acceptance: 20 HTTPS + 22 loopback checks; no package/image or remote deployment. Lifecycle/install documentation lives in ../oldap-api/doc/jena-local-development.md.
+
 - Production core 1.0.1 (2026-11-10): published API AMD64/ARM64 images and multiarch digest 7fed616c31b8; API and identity now run API/library 1.0.1. Only those two containers changed; database and other services retained. Functional checks and 231 browser API responses pass with equal visible content; three-repeat filter medians improve 18–24%, detail largely unchanged. Rollback and evidence: API doc/performance-production-1.0.1.md and setup docs/api-performance-1.0.1-production.md. Earlier build-only/not-deployed notes are historical.
 
 - Publication workflow (2026-11-10): mainline 1.0.1 is pushed. oldaplib 1.0.1 is published on PyPI. The API is distributed operationally as a Docker image; its wheel is a build input, and future API releases do not need PyPI publication. API 1.0.1 was already uploaded before the owner clarified this distinction. API lock resolves published library 1.0.1 with unchanged third-party pins. Container build is separate from deployment.

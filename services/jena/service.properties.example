@@ -30,3 +30,10 @@ fulltextSecret=REPLACE_WITH_RANDOM_FULLTEXT_SECRET
 # compactionZone=Europe/Zurich
 # compactionWindowStart=01:00
 # compactionWindowEnd=03:00
+
+# Optional native development console (all admin settings must be supplied together).
+# Server deployments keep HTTPS adminOrigin and default adminLoopback=false.
+# adminPort=8040
+# adminSecret=REPLACE_WITH_A_SEPARATE_RANDOM_SECRET_AT_LEAST_32_CHARACTERS
+# adminOrigin=http://127.0.0.1:3030
+# adminLoopback=true
