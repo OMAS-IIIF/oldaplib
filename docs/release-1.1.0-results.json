@@ -1,0 +1,164 @@
+{
+  "versions": {
+    "oldaplib": "1.1.0",
+    "oldap-api": "1.1.0",
+    "oldap-tools": "1.1.0",
+    "oldap-harvesters": "0.1.15",
+    "jena-service": "1.1.0"
+  },
+  "commits": {
+    "oldaplib": "eebdf794a8c929eac7b44f21ca629eb51cccb32e",
+    "oldap-api": "1d99a46026f6015a55dfd269e5ec8ccc1d2fe01c",
+    "oldap-tools": "d904d2eddcc6a2b0d69f00418cc8dd8ae971d276",
+    "oldap-harvesters": "182f25ccf0b61a64d6bf77e2b486653e4a56d142"
+  },
+  "pypi": {
+    "oldaplib": {
+      "oldaplib-1.1.0.tar.gz": "3c3852f0f78fd87fb8af7191aa2505ec70b31668e8f300f071e74392c4b45757",
+      "oldaplib-1.1.0-py3-none-any.whl": "4a00bfc99326eabf7af5a85b5c93055e45df47a65295f3d71e8556f0469700e9"
+    }
+  },
+  "jena_service": {
+    "version": "1.1.0",
+    "backup_tool_sha256": "ed116b48c4ef6fe3597464414089dc3d76ee6fb87cb773412b412ba53e3b6ce1",
+    "fuseki_version": "6.2.0",
+    "fuseki_sha256": "2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee",
+    "javac": "javac 25.0.2",
+    "sources": {
+      "tools/migration/JenaSessionEngine.java": "4e2e472f5e159970719686722aa2d3abda68c83eaca7ba79b167ecfeddc3342e",
+      "tools/migration/JenaSessionServlet.java": "d696abfab2cfa14cc8bc77e49647b2753e14a61726357926c43831eeab84fb4e",
+      "tools/migration/ProtectedApplicationDataset.java": "5c37b71d462572726ea27850408dec0e24d03db40399eb91f27cc44228e879a7",
+      "tools/migration/JenaManagedText.java": "faf0d462d06a3e6310e4aade9266ade2c7a4cc5b8e520dc2b4b50d8faede138d",
+      "tools/migration/JenaProjectTransfer.java": "94e75399dd2d13b039210fd85dd318d9c3e7a70fa91e9bc95a32fa4a3469269e",
+      "tools/migration/OldapTextAnalyzer.java": "ff082ed7e7ae2e1a1f6d6410f7218fbabab7e517e3cd45f8ced9a39350fe1c85",
+      "tools/migration/JenaTextFixture.java": "db9879b9c182e2910b6ae701bfa5080f8de5390d91f2c814dde0584ea0cad47a",
+      "services/jena/src/JenaService.java": "66835d4fe267218b37b566e9487d7811e2e574e6fcb2ea45241bb24285cd6b29",
+      "services/jena/src/JenaAdministration.java": "cc9b90cee3bbab913a27b4b7bb95124e34e903b1fb50865b54bb7e92dd218f56",
+      "services/jena/src/JenaCompaction.java": "afec974219e2b068de52d551610ecc13d450b5c6cf0233f351d4427b9b96ee99",
+      "services/jena/src/JenaInitialImport.java": "953664092e6192be41928b9c14208599bbbdbc3513a6f16bc725b4e6da90c601",
+      "tools/migration/ConvertLegacyRdfStar.java": "06f6d1ba245cdc2cb6aaba19f6bb3dcff566e0428c260409c952929c0796dde7"
+    },
+    "service_sha256": "bc73b0cc51a38af60607c1671c0344b03f982c269a997b8c9fd9d40cdb917077"
+  },
+  "tests": {
+    "focused_python": 133,
+    "tools": 169,
+    "harvesters_installed": 136,
+    "native_transfer": 5,
+    "jena_service": {
+      "status": "passed",
+      "checks": [
+        "Closed stdin does not stop the service",
+        "No raw SPARQL route",
+        "Transport credential required",
+        "Unavailable identity verification fails closed",
+        "300 sequential commits succeed",
+        "Probe fault flags and diagnostic headers are inert",
+        "Committed identifier and receipt remain actor-bound",
+        "Abort consumes identifier without committing data",
+        "Expiry releases writer but consumes identifier",
+        "Graceful restart preserves all admissions and committed data",
+        "Restart does not invent a commit receipt",
+        "Hard crash preserves reservation and rolls back pending data",
+        "Committed receipt survives hard crash",
+        "Admission and receipt metadata stay invisible",
+        "Application cannot clear protected admission metadata",
+        "Managed fulltext administration is enabled",
+        "Production ignores fulltext fault injection",
+        "Managed index and folding analyzer serve committed text",
+        "Fulltext configuration and searchable data survive hard restart",
+        "Fulltext administration requires its separate key",
+        "Credential bootstrap remains available",
+        "Missing storage requires explicit initialization"
+      ],
+      "build": {
+        "version": "1.1.0",
+        "backup_tool_sha256": "ed116b48c4ef6fe3597464414089dc3d76ee6fb87cb773412b412ba53e3b6ce1",
+        "fuseki_version": "6.2.0",
+        "fuseki_sha256": "2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee",
+        "javac": "javac 25.0.2",
+        "sources": {
+          "tools/migration/JenaSessionEngine.java": "4e2e472f5e159970719686722aa2d3abda68c83eaca7ba79b167ecfeddc3342e",
+          "tools/migration/JenaSessionServlet.java": "d696abfab2cfa14cc8bc77e49647b2753e14a61726357926c43831eeab84fb4e",
+          "tools/migration/ProtectedApplicationDataset.java": "5c37b71d462572726ea27850408dec0e24d03db40399eb91f27cc44228e879a7",
+          "tools/migration/JenaManagedText.java": "faf0d462d06a3e6310e4aade9266ade2c7a4cc5b8e520dc2b4b50d8faede138d",
+          "tools/migration/JenaProjectTransfer.java": "94e75399dd2d13b039210fd85dd318d9c3e7a70fa91e9bc95a32fa4a3469269e",
+          "tools/migration/OldapTextAnalyzer.java": "ff082ed7e7ae2e1a1f6d6410f7218fbabab7e517e3cd45f8ced9a39350fe1c85",
+          "tools/migration/JenaTextFixture.java": "db9879b9c182e2910b6ae701bfa5080f8de5390d91f2c814dde0584ea0cad47a",
+          "services/jena/src/JenaService.java": "66835d4fe267218b37b566e9487d7811e2e574e6fcb2ea45241bb24285cd6b29",
+          "services/jena/src/JenaAdministration.java": "cc9b90cee3bbab913a27b4b7bb95124e34e903b1fb50865b54bb7e92dd218f56",
+          "services/jena/src/JenaCompaction.java": "afec974219e2b068de52d551610ecc13d450b5c6cf0233f351d4427b9b96ee99",
+          "services/jena/src/JenaInitialImport.java": "953664092e6192be41928b9c14208599bbbdbc3513a6f16bc725b4e6da90c601",
+          "tools/migration/ConvertLegacyRdfStar.java": "06f6d1ba245cdc2cb6aaba19f6bb3dcff566e0428c260409c952929c0796dde7"
+        },
+        "service_sha256": "bc73b0cc51a38af60607c1671c0344b03f982c269a997b8c9fd9d40cdb917077"
+      }
+    },
+    "api_image_amd64": 113,
+    "api_image_arm64": 113,
+    "harvester_image_amd64": 136,
+    "harvester_image_arm64": 136,
+    "ocr_cpu_imports": true,
+    "core_packaged_jena_acceptance": {
+      "oldap-api": {
+        "amd64": {
+          "id": "sha256:836f9fd4ef6eaf3f3902aaf5a709a889038f7d07bd01d6ab5af22daa421e79f9",
+          "reference": "lrosenth/oldap-api:v1.1.0-amd64"
+        },
+        "arm64": {
+          "id": "sha256:d20b7551752d45e08c5f4e14abcf642f92bd5e91c3bf27adf54a61cf2290b619",
+          "reference": "lrosenth/oldap-api:v1.1.0-arm64"
+        }
+      },
+      "oldap-tools": {
+        "amd64": {
+          "id": "sha256:73004b7911068a3bd90365ee5a91a990f9ef0cb2e721c0bbea5471021802d69a",
+          "reference": "lrosenth/oldap-tools:v1.1.0-amd64"
+        },
+        "arm64": {
+          "id": "sha256:d523b4cab64e668c28a23cba8b145b57f61bdc1a7725e3f6252ddab9e0195bca",
+          "reference": "lrosenth/oldap-tools:v1.1.0-arm64"
+        }
+      }
+    }
+  },
+  "deployed": false,
+  "harvesters": {
+    "protected_before": {
+      "lrosenth/oldap-harvesters:latest": "sha256:312a1a05419b13f1768b631ba48b43b9dca329625630b4dc0ec282afe6b64a8e",
+      "lrosenth/oldap-harvesters:0.1.14": "sha256:1c1790eada33a92ff8883805fff0e2f04f3fb3af18712f17e56684c2262b05a2",
+      "lrosenth/oldap-harvesters:0.1.14-ocr": "sha256:7a4fe70446198a0cb617830bcf31062beeb47dcaacb11edc745c37b3b49fccc2"
+    },
+    "images": {
+      "lrosenth/oldap-harvesters:0.1.15-amd64": "sha256:b88c9b5be174a912496d6e8420ef08fe0f1d0e9fd1c32b0b6e68ceca60ac656e",
+      "lrosenth/oldap-harvesters:0.1.15-arm64": "sha256:3951bcb9034ba1210c9e6cc84eedec72977b60724aba6b1b1dc177b944447820",
+      "lrosenth/oldap-harvesters:0.1.15-ocr": "sha256:494840035fd3c11fdfac2983b085ae1e25d6c60617b8cbd9cda6d6768905abf5",
+      "lrosenth/oldap-harvesters:0.1.15": "sha256:9f89800e0170ee786794a335e2656afe0c4b06dc1339bd6f57d858667984b4f2"
+    },
+    "protected_after": {
+      "lrosenth/oldap-harvesters:latest": "sha256:312a1a05419b13f1768b631ba48b43b9dca329625630b4dc0ec282afe6b64a8e",
+      "lrosenth/oldap-harvesters:0.1.14": "sha256:1c1790eada33a92ff8883805fff0e2f04f3fb3af18712f17e56684c2262b05a2",
+      "lrosenth/oldap-harvesters:0.1.14-ocr": "sha256:7a4fe70446198a0cb617830bcf31062beeb47dcaacb11edc745c37b3b49fccc2"
+    }
+  },
+  "core_images": {
+    "oldap-api": {
+      "digest": "sha256:b85f35e78784106544485011e07769dd0e4c7859b556cd39a63b0df6a272c19e",
+      "platform_manifests": [
+        "lrosenth/oldap-api@sha256:836f9fd4ef6eaf3f3902aaf5a709a889038f7d07bd01d6ab5af22daa421e79f9",
+        "lrosenth/oldap-api@sha256:d20b7551752d45e08c5f4e14abcf642f92bd5e91c3bf27adf54a61cf2290b619"
+      ],
+      "reference": "lrosenth/oldap-api:v1.1.0"
+    },
+    "oldap-tools": {
+      "digest": "sha256:11cd0eb3484b5824f3d709208c18e343f9848aa5b7954ea13106c6bcd168ee3c",
+      "platform_manifests": [
+        "lrosenth/oldap-tools@sha256:73004b7911068a3bd90365ee5a91a990f9ef0cb2e721c0bbea5471021802d69a",
+        "lrosenth/oldap-tools@sha256:d523b4cab64e668c28a23cba8b145b57f61bdc1a7725e3f6252ddab9e0195bca"
+      ],
+      "reference": "lrosenth/oldap-tools:v1.1.0"
+    }
+  },
+  "core_latest_unchanged": true,
+  "status": "published"
+}

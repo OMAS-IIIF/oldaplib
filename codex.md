@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Published 1.1.0 (2026-11-11): oldaplib is on PyPI; API/tools multiarch images and harvester 0.1.15 standard/OCR images are available. Git release tags are pushed and acceptance passes. No deployment. The next history-aware transfer deployment needs Jena service 1.1.0. See docs/release-1.1.0.md and its immutable receipt.
+
 - Release 1.1.0: property history and its ontology vocabulary are included. Native project transfer now permits the history graph; tools data dumps include it automatically. Deploy Jena service 1.1.0 for this transfer capability. Stable release publication does not activate new services on home or production.
 
 - Production property-history deployment (2026-11-11): Property history is now active on production as well as home: exact home-tested library/API 1.0.1+jena.rc1.f4621e4dee0b (API digest 9064a52835c3). Added 21 history-vocabulary triples to production oldap:onto under batch/recovery locks with before-graph and additive rollback. Only API/identity restarted; public health and Fasnacht HTTP checks pass. Setup releases/current.json now retains this API image; no frontend changes. Recovery/evidence: ../oldap-setup/docs/property-history-production-20261111.md. Older pending-production entries below are historical.

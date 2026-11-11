@@ -1,3 +1,9 @@
+### Update 2026-11-11 17:23
+- Decisions: Complete authorized 1.1.0 Git/PyPI/Docker release without deploying live services.
+- Implementation: Published and hash-verified oldaplib 1.1.0 on PyPI; API/tools multiarch v1.1.0 and harvester 0.1.15 standard/OCR images are published. Retained Jena service 1.1.0 artifact and immutable release receipts.
+- Open: Later deployment must include Jena service 1.1.0 for history-aware transfer; frontend remains separate.
+- Risks/Assumptions: Focused source and installed-image tests, native transfer/service and packaged Jena integration pass. Existing/latest tags unchanged; no live data writes. See docs/release-1.1.0.md.
+
 ### Update 2026-11-11 17:10
 - Decisions: Release 1.1.0 with business-property history and native history graph transfer; retain old data-only dump compatibility.
 - Implementation: Added history to the native project graph allowlist, native round-trip/scope/authorization probe, transfer documentation, and synchronized library/service versions.
