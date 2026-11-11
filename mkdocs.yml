@@ -13,6 +13,7 @@ nav:
     - Archive YAML Workflow: 'archive_yaml.md'
     - Private Repository Links: 'private_repository_links.md'
     - Resource Transactions: 'resource_transactions.md'
+    - Property History: 'resource_history.md'
     - Archive Domain Policy: 'archive_domain.md'
     - Private Repository Lifecycle: 'private_repository_lifecycle.md'
     - Reviewed Archive Adoption: 'reviewed_archive_adoption.md'

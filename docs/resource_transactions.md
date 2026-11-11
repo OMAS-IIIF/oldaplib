@@ -72,3 +72,10 @@ See [archive domain policy](archive_domain.md) for guards and reference commands
 and [writer recovery](writer_recovery.md) for the mandatory Redis durability,
 cache isolation, worker rollout and recovery conditions. No deployment is enabled
 merely by installing these source files.
+
+## Property history
+
+Business-property updates and class transformations append previous value sets
+in the same transaction. History failure aborts the mutation; caller hooks run
+only after history and archive audit have succeeded. See [property history](resource_history.md)
+for scope, storage, read access and restore semantics.

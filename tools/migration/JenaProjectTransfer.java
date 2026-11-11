@@ -9,7 +9,7 @@ import org.apache.jena.riot.out.NodeFmtLib;
 
 /** Native RDF 1.2 project transfer within the caller's transaction.
  * Raw graphs bypass resource ACLs, so every call rechecks current root permission.
- * Only registered project model/list/data graphs are eligible; administration,
+ * Only registered project model/list/data/history graphs are eligible; administration,
  * receipts and default graphs are never imported or exported by this boundary.
  */
 final class JenaProjectTransfer {
@@ -42,7 +42,7 @@ final class JenaProjectTransfer {
         Set<Node> graphs = new LinkedHashSet<>();
         for (JsonValue value : request.get("parts").getAsArray()) {
             String part = value.getAsString().value();
-            if (!Set.of("data", "shacl", "onto", "lists").contains(part))
+            if (!Set.of("data", "history", "shacl", "onto", "lists").contains(part))
                 throw new JenaSessionEngine.Refusal(400, "Unsupported project graph");
             graphs.add(NodeFactory.createURI(namespace + part));
         }

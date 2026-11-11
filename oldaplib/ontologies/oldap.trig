@@ -963,6 +963,19 @@
     ###  oldap:ontology#OldapThing
     :Thing rdf:type owl:Class .
 
+    # Internal append-only property history; deliberately not a Thing subclass.
+    :PropertyHistory a owl:Class ;
+        rdfs:comment "Previous complete business-property state in a project history graph." .
+    :historyResource a owl:ObjectProperty ; rdfs:domain :PropertyHistory ; rdfs:range :Thing .
+    :historyProperty a owl:ObjectProperty ; rdfs:domain :PropertyHistory ; rdfs:range rdf:Property .
+    :historyUser a owl:ObjectProperty ; rdfs:domain :PropertyHistory ; rdfs:range :User .
+    :historyTimestamp a owl:DatatypeProperty ; rdfs:domain :PropertyHistory ; rdfs:range xsd:dateTimeStamp .
+    :historyValue a rdf:Property ; rdfs:domain :PropertyHistory ;
+        rdfs:comment "One previous RDF value; no values means the property was absent." .
+    :historyDatingSnapshot a owl:DatatypeProperty ; rdfs:domain :PropertyHistory ; rdfs:range xsd:string ;
+        rdfs:comment "Immutable N-Triples for structured Dating values, separate from live node identities." .
+
+
 }
 
 

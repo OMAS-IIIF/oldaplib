@@ -1984,6 +1984,11 @@ class ResourceInstance:
                 raise OldapErrorValue(f'{field} is a read-only inverse field; write {prop.inversePath} on the linked resource.')
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
+        if not self._changeset:
+            if not admin_resources and not self.get_data_permission(DataPermission.DATA_UPDATE):
+                raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
+            return
+
         context = Context(name=self._con.context_name)
         blank = ''
         timestamp = Xsd_dateTimeStamp()
@@ -2130,6 +2135,9 @@ class ResourceInstance:
                 # first we rectify the datatype of all "new" values added to the set
                 #
                 newset = {convert2datatype(x, self.properties[field].datatype) for x in self._values[field]}
+                oldset = self._values[field].old_value
+                if oldset is not None and set(oldset) - newset:
+                    required_permission = max(required_permission, DataPermission.DATA_UPDATE)
                 self._values[field] = self.__observable_set(newset,
                                                             field,
                                                             self.properties[field],
@@ -2183,6 +2191,9 @@ class ResourceInstance:
                 and Xsd_QName('oldap:attachedToRole') in self._changeset):
             from oldaplib.src.helpers.jena_permission_write import require_exclusive_reifiers
             require_exclusive_reifiers(self._con, self._iri.toRdf, ('oldap:attachedToRole',), graph=f'{self._graph}:data')
+        from oldaplib.src.resource_history import capture_properties, record_changes
+        history_before = capture_properties(
+            self, {field: self.properties[field] for field in self._changeset if field in self.properties})
         self._con.transaction_update(sparql)
         self._con.transaction_update(modtime_update)
         jsonobj = self._con.transaction_query(modtime_get)
@@ -2190,6 +2201,9 @@ class ResourceInstance:
         modtime = res[0]['modified']
         if timestamp != modtime:
             raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")
+        record_changes(self, history_before, timestamp)
+        self._values[Xsd_QName('oldap:lastModificationDate')] = ObservableSet({timestamp})
+        self._values[Xsd_QName('oldap:lastModifiedBy')] = ObservableSet({self._con.userIri})
         self.clear_changeset()
 
     @staticmethod
@@ -2559,8 +2573,15 @@ class ResourceInstance:
         if attached_to_role is not None and getattr(self._con, '_resource_permissions_rdf12', False) is True:
             from oldaplib.src.helpers.jena_permission_write import require_exclusive_reifiers
             require_exclusive_reifiers(self._con, self._iri.toRdf, ('oldap:attachedToRole',), graph=f'{self._graph}:data')
+        from oldaplib.src.resource_history import capture_properties, record_changes
+        history_before = capture_properties(self, {**self.properties, **target_property_map})
+        link_history = (capture_properties(link_source, {link_property_iri: link_property})
+                        if link_source is not None else {})
         for sparql_update in sparql_updates:
             self._con.transaction_update(sparql_update)
+        record_changes(self, history_before, timestamp)
+        if link_source is not None:
+            record_changes(link_source, link_history, timestamp)
 
         target_instance._values[Xsd_QName('oldap:lastModificationDate', validate=False)] = ObservableSet({timestamp})
         target_instance._values[Xsd_QName('oldap:lastModifiedBy', validate=False)] = ObservableSet({self._con.userIri})
@@ -2600,6 +2621,7 @@ class ResourceInstance:
         ASK {{
             GRAPH ?g {{
                 ?res ?prop {self._iri.toRdf} .
+                FILTER NOT EXISTS {{ ?res a oldap:PropertyHistory . }}
             }}
         }}
         """
