@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Local Place timestamp repair (2026-11-11): four duplicate audit dates predated Jena/history (verified in the August backup). Removed only obsolete dates after a guarded before-image; local reads/history work again. Resource updates now delete bound RDF date terms and verify singleton audit timestamps before commit. Native probes and 18 tests pass; no remote release/deployment. Exact historical writer remains unknown. Evidence: docs/place-modification-date-incident.md.
+
 - Published 1.1.0 (2026-11-11): oldaplib is on PyPI; API/tools multiarch images and harvester 0.1.15 standard/OCR images are available. Git release tags are pushed and acceptance passes. No deployment. The next history-aware transfer deployment needs Jena service 1.1.0. See docs/release-1.1.0.md and its immutable receipt.
 
 - Release 1.1.0: property history and its ontology vocabulary are included. Native project transfer now permits the history graph; tools data dumps include it automatically. Deploy Jena service 1.1.0 for this transfer capability. Stable release publication does not activate new services on home or production.

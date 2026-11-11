@@ -1,3 +1,9 @@
+### Update 2026-11-11 23:57
+- Decisions: Separate proven legacy data corruption from unproven historical causation. Four Place timestamp pairs already exist in the August source backup; local Jena preserves fractional-second spelling. Do not attribute the duplicate creation to the new history feature or Jena.
+- Implementation: Resource updates delete bound stored timestamps and require exactly one post-update date. Added two regressions and a guarded, narrowly scoped repair tool. Backed up and removed exactly four obsolete May dates locally, retaining June dates and every other direct triple. Restarted local API through its normal writer-gated workflow. Evidence: docs/place-modification-date-incident.md.
+- Open: Exact historical June writer/request remains unknown without logs; remote datasets and release/publication are outside this local repair.
+- Risks/Assumptions: 18 history tests pass. Native lexical-variant and real resource-update probes passed and were rolled back. Global local duplicate scan now empty; all eight data/history GET checks return 200. Private before-image retained. The original historical trigger is not proven; preventive hardening is independently verified.
+
 ### Update 2026-11-11 17:23
 - Decisions: Complete authorized 1.1.0 Git/PyPI/Docker release without deploying live services.
 - Implementation: Published and hash-verified oldaplib 1.1.0 on PyPI; API/tools multiarch v1.1.0 and harvester 0.1.15 standard/OCR images are published. Retained Jena service 1.1.0 artifact and immutable release receipts.

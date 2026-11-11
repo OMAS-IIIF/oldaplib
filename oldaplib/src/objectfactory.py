@@ -2151,11 +2151,13 @@ class ResourceInstance:
         sparql += f'# Updating resource "{self._iri}"\n'
         sparql += " ;\n".join(sparql_list)
 
+        # Delete the bound stored RDF term, not a re-serialized datetime. Equivalent
+        # timestamps may have different timezone/fractional-second spellings.
         modtime_update = context.sparql_context
         modtime_update += f'''
         WITH {self._graph}:data
         DELETE {{
-            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+            ?res oldap:lastModificationDate ?oldModified .
             ?res oldap:lastModifiedBy ?contributor .
         }}
         INSERT {{
@@ -2164,7 +2166,8 @@ class ResourceInstance:
         }}
         WHERE {{
             BIND({self._iri.toRdf} as ?res)
-            ?res oldap:lastModificationDate {self.lastModificationDate.toRdf} .
+            ?res oldap:lastModificationDate ?oldModified .
+            FILTER(?oldModified = {self.lastModificationDate.toRdf})
             ?res oldap:lastModifiedBy ?contributor .
         }}
         '''
@@ -2198,6 +2201,9 @@ class ResourceInstance:
         self._con.transaction_update(modtime_update)
         jsonobj = self._con.transaction_query(modtime_get)
         res = QueryProcessor(context, jsonobj)
+        if len(res) != 1:
+            raise OldapErrorUpdateFailed(
+                f'Update failed! Expected exactly one lastModificationDate, got {len(res)}.')
         modtime = res[0]['modified']
         if timestamp != modtime:
             raise OldapErrorUpdateFailed(f"Update failed! Timestamp does not match (modtime={modtime}, timestamp={timestamp}).")

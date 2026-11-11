@@ -362,3 +362,35 @@ def test_creation_has_no_initial_history(setup):
     new[Q('schema:name')] = ['Edited@en']
     new.update()
     assert len(history.list('hist:new')) == 1
+
+
+def test_update_rejects_multiple_modification_dates_before_commit(setup):
+    """A second stored timestamp must roll back the edit and its history."""
+    con, read, history = setup
+    instance = read('hist:one')
+    before = set(con.dataset.graph(P.data))
+    original_query = con.transaction_query
+
+    def duplicate_result(query, *args, **kwargs):
+        result = original_query(query, *args, **kwargs)
+        if 'SELECT ?modified' in query:
+            result['results']['bindings'] *= 2
+        return result
+
+    con.transaction_query = duplicate_result
+    instance[Q('schema:name')] = ['Rejected@en']
+    with pytest.raises(OldapErrorUpdateFailed, match='exactly one lastModificationDate'):
+        instance.update()
+    assert set(con.dataset.graph(P.data)) == before
+    assert history.list('hist:one') == []
+
+
+def test_modification_update_deletes_the_bound_stored_literal(setup):
+    """Keep timestamp concurrency comparison separate from the DELETE RDF term."""
+    con, read, _ = setup
+    instance = read('hist:one')
+    instance[Q('schema:name')] = ['Changed@en']
+    instance.update()
+    update = next(query for query in con.writes if 'FILTER(?oldModified =' in query)
+    assert '?res oldap:lastModificationDate ?oldModified .' in update.split('INSERT')[0]
+    assert len(list(con.dataset.graph(P.data).objects(P.one, H.lastModificationDate))) == 1
