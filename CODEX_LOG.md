@@ -1,3 +1,15 @@
+### Update 2026-11-15 00:00
+- Decisions: User authorized coordinated patch release 1.2.1: library PyPI first, then dependent API/tools and multiarch images; explicitly no deployment.
+- Implementation: Bumped library version metadata and included the taxonomy/reifier model-reader fix and regression. Added release notes.
+- Open: Build/package validation, Git publication, PyPI verification and dependent image release.
+- Risks/Assumptions: No ontology/data migration or service deployment; preserve existing and latest image tags.
+
+### Update 2026-11-14 23:53
+- Decisions: Keep generated taxonomy node shapes under OldapList ownership when reading mixed domain/reifier models.
+- Implementation: Exclude shapes with sh:node oldap:OldapListNodeShape from DataModel's editable ResourceClass parser. Extended the real RDF round-trip regression to include a generated taxonomy shape with sh:hasValue.
+- Open: This local fix is not committed, published or deployed beyond the development API; continue the authorized local TGB reifier import.
+- Risks/Assumptions: Regression reproduced ValueError on hasValue before the fix; 19 reifier and external-ontology tests pass afterwards. No stored taxonomy triples changed.
+
 ### Update 2026-11-14 19:29
 - Decisions: Completed owner-authorized coordinated 1.2.0 release and home.org rollout; production unchanged.
 - Implementation: All three main branches and v1.2.0 tags pushed; library wheel/sdist published and hash-verified. API/tools locks update only oldaplib. Published accepted AMD64/ARM64 images; installed home API/identity and tools selection. Added/read back nine ontology triples with before-graph and exact rollback.

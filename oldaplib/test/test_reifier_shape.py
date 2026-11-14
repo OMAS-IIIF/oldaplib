@@ -172,7 +172,21 @@ class TestReifierShape(unittest.TestCase):
             model = DataModel(con=self.con, project=self.project, resclasses=[resource],
                               reifier_shapes=[self.shape])
             model.create()
+            # Generated list shapes belong to OldapList, not editable resource classes.
+            self.con.dataset.update(Context(name=self.con.context_name).sparql_context + """INSERT DATA {
+                GRAPH example:shacl {
+                    example:TopicsNodeShape a sh:NodeShape, example:TopicsNode ;
+                        sh:targetClass example:TopicsNode ; sh:node oldap:OldapListNodeShape ;
+                        sh:property [ sh:path rdf:type ] ;
+                        sh:property [ sh:path skos:inScheme ; sh:class oldap:OldapList ;
+                            sh:hasValue example:Topics ] .
+                }
+                GRAPH example:onto {
+                    example:TopicsNode a owl:Class ; rdfs:subClassOf oldap:OldapListNode .
+                }
+            }""")
             loaded = DataModel.read(self.con, self.project, ignore_cache=True)
+            self.assertNotIn(Xsd_QName('example:TopicsNode'), loaded.get_resclasses())
             self.assertEqual(loaded.get_reifier_shapes(), [self.shape.shape_iri])
             actual = loaded[Xsd_QName('example:TestTravel')].properties[Xsd_QName('example:isAt')]
             self.assertEqual({str(x) for x in actual.reifierShapes}, {'example:VisitShape'})

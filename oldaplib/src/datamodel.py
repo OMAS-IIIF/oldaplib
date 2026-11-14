@@ -514,7 +514,16 @@ class DataModel(Model):
         # an "oldap:appliesToProperty" attribute!
         #
         resclasses: list[ResourceClass] = []
-        rescs = {iri: shape for iri, shape in shacl_obj.items() if iri not in reifier_ids and Xsd_QName("sh:NodeShape") in values(shape.get(Xsd_QName("rdf:type"))) and not shape.get(Xsd_QName("oldap:appliesToProperty"))}
+        # OldapList owns generated taxonomy node shapes, including their
+        # skos:inScheme / sh:hasValue constraint. They are not editable domain
+        # ResourceClasses and must not enter the generic property parser.
+        rescs = {
+            iri: shape for iri, shape in shacl_obj.items()
+            if iri not in reifier_ids
+            and Xsd_QName("sh:NodeShape") in values(shape.get(Xsd_QName("rdf:type")))
+            and not shape.get(Xsd_QName("oldap:appliesToProperty"))
+            and Xsd_QName("oldap:OldapListNodeShape") not in values(shape.get(Xsd_QName("sh:node")))
+        }
         #sorted_d = {iri: rescs[iri] for iri in sorted(rescs)}  # TODO: only for debugging....
         #rescs = sorted_d
 
