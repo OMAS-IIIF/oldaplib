@@ -106,6 +106,7 @@ class PropertyClass(Model, Notify):
                  notifier: Callable[[PropClassAttr], None] | None = None,
                  notify_data: PropClassAttr | None = None,
                  _inResourceClass: Xsd_QName | None = None,  # DO NOT USE!! Only for serialization!
+                 _ownerShape: Xsd_QName | None = None,
                  _from_triplestore: bool = False,  # DO NOT USE!! Only for serialization!
                  validate: bool = False,
                  **kwargs):
@@ -126,6 +127,10 @@ class PropertyClass(Model, Notify):
             # Property models retain only identity, never the complete Project.
             self._projectShortName, self._projectIri, namespace_iri = Project._read_identity(
                 self._con, IriOrNCName(project, validate=validate))
+        self._ownerShape = Xsd_QName(_ownerShape) if _ownerShape else None
+        refs = kwargs.pop("reifierShapes", kwargs.pop("reifierShape", None))
+        if refs is not None:
+            kwargs["reifierShape"] = [refs] if isinstance(refs, (str, Iri, Xsd_QName)) else refs
         self._appliesToProperty = Xsd_QName(appliesToProperty, validate=validate) if appliesToProperty else None
         self._inResourceClass = Xsd_QName(_inResourceClass, validate=validate) if _inResourceClass else None
         context = Context(name=self._con.context_name)
@@ -198,6 +203,8 @@ class PropertyClass(Model, Notify):
         #
         for attr in PropClassAttr:
             name = attr.value.fragment
+            if name == 'reifierShape':
+                name = 'reifierShapes'
             if name == 'in':
                 name = 'inSet'
             elif name == 'class':
@@ -228,6 +235,7 @@ class PropertyClass(Model, Notify):
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
             'project': self._projectShortName,
+            '_ownerShape': self._ownerShape,
             'property_class_iri': self.property_class_iri,
             **({'_inResourceClass': self._inResourceClass} if self._inResourceClass else {}),
             **({'appliesToProperty': self._appliesToProperty} if self._appliesToProperty else {}),
@@ -255,6 +263,8 @@ class PropertyClass(Model, Notify):
         # First we check if the logged-in user ("actor") has the permission to create a user for
         # the given project!
         #
+        if self._ownerShape is not None:
+            raise OldapErrorValue('Persist annotation fields through their owning ReifierShape.')
         actor = self._con.userdata
         sysperms = actor.inProject.get(Iri('oldap:SystemProject'))
         if sysperms and AdminPermission.ADMIN_OLDAP in sysperms:
@@ -394,9 +404,10 @@ class PropertyClass(Model, Notify):
                         notifier=self._notifier,
                         data=deepcopy(self._notify_data, memo))
         # Copy internals of Model:
+        instance._ownerShape = deepcopy(self._ownerShape, memo)
         instance._appliesToProperty = deepcopy(self._appliesToProperty, memo)
         instance._attributes = deepcopy(self._attributes, memo)
-        instance._changset = deepcopy(self._changeset, memo)
+        instance._changeset = deepcopy(self._changeset, memo)
         # Copy remaining PropertyClass attributes
         instance._graph = deepcopy(self._graph, memo)
         instance._projectShortName = deepcopy(self._projectShortName, memo)
@@ -405,6 +416,7 @@ class PropertyClass(Model, Notify):
         instance._inResourceClass = deepcopy(self._inResourceClass, memo)
         instance._test_in_use = self._test_in_use
         instance.__from_triplestore = self.__from_triplestore
+        instance.update_notifier(self._notifier, deepcopy(self._notify_data, memo))
         return instance
 
     def __len__(self) -> int:
@@ -588,7 +600,7 @@ class PropertyClass(Model, Notify):
         cache = CacheSingletonRedis()
         if not ignore_cache:
             tmp = cache.get(prop_iri, connection=con)
-            if tmp is not None:
+            if tmp is not None and not tmp.inResourceClass and not getattr(tmp, "_ownerShape", None):
                 tmp.update_notifier()
                 return tmp
         if not isinstance(project, Project):
@@ -677,7 +689,7 @@ class PropertyClass(Model, Notify):
                 continue
             if not prop.in_shacl:
                 continue
-            if not value and not isinstance(value, bool):
+            if not value and not isinstance(value, (bool, Xsd_boolean)):
                 continue
             sparql += f' ;\n{blank:{indent * indent_inc}}{prop.value} {value.toRdf}'
         return sparql
@@ -797,7 +809,11 @@ class PropertyClass(Model, Notify):
         self.clear_changeset()
 
         cache = CacheSingletonRedis()
-        cache.set(self._property_class_iri, self)
+        if self._inResourceClass:
+            from oldaplib.src.helpers.reification import invalidate_model_owners
+            invalidate_model_owners(self._con, self._graph, self._inResourceClass)
+        if not self._inResourceClass and not self._ownerShape:
+            cache.set(self._property_class_iri, self)
 
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
@@ -841,6 +857,17 @@ class PropertyClass(Model, Notify):
         sparql_list = []
         self._validate_inverse_path()
         for prop, change in self._changeset.items():
+            if prop in {PropClassAttr.REIFIER_SHAPES, PropClassAttr.REIFICATION_REQUIRED}:
+                if owlclass_iri is None:
+                    raise OldapErrorValue('Reification constraints require a resource property use.')
+                owner = f'{owlclass_iri}Shape'
+                value = self._attributes.get(prop)
+                new = (f'?use {prop.value} {value.toRdf} .' if value is not None and
+                       (bool(value) or isinstance(value, Xsd_boolean)) else '')
+                sparql_list.append(f'WITH {self._graph}:shacl DELETE {{ ?use {prop.value} ?old }} '
+                    f'INSERT {{ {new} }} WHERE {{ {owner} sh:property ?use . '
+                    f'?use sh:path {self.property_class_iri} . OPTIONAL {{ ?use {prop.value} ?old }} }}')
+                continue
             if prop == PropClassAttr.INVERSE_PATH:
                 # Path changes are model changes, not writes to instance links.
                 # Refuse to reinterpret existing asserted values silently.
@@ -1092,6 +1119,18 @@ class PropertyClass(Model, Notify):
 
         self._con.transaction_start()
 
+        try:
+            from oldaplib.src.helpers.reification import reject_used_policy_change, validate_resource_reifiers
+            reject_used_policy_change(self)
+            if self._inResourceClass:
+                from oldaplib.src.resourceclass import ResourceClass
+                resource = ResourceClass.read(self._con, self._projectShortName, self._inResourceClass, ignore_cache=True)
+                resource[self.property_class_iri] = self
+                validate_resource_reifiers(resource)
+        except Exception:
+            self._con.transaction_abort()
+            raise
+
         sparql += self.update_shacl(owlclass_iri=self._inResourceClass,
                                     timestamp=timestamp)
 
@@ -1122,7 +1161,11 @@ class PropertyClass(Model, Notify):
                 self._attributes[prop].clear_changeset()
         self._changeset = {}
         cache = CacheSingletonRedis()
-        cache.set(self._property_class_iri, self)
+        if self._inResourceClass:
+            from oldaplib.src.helpers.reification import invalidate_model_owners
+            invalidate_model_owners(self._con, self._graph, self._inResourceClass)
+        if not self._inResourceClass and not self._ownerShape:
+            cache.set(self._property_class_iri, self)
 
     def delete_shacl(self, *,
                      indent: int = 0, indent_inc: int = 4) -> str:

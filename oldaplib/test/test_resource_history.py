@@ -79,7 +79,10 @@ def prop(datatype=None, toClass=None, minCount=None, maxCount=None):
 
 
 @pytest.fixture
-def setup():
+def setup(monkeypatch):
+    # RDFLib cannot parse RDF 1.2 triple terms. This suite isolates history;
+    # the separate native model probe exercises the actual reification barrier.
+    monkeypatch.setattr('oldaplib.src.helpers.reification.guard_instance_write', lambda *args: None)
     con = DatasetConnection()
     props = {
         Q('schema:name'): prop(XsdDatatypes.langString),

@@ -1,0 +1,34 @@
+@prefix ex: <https://example.org/reification/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Capability fixture, not an OLDAP project import: audit/Thing metadata is omitted.
+ex:onto {
+    ex:Travel a owl:Class .
+    ex:Building a owl:Class .
+    ex:GeographicLocation a owl:Class .
+    ex:isAt a owl:ObjectProperty ; rdfs:range ex:GeographicLocation .
+    ex:dateTime a owl:DatatypeProperty ; rdfs:range xsd:dateTime .
+}
+ex:shacl {
+    ex:TravelShape a sh:NodeShape ; sh:targetClass ex:Travel ;
+        sh:property [ sh:path ex:isAt ; sh:class ex:GeographicLocation ;
+            sh:reifierShape ex:VisitAnnotationShape ; sh:reificationRequired true ] .
+    ex:BuildingShape a sh:NodeShape ; sh:targetClass ex:Building ;
+        sh:property [ sh:path ex:isAt ; sh:class ex:GeographicLocation ] .
+    ex:VisitAnnotationShape a sh:NodeShape ;
+        sh:property [ sh:path ex:dateTime ; sh:datatype xsd:dateTime ;
+            sh:minCount 1 ; sh:maxCount 1 ] .
+}
+ex:data {
+    ex:A a ex:GeographicLocation .
+    ex:B a ex:GeographicLocation .
+    ex:T a ex:Travel ;
+        ex:isAt ex:A ~ ex:visit1 {| ex:dateTime "2026-11-13T09:00:00+01:00"^^xsd:dateTime |}
+                     ~ ex:visit2 {| ex:dateTime "2026-11-13T18:00:00+01:00"^^xsd:dateTime |} ;
+        ex:isAt ex:B ~ ex:visit3 {| ex:dateTime "2026-11-13T12:00:00+01:00"^^xsd:dateTime |} .
+    ex:House a ex:Building ; ex:isAt ex:A .
+}

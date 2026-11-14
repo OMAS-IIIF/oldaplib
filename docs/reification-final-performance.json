@@ -1,0 +1,51 @@
+{
+  "baselineCommit": "717feecfff087cc0ad1e3df17a21c8361b315dc0",
+  "baselineSource": "HEAD:oldaplib/src/objectfactory.py",
+  "baselineSourceSha256": "fde92cad2b6f387895806f361805e8741d34f2c73d5346b37a7a8dee09bf226e",
+  "currentSourceSha256": "402ead8430e90ca4f1ba58fd61d8df1d2f95ad76990b642606d38cc60b1ca9f3",
+  "supportingSourceSha256": {
+    "oldaplib/src/helpers/property_validation.py": "65ff90ff57dd1eae1405fc4abdb027da7a0c0491277b4e22c2b66fa8f1487d43",
+    "oldaplib/src/assertion_annotation.py": "f600cbb31e87f6cf0dd9e6ca7847f0d5b25506dda3cd1c8d6e5851b868a07ce7",
+    "oldaplib/src/annotation_search.py": "03010bbe363097b5e5e0e681eb43c60160ba9d2ccc1398e4b01e6a0344825f90",
+    "tools/reification/JenaModelProbe.java": "c27ac6068edaaf891eda26f7dc2895885e418696b046bf6179ecf60d8767b7ee"
+  },
+  "scope": "Same isolated Jena dataset; 100 extra resources with 500 annotations; warm interleaved runs",
+  "measurements": {
+    "read": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 3.55397085,
+      "currentMedianMs": 3.5416542,
+      "pairedMeanDeltaMs": -0.07869819333333342,
+      "pairedDelta95PercentIntervalMs": [
+        -0.22505391000000013,
+        0.04870373999999991
+      ],
+      "samplesPerVersion": 300
+    },
+    "read_data": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 2.9192187,
+      "currentMedianMs": 2.9405646,
+      "pairedMeanDeltaMs": -0.07804748666666662,
+      "pairedDelta95PercentIntervalMs": [
+        -0.20524569666666675,
+        0.032843910000000066
+      ],
+      "samplesPerVersion": 300
+    },
+    "search_page": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 3.851525,
+      "currentMedianMs": 3.8478478999999997,
+      "pairedMeanDeltaMs": -0.003004993333333328,
+      "pairedDelta95PercentIntervalMs": [
+        -0.06165220333333328,
+        0.059805983333333416
+      ],
+      "samplesPerVersion": 300
+    }
+  }
+}

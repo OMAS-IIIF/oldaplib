@@ -363,7 +363,7 @@ class TestSearchQueryGeneration(unittest.TestCase):
                     ResourceInstance.search(con=con, project='test', resClass='shared:ArchiveUnit',
                                             filter=[parent, LogicOp.OR, title], countOnly=count_only)
                 sparql = query.call_args[0][0]
-                self.assertIn('OPTIONAL { ?res shared:parentArchiveUnit ?parentArchiveUnit }', sparql)
+                self.assertIn('OPTIONAL { ?res shared:parentArchiveUnit ?parentArchiveUnit . }', sparql)
                 self.assertIn('FILTER((BOUND(?parentArchiveUnit) && (?parentArchiveUnit = <urn:test:parent>))'
                               ' || (BOUND(?title) && (?title = """Match"""^^xsd:string)))', sparql)
         query.return_value = {'head': {'vars': ['res']}, 'results': {'bindings': []}}
@@ -371,7 +371,7 @@ class TestSearchQueryGeneration(unittest.TestCase):
             ResourceInstance.search(con=con, project='test', resClass='shared:ArchiveUnit',
                                     filter=[absent])
         sparql = query.call_args[0][0]
-        self.assertIn('FILTER(NOT EXISTS { ?res shared:parentArchiveUnit ?parentArchiveUnit })', sparql)
+        self.assertIn('FILTER(NOT EXISTS { ?res shared:parentArchiveUnit ?parentArchiveUnit . })', sparql)
         self.assertNotIn('BOUND(?parentArchiveUnit)', sparql)
 
 
@@ -401,7 +401,7 @@ class TestSearchQueryGeneration(unittest.TestCase):
         self.assertIn('SELECT DISTINCT ?res ?resclass ?assetId', sparql)
         self.assertRegex(sparql, r'\{\s*SELECT \?res \(MIN\(\?sort_0_raw\) AS \?sort_0_key\)')
         self.assertIn('(COUNT(?sort_0_raw) = 0 AS ?sort_0_unbound)', sparql)
-        self.assertIn('OPTIONAL { ?res shared:assetId ?sort_0_raw }', sparql)
+        self.assertIn('OPTIONAL { ?res shared:assetId ?sort_0_raw . }', sparql)
         self.assertIn('GROUP BY ?res', sparql)
         self.assertIn('ORDER BY ASC(?sort_0_unbound) ASC(?sort_0_key) ASC(STR(?res))', sparql)
         self.assertIn('LIMIT 32 OFFSET 0', sparql)

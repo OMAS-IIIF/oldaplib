@@ -13,6 +13,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
 from typing import Any
+import sys
 
 from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.helpers.oldaperror import OldapError
@@ -29,6 +30,7 @@ class _Scope:
     connection: IConnection
     rollback_only: bool = False
     archive_policies: dict = field(default_factory=dict)
+    model_cache_keys: set = field(default_factory=set)
 
 
 _scopes: ContextVar[tuple[_Scope, ...]] = ContextVar(
@@ -102,6 +104,35 @@ def _resource_transaction(
         raise
     finally:
         _scopes.reset(token)
+        if scope.model_cache_keys:
+            from oldaplib.src.cachesingleton import CacheSingletonRedis
+            original_error = sys.exception()
+            try:
+                cache = CacheSingletonRedis()
+                for key in scope.model_cache_keys:
+                    cache.delete(key)
+            except Exception as cache_error:
+                if original_error is not None:
+                    original_error.add_note(f'Model cache invalidation also failed: {type(cache_error).__name__}.')
+                else:
+                    raise ResourceTransactionError(
+                        'Transaction completed but model cache invalidation failed; do not blindly retry the write.'
+                    ) from cache_error
+
+
+def invalidate_model_cache_on_completion(connection, key):
+    """Evict a model snapshot now and after its owning transaction finishes.
+
+    Shape writes can join outer resource transactions. The final eviction also
+    removes snapshots repopulated by concurrent readers before commit. Reads in
+    an active transaction must neither consume nor publish model cache entries.
+    """
+    scope = next((scope for scope in _scopes.get() if scope.connection is connection), None)
+    if scope is None:
+        raise ResourceTransactionError('Model invalidation requires an owned resource transaction.')
+    from oldaplib.src.cachesingleton import CacheSingletonRedis
+    scope.model_cache_keys.add(key)
+    CacheSingletonRedis().delete(key)
 
 
 @contextmanager
@@ -164,6 +195,8 @@ def resource_operation(method: Callable) -> Callable:
     @wraps(method)
     def atomic(instance, *args, **kwargs):
         with resource_transaction(instance._con):
+            from oldaplib.src.helpers.reification import guard_instance_write
+            guard_instance_write(instance, method.__name__, args, kwargs)
             policy = (
                 archive_policy_for(instance._con, instance.project)
                 if archive_coordination_enabled()

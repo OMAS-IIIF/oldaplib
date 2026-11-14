@@ -1,0 +1,32 @@
+{
+  "oldaplib": {
+    "wheel": "/var/folders/7n/pqpppr3d5sg1x3fy9f3nb_kh0000gn/T/oldap-final-wheel-5oufvlam/oldaplib-1.1.0-py3-none-any.whl",
+    "sha256": "7cddbddaa3e01e294b40d1c15dbd868c9df2330f6623334841283c97af2be8bf",
+    "entries": 159,
+    "changedPythonFilesParsed": 24,
+    "featureModules": [
+      "oldaplib/src/annotation_search.py",
+      "oldaplib/src/assertion_annotation.py",
+      "oldaplib/src/helpers/reification.py",
+      "oldaplib/src/reifier_shape.py"
+    ]
+  },
+  "oldap-api": {
+    "wheel": "/var/folders/7n/pqpppr3d5sg1x3fy9f3nb_kh0000gn/T/oldap-final-wheel-3bubf08_/oldap_api-1.1.0-py3-none-any.whl",
+    "sha256": "5c4e63c77c419e22b890e883d1d24c8d7fd926cdbf6c3ef50da00794f429bbba",
+    "entries": 179,
+    "changedPythonFilesParsed": 4,
+    "featureModules": [
+      "oldap_api/test/test_reifier_shapes.py"
+    ]
+  },
+  "oldap-tools": {
+    "wheel": "/var/folders/7n/pqpppr3d5sg1x3fy9f3nb_kh0000gn/T/oldap-final-wheel-yxs2mc9_/oldap_tools-1.1.0-py3-none-any.whl",
+    "sha256": "653eb99fa2ca5470e96b03dc3cedbc43c3c81569fa187d9bd34313bbe2826a94",
+    "entries": 38,
+    "changedPythonFilesParsed": 9,
+    "featureModules": [
+      "oldap_tools/ontology_reification.py"
+    ]
+  }
+}

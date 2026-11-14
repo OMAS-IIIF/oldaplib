@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "Native library create/read",
+    "Native library update/read",
+    "Native library delete/read",
+    "Native model policy blocks instance mutation",
+    "Different use of isAt remains writable",
+    "Existing business reifiers block deletion without model links",
+    "Protected permission reifiers do not trigger business barrier"
+  ],
+  "fusekiSha256": "2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee",
+  "sourceSha256": {
+    "oldaplib/src/reifier_shape.py": "1a0b9c61b93ebc79872d1771151bf7b292ef00020ff1290d4528778a96d044a6",
+    "oldaplib/src/helpers/reification.py": "bfacebd5349a625505e954b59b5fa6619caa7a3dfe8b0c5820f939cc81ab63a4",
+    "tools/reification/JenaModelProbe.java": "bfe5fc8148752c77aa7b5a2a9d18b5c93fd465694d380d1d69129241d1301ad0",
+    "tools/reification/probe_model.py": "e81f616d082cb7937794a781509c8fecb75412f71f66b0bed761add27fdaff4e"
+  },
+  "scope": "Isolated TDB2; real library CRUD and generated barrier queries; no HTTP or Redis"
+}

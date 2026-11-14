@@ -1,5 +1,15 @@
 # OLDAPlib Project Context
 
+- Final reification source review (2026-11-14): Two complete passes cover stages 1–4 across library/API/tools; concrete findings corrected and regression/package/performance evidence recorded in docs/reification-final-check.md. Complete owner model snapshots now cache reifier definitions without extra RDF probes; explicit policy validation remains fresh, and shape writes invalidate at outer transaction completion. Specialized annotated hierarchy restores remain unsupported. Local source only; coordinated release versions and installed/live acceptance are separate.
+
+- Reification stage 4 (2026-11-14): Explicit annotationFilter AND groups bind the same reifier and field value; includeAnnotations hydrates complete page groups only when requested. Class/model and parent/target ACL checks apply. Existing search/read queries remain identical; paired native timing resolves no slowdown. See docs/reification-stage4.md. All four stages accepted locally; publication/deployment remains separate.
+
+- Reification stage 3 (2026-11-14): Managed assertion annotation CRUD, parent ACLs, fresh validation, transactional cleanup and history/restore are implemented locally. Explicit annotation reads preserve ordinary read/search queries and payloads; paired native measurements resolve no slowdown. See docs/reification-stage3.md. Annotated transformations and instance-data YAML v1 remain explicitly unsupported. Stage 4 search is also accepted locally; no release/deployment.
+
+- Reification stage 2 (2026-11-14): Stage 2 tools integration is complete locally; 199 tools tests plus seven subtests and 84 focused library/API tests pass, including isolated Jena round trips. See ../oldap-tools/docs/reification-stage2.md. Instance lifecycle is now implemented in stage 3 (see above). Local `codex/reification-properties`; no release/deployment.
+
+- Reification stage 1B (2026-11-14): Named ReifierShape CRUD, DataModel round trips, context-owned property references, dependency-aware cache invalidation and transactional instance barriers are implemented. OLDAP retains its own validation. See docs/reification-stage1b.md. Local branch `codex/reification-properties`; 83 focused library/API tests and seven native Jena checks pass. No publication/deployment. Stage 2 YAML is now accepted locally; stage 3 is also accepted; stage 4 search is also accepted locally.
+
 - Local Place timestamp repair (2026-11-11): four duplicate audit dates predated Jena/history (verified in the August backup). Removed only obsolete dates after a guarded before-image; local reads/history work again. Resource updates now delete bound RDF date terms and verify singleton audit timestamps before commit. Native probes and 18 tests pass; no remote release/deployment. Exact historical writer remains unknown. Evidence: docs/place-modification-date-incident.md.
 
 - Published 1.1.0 (2026-11-11): oldaplib is on PyPI; API/tools multiarch images and harvester 0.1.15 standard/OCR images are available. Git release tags are pushed and acceptance passes. No deployment. The next history-aware transfer deployment needs Jena service 1.1.0. See docs/release-1.1.0.md and its immutable receipt.
@@ -302,6 +312,7 @@ OLDAPlib is the Python library layer for OLDAP, a linked-open-data middleware an
 
 ## Current Roadmap / Next Steps
 
+- Implement project-defined RDF 1.2 annotations in four gated stages: model CRUD (library/API), ontology YAML, instance lifecycle, and search. [Working plan](docs/reification-properties-plan.md); [stage 1A contract/evidence](docs/reification-stage1a.md). Stage 1A complete on 2026-11-13, local branch `codex/reification-properties`: 17 isolated checks pass; native storage/transfer works, external validators do not enforce draft links, flat SPARQL bindings avoid unsupported triple-term decoding. OLDAP retains its own validation by explicit owner decision. Property-use ownership includes the owner shape; named managed shapes use an oldap:ReifierShape marker. Stage 1B is now implemented locally; see docs/reification-stage1b.md. Stage 2 YAML is now accepted locally; stage 4 search is also accepted locally. Production runtime unchanged.
 - Integrate the generic `schema:about` relation into project-specific workflows only when their target selection and presentation are explicitly designed; keep hierarchy profiles, physical location, and permission inheritance deferred.
 - Derive draft archive YAML from Staging folder trees using explicit collapse/review rules, after the manual YAML workflow has been exercised with representative structures.
 - Continue the authentication roadmap with work package 6 (browser integration).

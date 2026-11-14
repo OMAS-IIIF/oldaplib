@@ -807,6 +807,17 @@
     ###############################################################################
     # OLDAP model-documentation extension for RDF 1.2 annotations
     ###############################################################################
+    :AssertionAnnotation a rdfs:Class ;
+        rdfs:label "Managed assertion annotation"@en .
+    :historyReifierSnapshot a owl:DatatypeProperty ;
+        rdfs:range xsd:string ;
+        rdfs:comment "Lossless JSON of previous assertion annotation groups."@en .
+
+    :ReifierShape a rdfs:Class ;
+        rdfs:subClassOf sh:NodeShape ;
+        rdfs:label "Managed reifier shape"@en ;
+        rdfs:comment "Identifies a named OLDAP annotation shape, including unused definitions."@en .
+
     :statementShape a owl:ObjectProperty ;
         rdfs:label "statement shape for RDF 1.2 annotation"@en ;
         rdfs:comment "Links a sh:PropertyShape to a sh:NodeShape describing an annotation reifier linked by rdf:reifies to an RDF 1.2 triple term."@en ;

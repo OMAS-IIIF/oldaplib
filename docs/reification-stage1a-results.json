@@ -1,0 +1,26 @@
+{
+  "jenaRejectsMissingAnnotationField": false,
+  "jenaRejectsMissingReifiers": false,
+  "assertionChecks": 8,
+  "nativeTripleBindingType": "triple",
+  "queryProcessorPreservesTripleBinding": false,
+  "flatBindingsDecoded": 3,
+  "pyshaclRejectsMissingReifiers": false,
+  "pyshaclExplicitTargetRejectsMissingField": true,
+  "pyshaclExplicitTargetAcceptsValidField": true,
+  "pythonAssertionChecks": 5,
+  "oldapValidationChecks": 4,
+  "versions": {
+    "rdflib": "7.6.0",
+    "pyshacl": "0.31.0",
+    "fuseki": "6.2.0"
+  },
+  "fusekiSha256": "2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee",
+  "fixtureSha256": "8db49d7ab0667559467a283efabb02d2931002413080301cc9a4abdc53e1ad5a",
+  "sourceSha256": {
+    "tools/reification/probe_capabilities.py": "9a84038901c48c4171cb0fe5c6b3e28d71fc5f206068efe4deb3f567c9d06c4f",
+    "tools/reification/ReificationCapabilityProbe.java": "6b60a66132f8ac77d88cbd76a1ad855cb7fa8def5e57721fb499211146edad98",
+    "tools/migration/JenaProjectTransfer.java": "94e75399dd2d13b039210fd85dd318d9c3e7a70fa91e9bc95a32fa4a3469269e"
+  },
+  "scope": "Offline synthetic data; current transfer source; no HTTP, Redis, or live instance writes"
+}

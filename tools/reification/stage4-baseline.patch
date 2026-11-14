@@ -1,0 +1,80 @@
+--- a/oldaplib/src/objectfactory.py
++++ b/oldaplib/src/objectfactory.py
+@@ -8,7 +8,7 @@
+ 
+ from enum import Flag, auto, Enum
+ from functools import partial
+-from typing import Type, Any, Self, cast, Dict, Literal, Iterable, Callable, TYPE_CHECKING
++from typing import Type, Any, Self, cast, Dict, Literal, Iterable, Callable
+ 
+ from oldaplib.src.datamodel import DataModel
+ from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
+@@ -45,9 +45,6 @@
+ from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+ from oldaplib.src.xsd.xsd_qname import Xsd_QName
+ from oldaplib.src.xsd.xsd_string import Xsd_string
+-
+-if TYPE_CHECKING:
+-    from oldaplib.src.annotation_search import AnnotationFilter
+ 
+ logger = logging.getLogger(__name__)
+ 
+@@ -2657,8 +2654,7 @@
+                countOnly: bool = False,
+                limit: int = 100,
+                offset: int = 0,
+-               indent: int = 0, indent_inc: int = 4,
+-               annotationFilter: "list[AnnotationFilter] | None" = None, includeAnnotations: bool = False) -> int | list[dict[str, Any]]:
++               indent: int = 0, indent_inc: int = 4) -> int | list[dict[str, Any]]:
+         """
+         Search project resources by class, direct properties, linked-resource
+         properties, full-text filters, and hierarchical-list filters.
+@@ -2669,11 +2665,6 @@
+         items compare one property on a resource reached through one direct
+         root-resource link. Linked-resource permission checks are optional and
+         controlled per filter through `checkLinkedPermissions`.
+-
+-        Annotation options are explicit: annotationFilter is a list of
+-        AnnotationFilter groups (requires resClass and RDF 1.2); includeAnnotations
+-        hydrates complete groups only for the selected page, with additional reads.
+-        Ordinary searches keep their existing query and response contract.
+ 
+         Returns:
+             The number of distinct root resources when `countOnly` is true;
+@@ -2695,17 +2686,6 @@
+         else:
+             project_obj = project
+ 
+-        if annotationFilter is not None and not isinstance(annotationFilter, (list, tuple)):
+-            raise OldapErrorValue('annotationFilter must be a list of AnnotationFilter groups.')
+-        annotation_pattern = ''
+-        if annotationFilter or includeAnnotations:
+-            if not rdf12:
+-                raise OldapErrorValue('Annotation search requires the RDF 1.2 backend.')
+-            if annotationFilter:
+-                from oldaplib.src.annotation_search import compile_annotation_filters
+-                annotation_pattern = compile_annotation_filters(con, project_obj, resClass, annotationFilter)
+-        if not isinstance(includeAnnotations, bool):
+-            raise OldapErrorValue('includeAnnotations must be boolean.')
+         graph = project_obj.projectShortName
+         # Validate backend field/query support before model/list reads or a
+         # search request. GraphDB retains its connector expression unchanged.
+@@ -3121,8 +3101,6 @@
+                 append_ft_patterns(parts, level, 'score_raw')
+             append_access_patterns(parts, level, resclass_var)
+             append_filter_patterns(parts, level)
+-            if annotation_pattern:
+-                parts.append(annotation_pattern)
+             append_hlist_patterns(parts, level)
+             if fulltext_pattern is None:
+                 append_ft_patterns(parts, level, 'score_raw')
+@@ -3222,9 +3200,6 @@
+                         item.setdefault(p[1], [])
+                         if value not in item[p[1]]:
+                             item[p[1]].append(value)
+-            if includeAnnotations and result:
+-                from oldaplib.src.annotation_search import project_annotations
+-                project_annotations(con, project_obj, result)
+             return result
+ 
+     # @staticmethod

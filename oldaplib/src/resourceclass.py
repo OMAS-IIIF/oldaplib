@@ -273,6 +273,9 @@ class ResourceClass(Model, Notify):
             for prop in properties:
                 if not isinstance(prop, PropertyClass):
                    raise TypeError('Property must be of type PropertyClass')
+                # A predicate may have different constraints in another class.
+                # Never transfer ownership of the caller's reusable definition.
+                prop = deepcopy(prop, {id(con): con})
                 prop.inResourceClass = owlclass_iri
                 self._properties[prop.property_class_iri] = prop
 
@@ -379,6 +382,8 @@ class ResourceClass(Model, Notify):
     def _change_setter(self, key: ResClassAttribute | Xsd_QName, value: AttributeParams | PropertyClass) -> None:
         if not isinstance(key, (ResClassAttribute, Xsd_QName)):
             raise ValueError(f'Invalid key type {type(key)} of key {key}')
+        if isinstance(key, Xsd_QName):
+            value = deepcopy(value, {id(self._con): self._con})
         if getattr(value, 'set_notifier', None) is not None:
             value.set_notifier(self.notifier, key)
 
@@ -812,6 +817,14 @@ class ResourceClass(Model, Notify):
 
         sparql += f'{blank:{indent * indent_inc}}}}\n'
         self._con.transaction_start()
+        try:
+            from oldaplib.src.helpers.reification import validate_resource_reifiers, reject_used_policy_change
+            validate_resource_reifiers(self)
+            for prop in self._properties.values():
+                reject_used_policy_change(prop, newly_attached=True)
+        except Exception:
+            self._con.transaction_abort()
+            raise
         if self.read_modtime_shacl(context=context, graph=self._graph) is not None:
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'Object "{self._owlclass_iri}" already exists.')
@@ -834,6 +847,8 @@ class ResourceClass(Model, Notify):
             raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
         self.clear_changeset()
         cache = CacheSingletonRedis()
+        from oldaplib.src.helpers.reification import invalidate_model_owners
+        invalidate_model_owners(self._con, self._graph, self._owlclass_iri)
         cache.set(self._owlclass_iri, self)
 
     def write_as_trig(self, filename: str, indent: int = 0, indent_inc: int = 4) -> None:
@@ -1192,9 +1207,20 @@ class ResourceClass(Model, Notify):
         sparql1 = context.sparql_context
         sparql1 += self.__update_shacl(timestamp=timestamp)
 
-        sparql2 = context.sparql_context
-        sparql2 += self.__update_owl(timestamp=timestamp)
+        # Annotation policy changes affect SHACL only; do not send a
+        # prefix-only update when there are no corresponding OWL changes.
+        owl_update = self.__update_owl(timestamp=timestamp)
+        sparql2 = context.sparql_context + owl_update if owl_update.strip() else None
         self._con.transaction_start()
+        try:
+            from oldaplib.src.helpers.reification import validate_resource_reifiers, reject_used_policy_change
+            validate_resource_reifiers(self)
+            for prop in self._properties.values():
+                change = self._changeset.get(prop.property_class_iri)
+                reject_used_policy_change(prop, newly_attached=bool(change and change.action in {Action.CREATE, Action.REPLACE}))
+        except Exception:
+            self._con.transaction_abort()
+            raise
 
         if self._test_in_use:
             sparql0 = self.in_use
@@ -1203,7 +1229,8 @@ class ResourceClass(Model, Notify):
                 self._con.transaction_abort()
                 raise OldapErrorInUse(f'Cannot update: resource "{self._owlclass_iri}" is in use')
         self.safe_update(sparql1)
-        self.safe_update(sparql2)
+        if sparql2 is not None:
+            self.safe_update(sparql2)
 
         try:
             modtime_shacl = self.read_modtime_shacl(context=context, graph=self._graph)
@@ -1220,6 +1247,8 @@ class ResourceClass(Model, Notify):
         self._contributor = self._con.userIri
         self._test_in_use = False
         cache = CacheSingletonRedis()
+        from oldaplib.src.helpers.reification import invalidate_model_owners
+        invalidate_model_owners(self._con, self._graph, self._owlclass_iri)
         cache.set(self._owlclass_iri, self)
 
 

@@ -294,7 +294,8 @@ class ConstructProcessor:
             }}
         }}
         """)
-        graph = con.query(sparql, format=SparqlResultFormat.JSONLD)
+        graph = (con.transaction_query(sparql, result_format=SparqlResultFormat.JSONLD)
+                 if con.in_transaction() else con.query(sparql, format=SparqlResultFormat.JSONLD))
         obj = ConstructProcessor.process(context, graph)
         return obj
 

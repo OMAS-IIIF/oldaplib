@@ -1,0 +1,49 @@
+{
+  "baselineCommit": "717feecfff087cc0ad1e3df17a21c8361b315dc0",
+  "baselineSourceSha256": "fde92cad2b6f387895806f361805e8741d34f2c73d5346b37a7a8dee09bf226e",
+  "currentSourceSha256": "61755530580b7b0bc06b7efa2facbb9a1ee992ca81397f8f32e35db7ff88b973",
+  "supportingSourceSha256": {
+    "oldaplib/src/helpers/property_validation.py": "e90b6b8b35ab71d416b21cf28767f17eff804346ab8f03eb1f15500af0aaea46",
+    "oldaplib/src/assertion_annotation.py": "f71da546f8e4b1d8a269653ac998eedf25feff3fcacaa7ac1e03d29d0944dbfb",
+    "tools/reification/JenaModelProbe.java": "007c63c974031c4e303b12a18b9a0c32a40964269d3829d5f12de974031a5b6a"
+  },
+  "scope": "Same isolated Jena dataset; 100 extra resources with 500 annotations; warm interleaved runs",
+  "measurements": {
+    "read": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 3.6557771,
+      "currentMedianMs": 3.65933125,
+      "pairedMeanDeltaMs": 0.15104804666666666,
+      "pairedDelta95PercentIntervalMs": [
+        -0.031902806666666735,
+        0.41261151333333346
+      ],
+      "samplesPerVersion": 300
+    },
+    "read_data": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 3.12705625,
+      "currentMedianMs": 3.0929104,
+      "pairedMeanDeltaMs": 0.014576089999999983,
+      "pairedDelta95PercentIntervalMs": [
+        -0.0550705733333334,
+        0.09483762000000007
+      ],
+      "samplesPerVersion": 300
+    },
+    "search_page": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 4.1072146,
+      "currentMedianMs": 4.09424585,
+      "pairedMeanDeltaMs": 0.025128456666666653,
+      "pairedDelta95PercentIntervalMs": [
+        -0.05132889333333341,
+        0.1090130466666668
+      ],
+      "samplesPerVersion": 300
+    }
+  }
+}

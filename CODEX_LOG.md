@@ -1,3 +1,63 @@
+### Update 2026-11-14 18:53
+- Decisions: Completed explicitly requested final-check across all four stages and three repositories; two full review passes. Ready for coordinated local source merge; no merge performed.
+- Implementation: Corrected model-cache overhead/transaction completion eviction, graph and nested-node ownership, model attachment guards, copy notifications, legacy dialect, scalar comparisons, permission revocation, protected fields, API errors/hierarchy restore and OpenAPI quoting. Updated tests and current cache/profile documentation; see oldaplib/docs/reification-final-check.md (relative to OLDAP workspace).
+- Open: Coordinated release versions, installed-artifact and live HTTP/Redis/GraphDB/platform acceptance remain separate. No unresolved source findings.
+- Risks/Assumptions: Combined isolated suite 366 passed plus 9 subtests; three opt-in checks passed separately. Three wheels built; full OpenAPI validation passed. No measured warm-path regression, with transport/cold-cache/production limits documented. No commits, push, merge or live changes.
+
+### Update 2026-11-14 18:41
+- Decisions: Explicit final-check workflow covers all four stages across all three repositories. First audit completed before fixes; see oldaplib/docs/reification-final-check.md.
+- Implementation: Starting collective corrections for cache/read overhead, graph/nested ownership, model attachment guards, copy tracking, legacy dialect, scalar comparison and API restore/error boundaries.
+- Open: Regression verification, second complete review, package/schema checks and final readiness conclusion.
+- Risks/Assumptions: No live test targets, service changes, commits, push or merge; existing source-matched local environment used.
+
+### Update 2026-11-14 01:41
+- Decisions: Accept stage 4 locally: explicit conjunctive same-reifier filters, same-value field ranges, asserted-base absence semantics and opt-in complete page projection. Ordinary read/search query paths remain unchanged.
+- Implementation: Added typed/compiler module, reusable fresh policy resolution, strict POST API parsing/OpenAPI and native ACL/graph/paging regressions. Corrected three pre-existing query-text expectations for SPARQL terminators. Acceptance: 11 stage-4 tests, 18 stage-3 tests, 122 focused library/API tests/two subtests. Stored paired source-hashed timing, optimized native algebra and reconstructible stage-3 baseline patch; no measured ordinary-path slowdown.
+- Open: Separate coordinated release/live acceptance; annotation sorting/fulltext/aggregation deferred. No tools search grammar needed.
+- Risks/Assumptions: New annotated searches pay explicit model-resolution cost; page annotation projection adds parent/record reads. Local timings do not establish production capacity. No commits, publication, live model changes or deployment.
+
+### Update 2026-11-14 01:30
+- Decisions: Stage 4 adds explicit conjunctive annotation-filter groups and opt-in page projection. Default reads/searches must retain query text/count and results.
+- Implementation: Starting model-resolved correlated EXISTS compilation and REST parsing; shared reifier field bindings prevent cross-visit matches.
+- Open: Native semantics/ACL/paging regressions, API documentation and comparative performance acceptance.
+- Risks/Assumptions: Local RDF 1.2 backend only; annotation sorting/fulltext/aggregation remain out of scope.
+
+### Update 2026-11-14 01:25
+- Decisions: Accept stage 3 locally; annotation loading is explicit and ordinary reads/searches retain exact query text/count. OLDAP remains the validator; stage 4 search is next.
+- Implementation: Completed managed annotation lifecycle, typed JSON, parent ACL/ownership checks, transactional cleanup, history restore/no-ops and API documentation. Added native cross-graph/shared identity and self-link deletion regressions. Acceptance: 18 native tests, 100 focused library/API tests, 200 tools tests/seven subtests; source-hashed paired performance receipt resolves no slowdown.
+- Open: Stage 4 filters/projection; separate artifact release and live HTTP/Redis acceptance. Instance-data YAML and annotated class transformations explicitly reject unsupported operations.
+- Risks/Assumptions: Pinned isolated Jena 6.2.0; local warm timings are not production capacity evidence. External/blank/shared/orphan reifiers remain read-only. No live changes, commits or publication.
+
+### Update 2026-11-14 01:18
+- Decisions: Stage 3 uses explicit lazy annotation loading; ordinary reads/searches retain their query text/count. Parent ACLs, fresh policy checks and resource transactions govern writes.
+- Implementation: Added identified annotation CRUD, typed RDF-term JSON, history snapshots/restoration and native integration tests. Unsupported annotated transformations and instance-data YAML remain explicitly blocked. Local benchmark compares current sources with pre-stage-3 HEAD on the same Jena dataset.
+- Open: Complete edge-case/API regression acceptance, documentation and final performance receipt before closing stage 3.
+- Risks/Assumptions: Managed exclusive IRI reifiers only; blank/shared/external/orphan records are read-only. Matching local sources required; no live service changes.
+
+### Update 2026-11-14 00:53
+- Decisions: Complete stage 2 locally on codex/reification-properties; preserve omitted definitions and require explicit null plus --remove-unused for shape deletion.
+- Implementation: Preserved Python/OLDAP numeric zeros in model constructors; skip empty OWL updates for SHACL-only ResourceClass edits; added RDF zero-constraint regression. Updated the four-stage working plan. Acceptance: 199 tools tests/seven subtests and 84 focused library/API tests pass; native cases use pinned Jena 6.2.0 in disposable TDB2 with Python sockets blocked.
+- Open: Stage 3 instance annotation CRUD/validation; stage 4 search. Coordinated package release and deployment remain separate.
+- Risks/Assumptions: Existing per-request/per-object commits; fresh plans support recovery, not whole-file atomicity. Final in-use/foreign-reference checks remain server-side. Matching sibling development sources required; no live HTTP or Redis acceptance.
+
+### Update 2026-11-14 00:36
+- Decisions: Complete stage 1B locally; retain OLDAP validation and gate annotated instance writes until stage 3.
+- Implementation: Named ReifierShape CRUD, DataModel round trips, context-owned property references, dependency-aware cache invalidation and transactional instance barriers are implemented. OLDAP retains its own validation. See docs/reification-stage1b.md. Verification: 83 focused tests and seven isolated native Jena checks pass.
+- Open: Stage 2 YAML; stage 3 instance lifecycle; stage 4 search; coordinated release remains separate.
+- Risks/Assumptions: Draft SHACL profile, conservative in-use checks; no whole-model atomic update or live HTTP/Redis acceptance. No publication/deployment.
+
+### Update 2026-11-13 18:30
+- Decisions: Complete stage 1A; retain OLDAP validation per owner instruction. Freeze named-shape identity/discovery, property-use ownership, model field names, inherited conjunction, legacy handling, and pre-stage-3 write-barrier contract.
+- Implementation: Added Travel fixture, native/Python offline capability probes, source-hashed results, and docs/reification-stage1a.md. Updated working checklist and master roadmap. No production runtime or sibling repository changes.
+- Open: Stage 1B ReifierShape/model CRUD, scoped cache isolation, API integration, and barrier coverage. Instance lifecycle/search remain later stages.
+- Risks/Assumptions: 8 native + 5 Python + 4 existing OLDAP checks pass. Jena/pySHACL do not enforce draft links; QueryProcessor omits triple bindings, while flat typed bindings work. Used existing API virtualenv because library venv lacks convertdate; dependencies unchanged. Native transfer tested directly on isolated data, not HTTP/live services.
+
+### Update 2026-11-13 18:07
+- Decisions: Plan RDF 1.2 reification in four acceptance-gated stages, using named shapes and canonical SHACL draft predicates. Keep legacy permission annotations compatible and define use-site ownership before implementation.
+- Implementation: Added docs/reification-properties-plan.md with repository boundaries, proposed YAML/profile, lifecycle/search semantics, checklists, compatibility and release gates. Linked the roadmap in codex.md. Created local codex/reification-properties from main at 717feec; sibling repositories unchanged.
+- Open: Start stage 1A with the Travel fixture, property/cache identity contract, and pinned Jena/validation capability checks. All runtime implementation remains pending.
+- Risks/Assumptions: SHACL predicates are Working Draft vocabulary. Model-only delivery needs an explicit instance-write barrier until lifecycle validation is implemented. Documentation-only change; no runtime tests, publication, or deployment.
+
 ### Update 2026-11-11 23:57
 - Decisions: Separate proven legacy data corruption from unproven historical causation. Four Place timestamp pairs already exist in the August source backup; local Jena preserves fractional-second spelling. Do not attribute the duplicate creation to the new history feature or Jena.
 - Implementation: Resource updates delete bound stored timestamps and require exactly one post-update date. Added two regressions and a guarded, narrowly scoped repair tool. Backed up and removed exactly four obsolete May dates locally, retaining June dates and every other direct triple. Restarted local API through its normal writer-gated workflow. Evidence: docs/place-modification-date-incident.md.

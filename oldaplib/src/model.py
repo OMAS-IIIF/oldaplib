@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum
+from numbers import Number
 from pprint import pprint
 from typing import Set, Dict, Any, Self, Tuple
 
@@ -17,6 +18,8 @@ from oldaplib.src.helpers.numeric import Numeric
 from oldaplib.src.helpers.observable_set import ObservableSet
 from oldaplib.src.helpers.serializer import serializer
 from oldaplib.src.xsd.iri import Iri
+from oldaplib.src.xsd.xsd_integer import Xsd_integer
+from oldaplib.src.xsd.floatingpoint import FloatingPoint
 from oldaplib.src.xsd.xsd_boolean import Xsd_boolean
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_datetime import Xsd_dateTime
@@ -173,7 +176,9 @@ class Model:
         :return: None
         """
         for name, value in arguments.items():
-            if not isinstance(value, (bool, Xsd_boolean)) and not value:
+            # Zero is an explicit constraint (for example maxCount=0), not
+            # an omitted value. Preserve both Python and OLDAP numeric types.
+            if not isinstance(value, (bool, Xsd_boolean, Number, Xsd_integer, FloatingPoint)) and not value:
                 continue
             attr = Attributes.from_name(name)
             try:

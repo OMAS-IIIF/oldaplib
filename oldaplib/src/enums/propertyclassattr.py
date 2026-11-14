@@ -41,6 +41,8 @@ class PropClassAttr(AttributeClass):
     # order: (QName, mandatory, immutable, datatype, target)
     SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri, Target.OWL)  # TODO: Convert to set of subPropertyOf's!!
     TYPE = ('rdf:type', False, False, (ObservableSet, OwlPropertyType), Target.OWL)
+    REIFIER_SHAPES = ('sh:reifierShape', False, False, (ObservableSet, Iri), Target.SHACL)
+    REIFICATION_REQUIRED = ('sh:reificationRequired', False, False, Xsd_boolean, Target.SHACL)
     CLASS = ('sh:class', False, False, Iri, Target.SHACL)
     NODEKIND = ('sh:nodeKind', False, False, Iri, Target.SHACL)
     DATATYPE = ('sh:datatype', False, False, XsdDatatypes, Target.SHACL)
@@ -71,6 +73,8 @@ class PropClassAttr(AttributeClass):
 
     @classmethod
     def from_name(cls, name: str) -> Self:
+        if name == 'reifierShapes':
+            name = 'reifierShape'
         if name == 'inSet':
             name = 'in'
         if name == 'toClass':

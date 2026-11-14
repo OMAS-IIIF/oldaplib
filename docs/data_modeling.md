@@ -2,6 +2,8 @@ from oldaplib.src.hasproperty import HasProperty
 
 # Data Modeling
 
+Named RDF 1.2 annotation definitions: [reification model management](reification-stage1b.md).
+
 OLDAP is based on [Semantic Web](https://en.wikipedia.org/wiki/Semantic_Web)-technologies as described in the
 [Introduction](/#introduction).
 
@@ -265,3 +267,11 @@ NOTE: TEXT IST SEHR GUT ABER NOCH EIN BISSCHEN UNSTRUKTURIERT. MIR FEHLT NOCH ET
 HAT MAN ETWAS DAS GEFÜHL ES IST EINFACH EIN NAMENSAPPENDIX... ZUSÄTZLICH WÄRE EIN SCHLUSSKALITEL/SCHLUSSWORT SICHER NOCH GUT
  -- EVENTUELL KANN MAN DA NOCH WEITERE REFERENZEN AUFFÜHREN ODER NOCHMALS DIE WICHTIGSTEN REFERENZEN ZUSAMMENFASSEN.
 
+
+## Instance assertion annotations
+
+See [stage 3](reification-stage3.md) for explicit annotation CRUD, typed fields,
+parent permissions, history and unchanged ordinary read/search behavior.
+
+Annotation search is now implemented locally: see [stage 4](reification-stage4.md) for
+same-reifier filters, explicit projection and unchanged ordinary search paths.

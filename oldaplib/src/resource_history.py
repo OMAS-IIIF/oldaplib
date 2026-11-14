@@ -5,6 +5,7 @@ later edits to their live IRIs cannot alter historical states. History is never
 used as an application data graph or a fulltext source.
 """
 from dataclasses import dataclass
+import json
 from uuid import uuid4
 
 from rdflib import BNode, Graph, Literal, Namespace, RDF, URIRef, XSD
@@ -25,7 +26,7 @@ SYSTEM_PROPERTIES = frozenset(H[name] for name in (
     'createdBy', 'creationDate', 'lastModifiedBy', 'lastModificationDate',
     'attachedToRole', 'hasDataPermission',
     'historyResource', 'historyProperty', 'historyUser', 'historyTimestamp',
-    'historyValue', 'historyDatingSnapshot',
+    'historyValue', 'historyDatingSnapshot', 'historyReifierSnapshot',
 )) | {RDF.type}
 
 
@@ -69,7 +70,13 @@ def capture_properties(instance, properties) -> dict:
     modified = graph.value(subject, H.lastModificationDate)
     if modified is None or Xsd_dateTimeStamp(str(modified)) != instance.lastModificationDate:
         raise OldapErrorUpdateFailed('Resource changed since it was read; read it again.')
-    return {key: _property_graph(graph, subject, _uri(context, key)) for key in properties}
+    snapshots = {key: _property_graph(graph, subject, _uri(context, key)) for key in properties}
+    state = getattr(instance, '_annotation_write', None)
+    if state is not None:
+        from oldaplib.src.assertion_annotation import snapshot
+        for key, graph in snapshots.items():
+            graph.add((subject, H.historyReifierSnapshot, Literal(snapshot(state.before, _uri(context, key)))))
+    return snapshots
 
 
 def _property_graph(graph, subject, predicate) -> Graph:
@@ -130,7 +137,12 @@ def record_changes(instance, before, timestamp) -> None:
     records = Graph()
     for prop, snapshot in before.items():
         predicate = _uri(context, prop)
-        if _same_state(snapshot, _property_graph(after, subject, predicate)):
+        current = _property_graph(after, subject, predicate)
+        state = getattr(instance, '_annotation_write', None)
+        if state is not None:
+            from oldaplib.src.assertion_annotation import snapshot as annotation_snapshot
+            current.add((subject, H.historyReifierSnapshot, Literal(annotation_snapshot(state.after, predicate))))
+        if _same_state(snapshot, current):
             continue
         entry = URIRef(f'urn:uuid:{uuid4()}')
         records.add((entry, RDF.type, H.PropertyHistory))
@@ -140,6 +152,9 @@ def record_changes(instance, before, timestamp) -> None:
         records.add((entry, H.historyTimestamp, Literal(str(timestamp), datatype=XSD.dateTimeStamp)))
         for value in snapshot.objects(subject, predicate):
             records.add((entry, H.historyValue, value))
+        annotations = snapshot.value(subject, H.historyReifierSnapshot)
+        if annotations is not None:
+            records.add((entry, H.historyReifierSnapshot, annotations))
         nested = Graph()
         for triple in snapshot:
             if triple[0] != subject:
@@ -164,6 +179,7 @@ class PropertyHistoryEntry:
     resource_iri: Iri
     property_iri: Xsd_QName | Iri
     values: tuple[object, ...]
+    annotations: tuple[dict, ...] = ()
 
 
 class ResourceHistory:
@@ -257,6 +273,7 @@ class ResourceHistory:
                 resource_iri=instance.iri,
                 property_iri=prop,
                 values=values,
+                annotations=tuple(json.loads(str(graph.value(entry, H.historyReifierSnapshot) or '[]'))),
             ))
         return sorted(result, key=lambda item: (item.timestamp.value, str(item.iri)), reverse=True)
 
@@ -300,5 +317,9 @@ class ResourceHistory:
                 instance[entry.property_iri] = self.restoration_values(entry)
             elif instance.get(entry.property_iri) is not None:
                 del instance[entry.property_iri]
+            # Load annotation groups only on this explicit history restore path.
+            if entry.annotations or any(getattr(prop, 'reifierShapes', None) for prop in instance.resolved_properties().values()):
+                from oldaplib.src.assertion_annotation import restore_annotations
+                restore_annotations(instance, entry.property_iri, entry.annotations)
             instance.update(before_commit=before_commit)
             return instance

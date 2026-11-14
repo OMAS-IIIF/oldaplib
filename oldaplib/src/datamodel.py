@@ -5,6 +5,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pprint import pprint
+from types import MappingProxyType
 from typing import Dict, List, Optional, Union, Any, Self, TextIO
 
 from oldaplib.src.cachesingleton import CacheSingleton, CacheSingletonRedis
@@ -28,6 +29,7 @@ from oldaplib.src.helpers.semantic_version import SemanticVersion
 from oldaplib.src.iconnection import IConnection
 from oldaplib.src.model import Model
 from oldaplib.src.propertyclass import PropertyClass
+from oldaplib.src.reifier_shape import ReifierShape, values
 from oldaplib.src.resourceclass import ResourceClass, reuse_resource_class_reads
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.enums.owlpropertytype import OwlPropertyType
@@ -40,6 +42,12 @@ class ExternalOntologyChange:
 @dataclass
 class ResourceClassChange:
     old_value: ResourceClass | None
+    action: Action
+
+@dataclass
+class ReifierShapeChange:
+    """Track a named annotation definition independently of resource classes."""
+    old_value: ReifierShape | None
     action: Action
 
 @dataclass
@@ -70,6 +78,7 @@ class DataModel(Model):
                  extontos: list[ExternalOntology] | None = None,
                  propclasses: list[PropertyClass] | None = None,
                  resclasses: list[ResourceClass] | None = None,
+                 reifier_shapes: list[ReifierShape] | None = None,
                  validate: bool = False) -> None:
         timestamp = Xsd_dateTime()
         if creator is None:
@@ -114,10 +123,17 @@ class DataModel(Model):
         self.__extontos_changeset = {}
         self.__propclasses_changeset = {}
         self.__resclasses_changeset = {}
+        self._reifier_shapes = {shape.shape_iri: shape for shape in (reifier_shapes or [])}
+        if len(self._reifier_shapes) != len(reifier_shapes or []):
+            raise OldapErrorValue('Duplicate reifier shape identifier.')
+        self._reifier_changes = {}
+        for iri, shape in self._reifier_shapes.items():
+            shape.set_notifier(self.notifier, iri)
 
     def _as_dict(self):
         return {x.fragment: y for x, y in self._attributes.items()} | super()._as_dict() | {
             'project': self._project.projectShortName,
+            'reifier_shapes': list(self._reifier_shapes.values()),
             **({'extontos': [x for x in self.__extontos.values()]} if self.__extontos else {}),
             **({'propclasses': [x for x in self.__propclasses.values()]} if self.__propclasses else {}),
             **({'resclasses': [x for x in self.__resclasses.values()]} if self.__resclasses else {}),
@@ -168,12 +184,18 @@ class DataModel(Model):
         instance._project = deepcopy(self._project, memo)
         instance.__extontos = deepcopy(self.__extontos, memo)
         instance.__propclasses = deepcopy(self.__propclasses, memo)
+        instance._reifier_shapes = deepcopy(self._reifier_shapes, memo)
+        instance._reifier_changes = deepcopy(self._reifier_changes, memo)
+        for iri, shape in instance._reifier_shapes.items():
+            shape.set_notifier(instance.notifier, iri)
         instance.__resclasses = deepcopy(self.__resclasses, memo)
         instance.__resclasses_changeset = deepcopy(self.__resclasses_changeset, memo)
         instance.__propclasses_changeset = deepcopy(self.__propclasses_changeset, memo)
         return instance
 
-    def __getitem__(self, key: Xsd_QName) -> ExternalOntology | PropertyClass | ResourceClass:
+    def __getitem__(self, key: Xsd_QName) -> ExternalOntology | PropertyClass | ResourceClass | ReifierShape:
+        if key in self._reifier_shapes:
+            return self._reifier_shapes[key]
         if key in self.__extontos:
             return self.__extontos[key]
         if key in self.__resclasses:
@@ -183,8 +205,14 @@ class DataModel(Model):
         else:
             raise KeyError(key)
 
-    def __setitem__(self, key: Xsd_QName, value: ExternalOntology | PropertyClass | ResourceClass) -> None:
-        if isinstance(value, ExternalOntology):
+    def __setitem__(self, key: Xsd_QName, value: ExternalOntology | PropertyClass | ResourceClass | ReifierShape) -> None:
+        if isinstance(value, ReifierShape):
+            if key != value.shape_iri or key in self._reifier_shapes:
+                raise OldapErrorValue('Reifier shape key must match a new shape IRI.')
+            self._reifier_shapes[key] = value
+            value.set_notifier(self.notifier, key)
+            self._reifier_changes[key] = ReifierShapeChange(None, Action.CREATE)
+        elif isinstance(value, ExternalOntology):
             if self.__extontos.get(key) is None:
                 self.__extontos_changeset[key] = ExternalOntologyChange(None, Action.CREATE)
             else:
@@ -208,7 +236,9 @@ class DataModel(Model):
     def __delitem__(self, key: Xsd_QName | str) -> None:
         if not isinstance(key, Xsd_QName):
             key = Xsd_QName(key, validate=True)
-        if key in self.__extontos:
+        if key in self._reifier_shapes:
+            self._reifier_changes[key] = ReifierShapeChange(self._reifier_shapes.pop(key), Action.DELETE)
+        elif key in self.__extontos:
             self.__extontos_changeset[key] = ExternalOntologyChange(self.__extontos[key], Action.DELETE)
             del self.__extontos[key]
         elif key in self.__propclasses:
@@ -237,6 +267,8 @@ class DataModel(Model):
         """
         if not isinstance(key, Xsd_QName):
             key = Xsd_QName(key, validate=True)
+        if key in self._reifier_shapes:
+            return self._reifier_shapes[key]
         if key in self.__extontos:
             return self.__extontos[key]
         elif key in self.__propclasses:
@@ -245,6 +277,15 @@ class DataModel(Model):
             return self.__resclasses[key]
         else:
             return None
+
+    @property
+    def reifier_shapes(self):
+        """Read-only shape mapping; use DataModel item operations for tracked edits."""
+        return MappingProxyType(self._reifier_shapes)
+
+    def get_reifier_shapes(self) -> list[Xsd_QName]:
+        """Return locally owned annotation shape identifiers."""
+        return list(self._reifier_shapes)
 
     def get_extontos(self) -> list[Xsd_QName]:
         """
@@ -287,8 +328,8 @@ class DataModel(Model):
         return self.__context
 
     @property
-    def changeset(self) -> dict[Xsd_QName, ExternalOntologyChange | PropertyClassChange | ResourceClassChange]:
-        return self.__extontos_changeset | self.__resclasses_changeset | self.__propclasses_changeset
+    def changeset(self) -> dict[Xsd_QName, ExternalOntologyChange | PropertyClassChange | ResourceClassChange | ReifierShapeChange]:
+        return self._reifier_changes | self.__extontos_changeset | self.__resclasses_changeset | self.__propclasses_changeset
 
     def clear_changeset(self) -> None:
         """
@@ -303,6 +344,9 @@ class DataModel(Model):
         Returns:
             None
         """
+        for shape in self._reifier_shapes.values():
+            shape.clear_changeset()
+        self._reifier_changes = {}
         for onto, change in self.__extontos_changeset.items():
             if change.action == Action.MODIFY:
                 self.__extontos[onto].clear_changeset()
@@ -317,7 +361,10 @@ class DataModel(Model):
         self._changeset = {}
 
     def notifier(self, what: Xsd_QName) -> None:
-        if what in self.__extontos:
+        if what in self._reifier_shapes:
+            if what not in self._reifier_changes:
+                self._reifier_changes[what] = ReifierShapeChange(None, Action.MODIFY)
+        elif what in self.__extontos:
             self.__extontos_changeset[what] = ExternalOntologyChange(None, Action.MODIFY)
         elif what in self.__propclasses:
             self.__propclasses_changeset[what] = PropertyClassChange(None, Action.MODIFY)
@@ -347,7 +394,8 @@ class DataModel(Model):
         # subsequent resource reads within this request a no-op.
         OldapList.ensure_list_node_context(con, proj)
         cache = CacheSingletonRedis()
-        if not ignore_cache:
+        cacheable = not con.in_transaction()
+        if not ignore_cache and cacheable:
             tmp = cache.get(Xsd_QName(proj.projectShortName, 'shacl'), connection=con)
             if tmp is not None:
                 return tmp
@@ -367,6 +415,28 @@ class DataModel(Model):
         #
         shacl_obj = ConstructProcessor.query_shacl(con=con, project=proj)
         onto_obj = ConstructProcessor.query_onto(con=con, project=proj)
+        reifier_ids = {iri for iri, node in shacl_obj.items()
+                      if Xsd_QName('oldap:ReifierShape') in values(node.get(Xsd_QName('rdf:type')))}
+        def inspect(node):
+            if isinstance(node, dict):
+                if Xsd_QName('oldap:statementShape') in node:
+                    raise OldapErrorValue('Legacy statementShape requires explicit migration.')
+                for ref in values(node.get(Xsd_QName('sh:reifierShape'))):
+                    if not isinstance(ref, (Iri, Xsd_QName)):
+                        raise OldapErrorValue('Reifier shape references must be named IRIs.')
+                    if ref in shacl_obj:
+                        reifier_ids.add(ref)
+                for value in node.values():
+                    inspect(value)
+            elif isinstance(node, list):
+                for value in node:
+                    inspect(value)
+        inspect(shacl_obj)
+        reifiers = [ReifierShape.from_definition(con, proj, iri, shacl_obj[iri]) for iri in reifier_ids]
+        for iri, node in shacl_obj.items():
+            if (iri not in reifier_ids and Xsd_QName('sh:NodeShape') in values(node.get(Xsd_QName('rdf:type')))
+                    and not node.get(Xsd_QName('sh:targetClass')) and not node.get(Xsd_QName('oldap:appliesToProperty'))):
+                raise OldapErrorValue(f'Unclassified targetless NodeShape {iri}; mark managed reifier definitions explicitly.')
 
         if not shacl_obj:
             raise OldapErrorNotFound(f'Datamodel for project {project} not existing!')
@@ -444,7 +514,7 @@ class DataModel(Model):
         # an "oldap:appliesToProperty" attribute!
         #
         resclasses: list[ResourceClass] = []
-        rescs = {iri: shape for iri, shape in shacl_obj.items() if shape.get(Xsd_QName("rdf:type")) == Xsd_QName("sh:NodeShape") and not shape.get(Xsd_QName("oldap:appliesToProperty"))}
+        rescs = {iri: shape for iri, shape in shacl_obj.items() if iri not in reifier_ids and Xsd_QName("sh:NodeShape") in values(shape.get(Xsd_QName("rdf:type"))) and not shape.get(Xsd_QName("oldap:appliesToProperty"))}
         #sorted_d = {iri: rescs[iri] for iri in sorted(rescs)}  # TODO: only for debugging....
         #rescs = sorted_d
 
@@ -566,7 +636,7 @@ class DataModel(Model):
         #    oldaplist = OldapList.read(con=con, project=proj.projectShortName, oldapListId=ol.fragment)
 
 
-        instance = cls(project=proj, con=con, propclasses=assertion_propclasses, resclasses=resclasses, extontos=extontos)
+        instance = cls(project=proj, con=con, propclasses=assertion_propclasses, resclasses=resclasses, extontos=extontos, reifier_shapes=reifiers)
         for qname in instance.get_extontos():
             instance[qname].set_notifier(instance.notifier, qname)
         for qname in instance.get_propclasses():
@@ -574,10 +644,35 @@ class DataModel(Model):
         for qname in instance.get_resclasses():
             instance[qname].set_notifier(instance.notifier, qname)
 
-        cache.set(Xsd_QName(proj.projectShortName, 'shacl'), instance)
+        instance._validate_reifier_references()
+        if cacheable:
+            cache.set(Xsd_QName(proj.projectShortName, 'shacl'), instance)
 
         instance.clear_changeset()
         return instance
+
+    def _validate_reifier_references(self):
+        """Validate new local references against this complete model snapshot."""
+        from oldaplib.src.helpers.reification import validate_resource_reifiers
+        resource_shapes = {Xsd_QName(str(iri) + 'Shape') for iri in self.__resclasses}
+        predicate_kinds = {}
+        for resource in self.__resclasses.values():
+            for prop in resource.properties.values():
+                predicate_kinds.setdefault(prop.property_class_iri, set()).add(prop.datatype is not None)
+        for prop in self.__propclasses.values():
+            predicate_kinds.setdefault(prop.property_class_iri, set()).add(prop.datatype is not None)
+        for iri, shape in self._reifier_shapes.items():
+            if shape._project.projectIri != self._project.projectIri:
+                raise OldapErrorValue('A DataModel can only own reifier shapes from its project.')
+            if iri in resource_shapes:
+                raise OldapErrorValue(f'Reifier shape collides with a resource shape: {iri}.')
+            for prop in shape.properties.values():
+                kinds = predicate_kinds.setdefault(prop.property_class_iri, set())
+                kinds.add(prop.datatype is not None)
+                if len(kinds) > 1:
+                    raise OldapErrorValue(f'Conflicting OWL kinds for annotation predicate {prop.property_class_iri}.')
+        for resource in self.__resclasses.values():
+            validate_resource_reifiers(resource, self._reifier_shapes)
 
     def create(self, indent: int = 0, indent_inc: int = 4) -> None:
         """
@@ -602,6 +697,7 @@ class DataModel(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
+        self._validate_reifier_references()
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -634,6 +730,8 @@ class DataModel(Model):
             sparql += propclass.create_shacl(timestamp=timestamp, indent=2)
             sparql += '\n'
 
+        for shape in self._reifier_shapes.values():
+            sparql += shape.create_shacl(timestamp=timestamp)
         for resiri, resclass in self.__resclasses.items():
             sparql += resclass.create_shacl(timestamp=timestamp, indent=2)
             sparql += '\n'
@@ -649,6 +747,8 @@ class DataModel(Model):
         sparql += '\n'
 
         # no OWL for ExternalOntologies
+        for shape in self._reifier_shapes.values():
+            sparql += shape.create_owl()
 
         for propiri, propclass in self.__propclasses.items():
             sparql += propclass.create_owl(indent=2)
@@ -661,12 +761,20 @@ class DataModel(Model):
 
         try:
             self._con.transaction_start()
+            from oldaplib.src.helpers.reification import reject_used_policy_change
+            for resource in self.__resclasses.values():
+                for prop in resource.properties.values():
+                    reject_used_policy_change(prop, newly_attached=True)
+            for shape in self._reifier_shapes.values():
+                shape.validate_predicate_types()
             self._con.transaction_update(sparql)
             for propiri, propclass in self.__propclasses.items():
                 propclass.set_creation_metadata(timestamp=timestamp)
             for resiri, resclass in self.__resclasses.items():
                 resclass.set_creation_metadata(timestamp=timestamp)
             self._con.transaction_commit()
+            for shape in self._reifier_shapes.values():
+                shape.set_creation_metadata(timestamp)
         except OldapError as err:
             self._con.transaction_abort()
             raise
@@ -674,7 +782,8 @@ class DataModel(Model):
         self.clear_changeset()
 
         cache = CacheSingletonRedis()
-        cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
+        if not self._con.in_transaction():
+            cache.set(Xsd_QName(self._project.projectShortName, 'shacl'), self)
 
     def update(self) -> None:
         """
@@ -696,6 +805,12 @@ class DataModel(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
+        self._validate_reifier_references()
+        for iri, change in self._reifier_changes.items():
+            if change.action == Action.CREATE:
+                self._reifier_shapes[iri].create()
+            elif change.action == Action.MODIFY:
+                self._reifier_shapes[iri].update()
         for qname, change in self.__extontos_changeset.items():
             logger.debug(f'External Ontology {qname} changed: {change.action}')
             match(change.action):
@@ -727,6 +842,9 @@ class DataModel(Model):
                 case Action.DELETE:
                     #self.__resclasses[qname].delete()
                     change.old_value.delete()
+        for iri, change in self._reifier_changes.items():
+            if change.action == Action.DELETE:
+                change.old_value.delete()
         self.clear_changeset()
         cache = CacheSingletonRedis()
         cache.delete(Xsd_QName(self._project.projectShortName, 'shacl'))
@@ -761,6 +879,19 @@ class DataModel(Model):
 
         try:
             self._con.transaction_start()
+            referenced = self._con.transaction_query(context.sparql_context + f'''ASK {{
+                GRAPH {self.__graph}:shacl {{ ?shape a oldap:ReifierShape }}
+                GRAPH ?other {{ ?use sh:reifierShape ?shape }}
+                FILTER(?other != {self.__graph}:shacl)
+            }}''')
+            if referenced['boolean']:
+                raise OldapErrorValue('Cannot delete a model whose reifier shapes are referenced by another graph.')
+            used = self._con.transaction_query(context.sparql_context + f'''ASK {{
+                GRAPH {self.__graph}:shacl {{ ?use sh:reifierShape ?shape ; sh:path ?predicate }}
+                GRAPH ?data {{ ?subject ?predicate ?value }}
+            }}''')
+            if used['boolean']:
+                raise OldapErrorValue('Cannot delete a reification model while its predicates have asserted values.')
             self._con.transaction_update(sparql1)
             self._con.transaction_update(sparql2)
             self._con.transaction_commit()
@@ -792,6 +923,8 @@ class DataModel(Model):
         f.write(f'\n{blank:{indent * indent_inc}}{self.__graph}:shacl {{\n')
         f.write(f'{blank:{(indent + 1) * indent_inc}}{self.__graph}:shapes schema:version {self.__version.toRdf} .\n')
         f.write('\n')
+        for shape in self._reifier_shapes.values():
+            f.write(shape.create_shacl())
         for qname, onto in self.__extontos.items():
             # A TriG graph accepts RDF triples, not a complete SPARQL update.
             f.write(onto.create_shacl_triples(timestamp=timestamp, indent=indent + 1, indent_inc=indent_inc))
@@ -809,6 +942,8 @@ class DataModel(Model):
         f.write(f'{blank:{(indent + 2) * indent_inc}}{self.__graph}:ontology rdf:type owl:Ontology ;\n')
         f.write(f'{blank:{(indent + 2) * indent_inc}}owl:versionInfo {self.__version.toRdf} .\n')
         f.write('\n')
+        for shape in self._reifier_shapes.values():
+            f.write(shape.create_owl())
         for iri, prop in self.__propclasses.items():
             f.write(prop.create_owl(timestamp=timestamp, indent=2))
         for iri, resclass in self.__resclasses.items():

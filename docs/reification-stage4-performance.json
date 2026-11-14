@@ -1,0 +1,51 @@
+{
+  "baselineCommit": null,
+  "baselineSource": "/tmp/oldap-stage4-baseline-objectfactory.py",
+  "baselineSourceSha256": "61755530580b7b0bc06b7efa2facbb9a1ee992ca81397f8f32e35db7ff88b973",
+  "currentSourceSha256": "402ead8430e90ca4f1ba58fd61d8df1d2f95ad76990b642606d38cc60b1ca9f3",
+  "supportingSourceSha256": {
+    "oldaplib/src/helpers/property_validation.py": "e90b6b8b35ab71d416b21cf28767f17eff804346ab8f03eb1f15500af0aaea46",
+    "oldaplib/src/assertion_annotation.py": "88f7f31e681c958aefee77d51c2b6309ac720e8cb715198bf20b46f882a8c691",
+    "oldaplib/src/annotation_search.py": "03010bbe363097b5e5e0e681eb43c60160ba9d2ccc1398e4b01e6a0344825f90",
+    "tools/reification/JenaModelProbe.java": "c27ac6068edaaf891eda26f7dc2895885e418696b046bf6179ecf60d8767b7ee"
+  },
+  "scope": "Same isolated Jena dataset; 100 extra resources with 500 annotations; warm interleaved runs",
+  "measurements": {
+    "read": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 3.2212729500000004,
+      "currentMedianMs": 3.22045625,
+      "pairedMeanDeltaMs": -0.008765300000000028,
+      "pairedDelta95PercentIntervalMs": [
+        -0.06729903999999999,
+        0.05751706999999997
+      ],
+      "samplesPerVersion": 300
+    },
+    "read_data": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 2.75865625,
+      "currentMedianMs": 2.71892085,
+      "pairedMeanDeltaMs": -0.0209049933333334,
+      "pairedDelta95PercentIntervalMs": [
+        -0.05874193666666675,
+        0.02241585333333327
+      ],
+      "samplesPerVersion": 300
+    },
+    "search_page": {
+      "queriesPerCall": 1,
+      "queryTextIdentical": true,
+      "baselineMedianMs": 3.94076255,
+      "currentMedianMs": 3.9318999999999997,
+      "pairedMeanDeltaMs": -0.017063889999999984,
+      "pairedDelta95PercentIntervalMs": [
+        -0.06947916666666662,
+        0.03443431333333334
+      ],
+      "samplesPerVersion": 300
+    }
+  }
+}

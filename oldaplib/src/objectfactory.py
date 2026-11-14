@@ -8,7 +8,7 @@ from pprint import pprint
 
 from enum import Flag, auto, Enum
 from functools import partial
-from typing import Type, Any, Self, cast, Dict, Literal, Iterable, Callable
+from typing import Type, Any, Self, cast, Dict, Literal, Iterable, Callable, TYPE_CHECKING
 
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -45,6 +45,9 @@ from oldaplib.src.xsd.xsd_integer import Xsd_integer
 from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
 from oldaplib.src.xsd.xsd_qname import Xsd_QName
 from oldaplib.src.xsd.xsd_string import Xsd_string
+
+if TYPE_CHECKING:
+    from oldaplib.src.annotation_search import AnnotationFilter
 
 logger = logging.getLogger(__name__)
 
@@ -1105,7 +1108,8 @@ class ResourceInstance:
         return _resolved_resource_properties(cls.properties, cls.superclass)
 
     __slots__ = ['_iri', '_values', '_graph', '_changeset', '_superclass_objs', '_con', '_attached_roles',
-                 'project', 'name', 'factory', 'properties', 'superclass', 'user_default_roles']
+                 'project', 'name', 'factory', 'properties', 'superclass', 'user_default_roles',
+                 '_annotation_edits', '_annotation_write']
 
 
     def __init__(self, *,
@@ -1131,6 +1135,8 @@ class ResourceInstance:
         self._graph = self.project.projectShortName
         self._superclass_objs = {}
         self._changeset: dict[Xsd_QName, AttributeChange] = {}
+        self._annotation_edits = None
+        self._annotation_write = None
         self._attached_roles = ObservableDict(on_change=self.__attachedToRole_cb)
 
         def set_values(propclass: dict[Xsd_QName, PropertyClass]):
@@ -1243,6 +1249,49 @@ class ResourceInstance:
                 partial(ResourceInstance.__del_value, attr=propname)))
         self.clear_changeset()
 
+    def annotations(self):
+        """Explicitly load annotations after a fresh permission-checked read.
+
+        Ordinary reads/searches never call this method. Returned immutable
+        records retain RDF term types, IDs and external/orphan diagnostics.
+        """
+        from oldaplib.src.assertion_annotation import read_annotations
+        current = self.factory.read(self.iri)
+        return read_annotations(current)
+
+    def add_annotation(self, property_iri, value, fields) -> Iri:
+        """Stage a new annotation of an existing/pending base value.
+
+        Args:
+            property_iri: Forward modeled business predicate.
+            value: One base value, typed value or RDF-term JSON object.
+            fields: Mapping of annotation predicates to value arrays.
+        Returns:
+            A fresh reifier IRI. Persistence occurs with create()/update().
+        """
+        from uuid import uuid4
+        identifier = Iri('urn:uuid:' + str(uuid4()))
+        self._stage_annotation('add', str(identifier), property_iri, value, fields)
+        return identifier
+
+    def replace_annotation(self, iri, fields):
+        """Replace all fields of one owned annotation; preserve its assertion."""
+        self._stage_annotation('replace', str(Iri(str(iri), validate=True)), None, None, fields)
+
+    def remove_annotation(self, iri):
+        """Stage deletion of one annotation, retaining the asserted base value."""
+        self._stage_annotation('remove', str(Iri(str(iri), validate=True)), None, None, {})
+
+    def _stage_annotation(self, action, identifier, predicate, value, fields):
+        """Copy staged inputs so caller mutation cannot change a pending write."""
+        from copy import deepcopy
+        from collections.abc import Mapping
+        if not isinstance(fields, Mapping):
+            raise OldapErrorValue('Annotation fields must be a mapping.')
+        if self._annotation_edits is None:
+            self._annotation_edits = []
+        self._annotation_edits.append((action, identifier, predicate, deepcopy(value), deepcopy(dict(fields))))
+
     def __setitem__(self, key: Xsd_QName, value: ValueType | Xsd | None):
         self.__set_value(value, key)
 
@@ -1263,216 +1312,9 @@ class ResourceInstance:
             return None
 
     def validate_value(self, values: ValueType, property: PropertyClass):
-        """
-        Validates a set of values against a given property and its constraints. This function ensures
-        that the input values conform to specific constraints defined by the property. The function
-        verifies conformance to constraints such as language requirements, predefined inclusions,
-        length limits, pattern matching, exclusivity, inclusivity, and relational comparisons
-        (less than or less than or equals).
-
-        :param values: A set of values to be validated.
-        :param property: The property against which the values are being validated, containing
-            the constraints that the values must meet.
-        :return: None if the values successfully pass all validations.
-        :raises OldapErrorInconsistency: Raised when the values do not conform to the defined property
-            constraints due to inconsistencies or invalid data types.
-        :raises OldapErrorValue: Raised when the values explicitly violate specific constraints
-            such as inclusion constraints or invalid language values.
-        """
-        if property.get(PropClassAttr.LANGUAGE_IN):  # testing for LANGUAGE_IN conformance
-            if not isinstance(values, LangString):
-                raise OldapErrorInconsistency(f'Property {property.property_class_iri} with LANGUAGE_IN requires datatype rdf:langstring, got {type(values).__name__}.')
-            for lang, dummy in values.items():
-                if not lang in property[PropClassAttr.LANGUAGE_IN]:
-                    raise OldapErrorValue(f'Property {property.property_class_iri} with LANGUAGE_IN={property[PropClassAttr.LANGUAGE_IN]} has invalid language "{lang.value}"')
-        if property.get(PropClassAttr.UNIQUE_LANG):
-            return  # TODO: LangString does not yet allow multiple entries of the same language...
-        if property.get(PropClassAttr.IN):
-            if property.datatype is None:  # no defined datatype, e.h.sh:IRI
-                tmpinset = {str(x) for x in property[PropClassAttr.IN]}
-                if isinstance(values, (list, tuple, set, ObservableSet)):
-                    for val in values:
-                        if not str(val) in tmpinset:
-                            raise OldapErrorValue(
-                                f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
-                else:
-                    if not str(values) in tmpinset:
-                        raise OldapErrorValue(f'Property {property.property_class_iri} with IN={property[PropClassAttr.IN]} has invalid value "{values}"')
-            else:
-                if isinstance(values, (list, tuple, set, ObservableSet)):
-                    for val in values:
-                        if not val in property[PropClassAttr.IN]:
-                            raise OldapErrorValue(
-                                f'Property {property} with IN={property[PropClassAttr.IN]} has invalid value "{val}"')
-                else:
-                    if not values in property[PropClassAttr.IN]:
-                        raise OldapErrorValue(f'Property {property.property_class_iri} with IN={property[PropClassAttr.IN]} has invalid value "{values}"')
-        if property.get(PropClassAttr.MIN_LENGTH):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    l = 0
-                    try:
-                        l = len(val)
-                    except TypeError:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
-                    if l < property[PropClassAttr.MIN_LENGTH]:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(val)}".')
-            else:
-                l = 0
-                try:
-                    l = len(values)
-                except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has no length.')
-                if l < property[PropClassAttr.MIN_LENGTH]:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MIN_LENGTH]} has length "{len(values)}".')
-        if property.get(PropClassAttr.MAX_LENGTH):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    l = 0
-                    try:
-                        l = len(val)
-                    except TypeError:
-                        raise OldapErrorInconsistency(f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
-                    if l > property[PropClassAttr.MAX_LENGTH]:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(val)}".')
-            else:
-                l = 0
-                try:
-                    l = len(values)
-                except TypeError:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with MAX_LENGTH={property[PropClassAttr.MAX_LENGTH]} has no length.')
-                if l > property[PropClassAttr.MAX_LENGTH]:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_LENGTH={property[PropClassAttr.MAX_LENGTH]} has length "{len(values)}".')
-
-        if property.get(PropClassAttr.PATTERN):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    if not re.fullmatch(str(property[PropClassAttr.PATTERN]), str(val)):
-                        raise OldapErrorInconsistency(f'Property {property} with PATTERN={property[PropClassAttr.PATTERN]} does not conform ({val}).')
-            else:
-                if not re.fullmatch(str(property[PropClassAttr.PATTERN]), str(values)):
-                    raise OldapErrorInconsistency(f'Property {property} with PATTERN={property[PropClassAttr.PATTERN]} does not conform ({values}).')
-
-        if property.get(PropClassAttr.MIN_EXCLUSIVE):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    v: bool | None = None
-                    try:
-                        v = val > property[PropClassAttr.MIN_EXCLUSIVE]
-                    except TypeError:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{val}".')
-                    if not v:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{val}".')
-            else:
-                v: bool | None = None
-                try:
-                    v = values > property[PropClassAttr.MIN_EXCLUSIVE]
-                except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} cannot be compared to "{values}".')
-                if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_EXCLUSIVE]} has invalid "{values}".')
-
-        if property.get(PropClassAttr.MIN_INCLUSIVE):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    v: bool | None = None
-                    try:
-                        v = val >= property[PropClassAttr.MIN_INCLUSIVE]
-                    except TypeError:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{val}".')
-                    if not v:
-                        raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{val}".')
-            else:
-                v: bool | None = None
-                try:
-                    v = values >= property[PropClassAttr.MIN_INCLUSIVE]
-                except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} cannot be compared to "{values}".')
-                if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MIN_EXCLUSIVE={property[PropClassAttr.MIN_INCLUSIVE]} has invalid "{values}".')
-
-        if property.get(PropClassAttr.MAX_EXCLUSIVE):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    v: bool | None = None
-                    try:
-                        v = val < property[PropClassAttr.MAX_EXCLUSIVE]
-                    except TypeError:
-                        raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{val}".')
-                    if not v:
-                        raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{val}".')
-            else:
-                v: bool | None = None
-                try:
-                    v = values < property[PropClassAttr.MAX_EXCLUSIVE]
-                except TypeError:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} cannot be compared to "{values}".')
-                if not v:
-                    raise OldapErrorInconsistency(f'Property {property} with MAX_EXCLUSIVE={property[PropClassAttr.MAX_EXCLUSIVE]} has invalid "{values}".')
-
-
-        if property.get(PropClassAttr.MAX_INCLUSIVE):
-            if isinstance(values, (list, tuple, set, ObservableSet)):
-                for val in values:
-                    v: bool | None = None
-                    try:
-                        v = val <= property[PropClassAttr.MAX_INCLUSIVE]
-                    except TypeError:
-                        raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{val}".')
-                    if not v:
-                        raise OldapErrorInconsistency(f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{val}".')
-            else:
-                v: bool | None = None
-                try:
-                    v = values <= property[PropClassAttr.MAX_INCLUSIVE]
-                except TypeError:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} cannot be compared to "{values}".')
-                if not v:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with MAX_INCLUSIVE={property[PropClassAttr.MAX_INCLUSIVE]} has invalid "{values}".')
-
-        if property.get(PropClassAttr.LESS_THAN):
-            other_values = self._values.get(property[PropClassAttr.LESS_THAN])
-            if not isinstance(other_values, (list, tuple, set, ObservableSet)):
-                other_values = [other_values]
-            if other_values is not None:
-                b: bool | None = None
-                try:
-                    min_other_value = min(other_values)
-                    if not isinstance(values, (list, tuple, set, ObservableSet)):
-                        _values = [values]
-                    else:
-                        _values = values
-                    max_value = max(_values)
-                    b = max_value < min_other_value
-                except TypeError:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} cannot be compared to "{values}".')
-                if not b:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
-        if property.get(PropClassAttr.LESS_THAN_OR_EQUALS):
-            other_values = self._values.get(property[PropClassAttr.LESS_THAN])
-            if not isinstance(other_values, (list, tuple, set, ObservableSet)):
-                other_values = [other_values]
-            if other_values is not None:
-                b: bool | None = None
-                try:
-                    min_other_value = min(other_values)
-                    if not isinstance(values, (list, tuple, set, ObservableSet)):
-                        _values = [values]
-                    else:
-                        _values = values
-                    max_value = max(_values)
-                    b = max_value <= min_other_value
-                except TypeError:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} cannot be compared "{values}".')
-                if not b:
-                    raise OldapErrorInconsistency(
-                        f'Property {property} with LESS_THAN={property[PropClassAttr.LESS_THAN_OR_EQUALS]} has invalid value: "{max_value}" NOT LESS_THAN "{min_other_value}".')
+        """Validate typed property values against the shared OLDAP constraints."""
+        from oldaplib.src.helpers.property_validation import validate_value
+        validate_value(values, property, self._values)
 
     def __validate_property_set(self, values: set[Any], prop_iri: Xsd_QName, prop: PropertyClass) -> None:
         n = len(values)
@@ -1786,6 +1628,8 @@ class ResourceInstance:
             if hasattr(self._values[item], 'clear_changeset'):
                 self._values[item].clear_changeset()
         self._changeset = {}
+        self._annotation_edits = None
+        self._annotation_write = None
 
 
     def get_data_permission(self, permission: DataPermission) -> bool:
@@ -1907,6 +1751,10 @@ class ResourceInstance:
         if result['boolean']:
             raise OldapErrorAlreadyExists(f'Resource with IRI {self._iri} already exists.')
         self._con.transaction_update(sparql)
+        if getattr(self, '_annotation_write', None) is not None:
+            from oldaplib.src.assertion_annotation import apply_write
+            apply_write(self)
+            self.clear_changeset()
 
 
     @classmethod
@@ -1984,9 +1832,12 @@ class ResourceInstance:
                 raise OldapErrorValue(f'{field} is a read-only inverse field; write {prop.inversePath} on the linked resource.')
         admin_resources, message = self.check_for_permissions(AdminPermission.ADMIN_RESOURCES)
 
-        if not self._changeset:
+        annotation_fields = self._annotation_write.changed_properties if self._annotation_write is not None else set()
+        if not self._changeset and not annotation_fields:
             if not admin_resources and not self.get_data_permission(DataPermission.DATA_UPDATE):
                 raise OldapErrorNoPermission(f'No permission to update resource "{self._iri}"')
+            if self._annotation_edits:
+                self.clear_changeset()
             return
 
         context = Context(name=self._con.context_name)
@@ -1994,7 +1845,7 @@ class ResourceInstance:
         timestamp = Xsd_dateTimeStamp()
 
         sparql_list = []
-        required_permission = DataPermission.DATA_EXTEND
+        required_permission = DataPermission.DATA_UPDATE if annotation_fields else DataPermission.DATA_EXTEND
         for field, change in self._changeset.items():
             if field == 'oldap:attachedToRole':
                 required_permission = DataPermission.DATA_PERMISSIONS
@@ -2196,8 +2047,12 @@ class ResourceInstance:
             require_exclusive_reifiers(self._con, self._iri.toRdf, ('oldap:attachedToRole',), graph=f'{self._graph}:data')
         from oldaplib.src.resource_history import capture_properties, record_changes
         history_before = capture_properties(
-            self, {field: self.properties[field] for field in self._changeset if field in self.properties})
-        self._con.transaction_update(sparql)
+            self, {field: self.properties[field] for field in set(self._changeset) | annotation_fields if field in self.properties})
+        if self._changeset:
+            self._con.transaction_update(sparql)
+        if getattr(self, '_annotation_write', None) is not None:
+            from oldaplib.src.assertion_annotation import apply_write
+            apply_write(self)
         self._con.transaction_update(modtime_update)
         jsonobj = self._con.transaction_query(modtime_get)
         res = QueryProcessor(context, jsonobj)
@@ -2650,6 +2505,11 @@ class ResourceInstance:
 
         if not admin_resources and not self.get_data_permission(DataPermission.DATA_DELETE):
             raise OldapErrorNoPermission(f'No permission to delete resource "{self._iri}"')
+        # Remove verified owned records within this transaction before checking
+        # inbound links, so an annotation linking to its parent cannot block deletion.
+        if getattr(self, '_annotation_write', None) is not None:
+            from oldaplib.src.assertion_annotation import apply_write
+            apply_write(self)
         result = self._con.transaction_query(inuse)
         if result['boolean']:
             raise OldapErrorInUse(f'Resource "{self._iri}" is in use and cannot be deleted.')
@@ -2797,7 +2657,8 @@ class ResourceInstance:
                countOnly: bool = False,
                limit: int = 100,
                offset: int = 0,
-               indent: int = 0, indent_inc: int = 4) -> int | list[dict[str, Any]]:
+               indent: int = 0, indent_inc: int = 4,
+               annotationFilter: "list[AnnotationFilter] | None" = None, includeAnnotations: bool = False) -> int | list[dict[str, Any]]:
         """
         Search project resources by class, direct properties, linked-resource
         properties, full-text filters, and hierarchical-list filters.
@@ -2808,6 +2669,11 @@ class ResourceInstance:
         items compare one property on a resource reached through one direct
         root-resource link. Linked-resource permission checks are optional and
         controlled per filter through `checkLinkedPermissions`.
+
+        Annotation options are explicit: annotationFilter is a list of
+        AnnotationFilter groups (requires resClass and RDF 1.2); includeAnnotations
+        hydrates complete groups only for the selected page, with additional reads.
+        Ordinary searches keep their existing query and response contract.
 
         Returns:
             The number of distinct root resources when `countOnly` is true;
@@ -2829,6 +2695,17 @@ class ResourceInstance:
         else:
             project_obj = project
 
+        if annotationFilter is not None and not isinstance(annotationFilter, (list, tuple)):
+            raise OldapErrorValue('annotationFilter must be a list of AnnotationFilter groups.')
+        annotation_pattern = ''
+        if annotationFilter or includeAnnotations:
+            if not rdf12:
+                raise OldapErrorValue('Annotation search requires the RDF 1.2 backend.')
+            if annotationFilter:
+                from oldaplib.src.annotation_search import compile_annotation_filters
+                annotation_pattern = compile_annotation_filters(con, project_obj, resClass, annotationFilter)
+        if not isinstance(includeAnnotations, bool):
+            raise OldapErrorValue('includeAnnotations must be boolean.')
         graph = project_obj.projectShortName
         # Validate backend field/query support before model/list reads or a
         # search request. GraphDB retains its connector expression unchanged.
@@ -3244,6 +3121,8 @@ class ResourceInstance:
                 append_ft_patterns(parts, level, 'score_raw')
             append_access_patterns(parts, level, resclass_var)
             append_filter_patterns(parts, level)
+            if annotation_pattern:
+                parts.append(annotation_pattern)
             append_hlist_patterns(parts, level)
             if fulltext_pattern is None:
                 append_ft_patterns(parts, level, 'score_raw')
@@ -3343,6 +3222,9 @@ class ResourceInstance:
                         item.setdefault(p[1], [])
                         if value not in item[p[1]]:
                             item[p[1]].append(value)
+            if includeAnnotations and result:
+                from oldaplib.src.annotation_search import project_annotations
+                project_annotations(con, project_obj, result)
             return result
 
     # @staticmethod

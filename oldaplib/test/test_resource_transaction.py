@@ -75,6 +75,11 @@ class MemoryConnection:
 
 class ResourceTransactionTest(unittest.TestCase):
     def setUp(self):
+        # These tests isolate transaction ownership using a boolean-only fake.
+        # Reification query/rollback coverage lives in test_reification_barrier.
+        barrier = patch('oldaplib.src.helpers.reification.guard_instance_write')
+        barrier.start()
+        self.addCleanup(barrier.stop)
         self.con = MemoryConnection()
 
     def test_nested_operations_commit_once(self):

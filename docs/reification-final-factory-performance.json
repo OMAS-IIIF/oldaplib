@@ -1,0 +1,14 @@
+{
+  "scope": "Fresh factory, cached annotated model JSON reconstruction; same current factory and serializers; baseline DataModel.read from HEAD; Redis transport excluded",
+  "baselineCommit": "717feecfff087cc0ad1e3df17a21c8361b315dc0",
+  "baselineDataModelSha256": "89f32aa0be78197b8dbdd813947f0ad62b165986fae4b5403367bb433d2883f3",
+  "currentDataModelSha256": "935615c1a498e9a296fcd2b98e52c2af10e8931be500443108e3328fca574840",
+  "queriesPerFactory": 0,
+  "samplesPerVersion": 300,
+  "baselineMedianMs": 1.67289585,
+  "currentMedianMs": 1.6428625000000001,
+  "pairedDelta95PercentIntervalMs": [
+    -0.3042261133333333,
+    0.19868901333333333
+  ]
+}
