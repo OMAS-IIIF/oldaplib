@@ -16,3 +16,22 @@ constraints. No deployment, database migration or changes to latest tags.
 
 Publication receipts are recorded in release-1.2.1-results.json after verification.
 Private build evidence: ~/Library/Application Support/OLDAP/releases/20261115-1.2.1/.
+
+## Verified publication
+
+All three source commits and annotated v1.2.1 tags are pushed. Package wheel and
+sdist files are published on PyPI and their SHA-256 hashes verified. API/tools
+versioned Docker images are published for linux/amd64 and linux/arm64, including
+build attestations. Registry manifests match the accepted images; latest is unchanged.
+
+Installed library/API regressions: 99 passed per architecture. Packaged Jena
+transaction, persistence, namespace replacement and network-isolation checks pass
+on both architectures. Both tools images parse the TGB ontology, seven taxonomy
+files and route-point reification. The image-built library has 155 runtime/data
+files identical to the PyPI wheel. Source checks: library 34 passed / 25 opt-in
+integration skipped; API 23 passed; tools 186 passed / 1 skipped / 7 subtests.
+The isolated published-library wheel checks pass (19 tests).
+
+No deployment was performed and no active environment was restarted. This release
+does not change deployment selections. Exact source commits, package hashes and
+image digests are in [the publication receipt](release-1.2.1-results.json).

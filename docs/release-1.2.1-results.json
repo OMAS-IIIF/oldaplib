@@ -1,0 +1,90 @@
+{
+  "release": "1.2.1",
+  "verified_at": "2026-11-15T00:14:52.706907+01:00",
+  "source_commits": {
+    "oldaplib": "ea8fed60cf35f502c063a585eaeeded34af4511c",
+    "oldap-api": "f53a60d498ff54051fa8e9faf246ce8f8457b168",
+    "oldap-tools": "b744fc5d732ba8ccd929bffd5882bbc4d83cb760"
+  },
+  "git_tag": "v1.2.1",
+  "pypi": {
+    "oldaplib": [
+      {
+        "file": "oldaplib-1.2.1-py3-none-any.whl",
+        "sha256": "0e606ee3abc771a17bf8c8552cd6b1bddf479f2a9cd5426d6835badb96ffd48b"
+      },
+      {
+        "file": "oldaplib-1.2.1.tar.gz",
+        "sha256": "396e0dd387bae7ee1afe7b6ce75ed427da5c03c87fe31fb33904e4123f7fd794"
+      }
+    ],
+    "oldap-api": [
+      {
+        "file": "oldap_api-1.2.1-py3-none-any.whl",
+        "sha256": "647ffe29b86d482b717361ca049010453e406c8a5ef0529e5d73dcffdc7979d2"
+      },
+      {
+        "file": "oldap_api-1.2.1.tar.gz",
+        "sha256": "1d1703ff337892b4bd19fd6209d7b9036d863f40a656b77ea6c0441d510e01a1"
+      }
+    ],
+    "oldap-tools": [
+      {
+        "file": "oldap_tools-1.2.1-py3-none-any.whl",
+        "sha256": "b35dd981a3e05ca5b4010e42e72dbdc24727f0c4970e5efeb499193f601278ee"
+      },
+      {
+        "file": "oldap_tools-1.2.1.tar.gz",
+        "sha256": "4466cedf682273a107f1d83b48ab696c2c7cf2dc8035cd7a21fc06ffc88febd7"
+      }
+    ]
+  },
+  "images": {
+    "oldap-api": {
+      "digest": "sha256:415a617ec69500b0088a365d65565faeec6cf8e730cfdafd61dc58326aa4c084",
+      "platform_manifests": [
+        "lrosenth/oldap-api@sha256:7e9ef9325611e787168c75d8033ddb646dd3116651f50ccd4a5f79d4b439279f",
+        "lrosenth/oldap-api@sha256:59b536274f9dad6c818f0ef91ce862ab23861990a1f63fab1bf4a5eb7efb1fd3"
+      ],
+      "reference": "lrosenth/oldap-api:v1.2.1"
+    },
+    "oldap-tools": {
+      "digest": "sha256:6c182c5a636831224945f73a5ca64e13bf69ba0b6bb7a53be4e7b331c13e3767",
+      "platform_manifests": [
+        "lrosenth/oldap-tools@sha256:eb1a613b2ac80ced042be95647d061077467bf90686d34638b91a76a8f9d5131",
+        "lrosenth/oldap-tools@sha256:210967771f0ed605d71d7ddcdc4f3779b2e30c82c280c875e185e345faa7d466"
+      ],
+      "reference": "lrosenth/oldap-tools:v1.2.1"
+    }
+  },
+  "registry_platforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "latest_unchanged": true,
+  "protected_tags": {
+    "lrosenth/oldap-api:latest": "sha256:38b66073d531945dc32f3beaa0a5a1ead5ce9fc9adacb2a466feb82f35c0b305",
+    "lrosenth/oldap-tools:latest": null
+  },
+  "validation": {
+    "library_source": {
+      "passed": 34,
+      "skipped_opt_in_integration": 25
+    },
+    "library_installed_wheel_passed": 19,
+    "api_source_passed": 23,
+    "tools_source": {
+      "passed": 186,
+      "skipped": 1,
+      "subtests_passed": 7
+    },
+    "installed_library_api_per_architecture_passed": 99,
+    "tools_tgb_ontology_taxonomies_and_reification": "passed on both architectures",
+    "packaged_jena_transactions_persistence_replacement_and_isolation": "passed on both architectures",
+    "library_runtime_file_parity": {
+      "identicalLibraryRuntimeFiles": 155
+    }
+  },
+  "deployment": "not performed",
+  "private_evidence": "/Users/rosenth/Library/Application Support/OLDAP/releases/20261115-1.2.1"
+}

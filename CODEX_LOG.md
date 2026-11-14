@@ -1,3 +1,9 @@
+### Update 2026-11-15 00:14
+- Decisions: Completed authorized 1.2.1 publication; no deployment or latest-tag changes.
+- Implementation: Pushed source commits/tags; published and hash-verified PyPI packages and API/tools multiarch images. Recorded immutable digests and source IDs in docs/release-1.2.1-results.json.
+- Open: No release work remains; environment deployment is separate and was not performed.
+- Risks/Assumptions: 99 installed regressions per architecture, packaged Jena acceptance and TGB tools checks pass. Source opt-in integration skips are recorded; no active environment was restarted.
+
 ### Update 2026-11-15 00:00
 - Decisions: User authorized coordinated patch release 1.2.1: library PyPI first, then dependent API/tools and multiarch images; explicitly no deployment.
 - Implementation: Bumped library version metadata and included the taxonomy/reifier model-reader fix and regression. Added release notes.
