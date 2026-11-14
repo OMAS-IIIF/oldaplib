@@ -1,3 +1,9 @@
+### Update 2026-11-14 19:14
+- Decisions: Owner authorized merging all three reification branches, coordinated 1.2.0 publication and home.org deployment including additive OLDAP ontology update.
+- Implementation: Fast-forwarded main to reviewed feature commits; bumped package versions to 1.2.0. API/tools require oldaplib >=1.2.0,<2.0.0; exact library pins will be frozen in images.
+- Open: Package publication, consumer locks, installed image acceptance, registry publication and home deployment verification.
+- Risks/Assumptions: Production is outside scope. Preserve unrelated setup changes, existing registry tags and business data; retain ontology/image rollback evidence.
+
 ### Update 2026-11-14 18:53
 - Decisions: Completed explicitly requested final-check across all four stages and three repositories; two full review passes. Ready for coordinated local source merge; no merge performed.
 - Implementation: Corrected model-cache overhead/transaction completion eviction, graph and nested-node ownership, model attachment guards, copy notifications, legacy dialect, scalar comparisons, permission revocation, protected fields, API errors/hierarchy restore and OpenAPI quoting. Updated tests and current cache/profile documentation; see oldaplib/docs/reification-final-check.md (relative to OLDAP workspace).
