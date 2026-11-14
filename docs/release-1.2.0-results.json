@@ -1,0 +1,112 @@
+{
+  "versions": {
+    "oldap-api": "1.2.0",
+    "oldap-tools": "1.2.0",
+    "oldaplib": "1.2.0"
+  },
+  "sourceCommits": {
+    "oldap-api": "79d5415bf961ef61236c0a7480a3a348546d6cc4",
+    "oldap-tools": "24e2412e9e1bd1c913211ada2d06359554d7856c",
+    "oldaplib": "e335f57df9e0cef3251ee7826db14d7fc6f0f36e"
+  },
+  "pypi": [
+    {
+      "file": "oldaplib-1.2.0-py3-none-any.whl",
+      "sha256": "5af5ac5e68e2b59814d1756509be19f5a904bd6c282cd41797cde3859dd7c8b1"
+    },
+    {
+      "file": "oldaplib-1.2.0.tar.gz",
+      "sha256": "255790cd500f3025afbf14c8e16fcf2081dc7ad6119b08d47a28950d1f237f59"
+    }
+  ],
+  "images": {
+    "oldap-api": {
+      "digest": "sha256:771ea74f7b98afa6e658c55af69f07e2bb8ef96f5a803546ab747c6a29a30b20",
+      "platform_manifests": [
+        "lrosenth/oldap-api@sha256:5b427f70206f45721ac4c159e6786693343357b58d14eb02447c9f4d352b08a8",
+        "lrosenth/oldap-api@sha256:c9dfc94b800f81c50c9e4388b1d3b6bdc87191be62b8fc33a2da12ee5071c2dd"
+      ],
+      "reference": "lrosenth/oldap-api:v1.2.0"
+    },
+    "oldap-tools": {
+      "digest": "sha256:198772e0934e15dce5f2c1811a2e7995d9e1599f278ef8834f46fc277b6d9d53",
+      "platform_manifests": [
+        "lrosenth/oldap-tools@sha256:38ec5c89c9945659f5b6533323e6146516250934b3bd52694fc475b8411c2367",
+        "lrosenth/oldap-tools@sha256:0da02a8c2c87b7ebd2376fde10b923b904c7f6d80eb1f6e8461daf77cd7fd5b7"
+      ],
+      "reference": "lrosenth/oldap-tools:v1.2.0"
+    }
+  },
+  "tests": {
+    "installedApiLibraryPerArchitecture": 99,
+    "architectures": [
+      "amd64",
+      "arm64"
+    ],
+    "packagedJenaIntegration": "passed on both architectures",
+    "toolsCliAndTravelYaml": "passed on both architectures",
+    "sourceReview": "366 passed plus 9 subtests; three additional opt-in checks passed"
+  },
+  "libraryWheelParity": "155 runtime/data files identical; builder metadata and excluded HTTP scratch file differ",
+  "home": {
+    "changedContainers": [
+      "oldap-api",
+      "compose-oldap-jena-identity-1"
+    ],
+    "unchangedContainers": [
+      "compose-oldap-jena-1",
+      "oldap-app",
+      "compose-salsah-2-1",
+      "fasnachts-page",
+      "caddy",
+      "redis"
+    ],
+    "http": {
+      "https://api.home.org/health": {
+        "status": 200,
+        "body": {
+          "services": {
+            "jena": "reachable"
+          },
+          "status": "ok",
+          "version": "v1.2.0"
+        }
+      },
+      "https://api.home.org/status": {
+        "status": 200
+      },
+      "https://fasnacht.home.org": {
+        "status": 200
+      },
+      "https://api.home.org/admin/datamodel/shared/reifier-shape/shared:VisitShape": {
+        "status": 401
+      }
+    },
+    "installedLibraryAndApi": "1.2.0 1.2.0"
+  },
+  "ontology": {
+    "graph": "http://oldap.org/base#onto",
+    "addedTriples": 9,
+    "beforeTriples": 66,
+    "afterTriples": 75,
+    "remainingMissingTriples": 0,
+    "backupSha256": "3ff18476e3b2a5eb36a79f0221420f09ccbc96e15957112f6ce86d72aa78242f",
+    "backupDirectory": "/srv/storage/oldap-releases/20261114-reification-1.2.0"
+  },
+  "rollback": {
+    "imageSelection": {
+      "api": "lrosenth/oldap-api@sha256:b85f35e78784106544485011e07769dd0e4c7859b556cd39a63b0df6a272c19e",
+      "tools": "lrosenth/oldap-tools@sha256:11cd0eb3484b5824f3d709208c18e343f9848aa5b7954ea13106c6bcd168ee3c"
+    },
+    "composeBackup": "/opt/oldap/compose/routine-update-20261114T182634810080Z"
+  },
+  "deploymentSelection": "oldap-setup/releases/home-1.2.0.json",
+  "jenaService": "1.1.0 retained",
+  "production": "not changed",
+  "latestTags": "unchanged",
+  "limits": [
+    "No live annotation/business-data write acceptance performed",
+    "No production deployment",
+    "Other direct-library writers are outside this release; do not use incompatible writers on annotated data"
+  ]
+}

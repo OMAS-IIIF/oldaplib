@@ -1,3 +1,9 @@
+### Update 2026-11-14 19:29
+- Decisions: Completed owner-authorized coordinated 1.2.0 release and home.org rollout; production unchanged.
+- Implementation: All three main branches and v1.2.0 tags pushed; library wheel/sdist published and hash-verified. API/tools locks update only oldaplib. Published accepted AMD64/ARM64 images; installed home API/identity and tools selection. Added/read back nine ontology triples with before-graph and exact rollback.
+- Open: No requested release/deployment work remains. Future home deployments must use releases/home-1.2.0.json; other direct-library writers require compatibility before annotated-data use.
+- Risks/Assumptions: 99 installed regressions per architecture plus packaged Jena and tools checks pass. Public home health/status/Fasnacht pass; six sibling container IDs unchanged. No live business-data write acceptance; retain ontology/data on image rollback. See release-1.2.0.md and receipt.
+
 ### Update 2026-11-14 19:14
 - Decisions: Owner authorized merging all three reification branches, coordinated 1.2.0 publication and home.org deployment including additive OLDAP ontology update.
 - Implementation: Fast-forwarded main to reviewed feature commits; bumped package versions to 1.2.0. API/tools require oldaplib >=1.2.0,<2.0.0; exact library pins will be frozen in images.
