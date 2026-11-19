@@ -549,10 +549,19 @@ class ResourceClass(Model, Notify):
         super().clear_changeset()
 
     def notifier(self, what: ResClassAttribute | Xsd_QName):
+        """Propagate nested edits while retaining a pending property's lifecycle action.
+
+        A newly attached property is still CREATE when validation adopts shared
+        predicate metadata. Replacing that action with MODIFY would update a
+        definition that does not yet exist and lose its original change state.
+        """
         if isinstance(what, ResClassAttribute):
             self._changeset[what] = AttributeChange(None, Action.MODIFY)
         elif isinstance(what, Xsd_QName):
-            self._changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
+            # CREATE/REPLACE/DELETE retain their original action and old value;
+            # only edits to otherwise unchanged properties introduce MODIFY.
+            if what not in self._changeset:
+                self._changeset[what] = ResourceClassPropertyChange(None, Action.MODIFY, True)
         self.notify()
 
     def __sc_changed(self, oldval: ObservableDict[Xsd_QName, RC]):

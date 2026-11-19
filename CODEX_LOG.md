@@ -1,3 +1,9 @@
+### Update 2026-11-20 00:06
+- Decisions: Preserve pending property lifecycle actions when nested edits notify ResourceClass; no version bump, release or deployment.
+- Implementation: The notifier no longer replaces CREATE/REPLACE/DELETE or their original values with MODIFY. Added isolated RDF roundtrip regression for attaching schema:name with one or multiple existing foreign parents, unchanged foreign metadata and subsequent local edits. Updated shared-superproperty documentation.
+- Open: Publish/deploy only when separately authorized; existing deployments still use the previous code.
+- Risks/Assumptions: Regression reproduced the production stale-parent error before the fix; now 68 focused tests and two subtests pass with socket connections blocked, seven opt-in tests skipped. Independent review found no concrete issues; diff whitespace check passes.
+
 ### Update 2026-11-19 22:56
 - Decisions: Completed authorized coordinated publication; no deployment or frontend release. Keep Python getter compatibility change explicit.
 - Implementation: Pushed final tags/source; published and SHA-256 verified library/tools packages and accepted API/tools multiarch images. Added docs/release-1.2.2-results.json with exact source/image provenance.

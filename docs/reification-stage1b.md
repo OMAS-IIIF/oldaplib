@@ -156,7 +156,10 @@ API requests retain the existing fresh-read contract, without a client ETag.
 
 For an existing field, omission/null in a full replacement clears the parent.
 New fields without a supplied parent adopt the existing predicate parent, if any;
-a conflicting new declaration fails. Removing a field or deleting a shape leaves
+a conflicting new declaration fails. When attaching a property to an existing
+resource class, adoption retains the pending CREATE action; later local edits
+still use MODIFY. Imported hierarchy declarations are neither duplicated nor
+changed by that attachment. Removing a field or deleting a shape leaves
 predicate metadata intact. Normal property removal preserves it while another
 SHACL use remains. Aggregate creation rejects conflicting parent declarations.
 Affected model/predicate/resource caches, including dependent shapes and classes,

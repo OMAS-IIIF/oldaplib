@@ -314,6 +314,50 @@ class TestReifierShape(unittest.TestCase):
             self.assertTrue({'example:shacl', 'shared:shacl', 'oldap:shacl',
                 'example:dateTime', 'shared:Parent', 'oldap:Child'} <= evicted)
 
+    def test_attach_property_adopts_existing_foreign_parents(self):
+        """Adding a property to a persisted class must not edit its shared hierarchy."""
+        from pathlib import Path
+        from rdflib import RDFS
+        self.con.dataset.parse(Path(__file__).parents[1] / 'ontologies' / 'oldap.trig', format='trig')
+        system = Project(con=self.con, projectIri='http://oldap.org/base#SystemProject',
+            projectShortName='oldap', namespaceIri=NamespaceIRI('http://oldap.org/base#'),
+            projectStart=Xsd_date('2026-01-01'))
+        context = Context(name=self.con.context_name)
+        foreign = self.con.dataset.graph(URIRef('urn:oldap:vocab:schema'))
+        predicate = URIRef(str(context.qname2iri(Xsd_QName('schema:name'))))
+        with patch.object(ResourceClass, '_sysproject', system), patch.object(
+                ResourceClass, '_sharedproject', self.project), patch(
+                'oldaplib.src.propertyclass.CacheSingletonRedis') as cache:
+            cache.return_value.get.return_value = None
+            for index, parents in enumerate((['rdfs:label'], ['rdfs:label', 'dcterms:title'])):
+                with self.subTest(parents=parents):
+                    foreign.remove((predicate, RDFS.subPropertyOf, None))
+                    for parent in parents:
+                        foreign.add((predicate, RDFS.subPropertyOf,
+                                     URIRef(str(context.qname2iri(Xsd_QName(parent))))))
+                    before = set(foreign)
+                    iri = Xsd_QName(f'example:Person{index}')
+                    resource = ResourceClass(con=self.con, project=self.project, owlclass_iri=iri)
+                    resource.create()
+                    resource[Xsd_QName('schema:name')] = PropertyClass(
+                        con=self.con, project=self.project, property_class_iri='schema:name',
+                        datatype=XsdDatatypes.string, minCount=1, maxCount=1)
+                    resource.update()
+                    loaded = ResourceClass.read(self.con, self.project, iri, ignore_cache=True)
+                    field = loaded[Xsd_QName('schema:name')]
+                    self.assertEqual(parent_names(field.subPropertyOf), set(parents))
+                    self.assertEqual(field.minCount, 1)
+                    self.assertEqual(field.maxCount, 1)
+                    self.assertEqual(set(foreign), before)
+                    self.assertFalse(list(self.con.dataset.graph(
+                        URIRef('https://example.org/ns/onto')).triples((predicate, RDFS.subPropertyOf, None))))
+                    # Subsequent local edits must still be persisted normally.
+                    field.maxCount = 2
+                    loaded.update()
+                    fresh = ResourceClass.read(self.con, self.project, iri, ignore_cache=True)
+                    self.assertEqual(fresh[Xsd_QName('schema:name')].maxCount, 2)
+                    self.assertEqual(set(foreign), before)
+
     def test_resource_property_editor_and_annotation_share_parent(self):
         from pathlib import Path
         self.con.dataset.parse(Path(__file__).parents[1] / 'ontologies' / 'oldap.trig', format='trig')
