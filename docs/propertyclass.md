@@ -218,14 +218,16 @@ p1 = PropertyClass(con=self._connection,
 ```
 
 ### subPropertyOf
-Datatype: [Iri](/python_docstrings/xsd/iri)
+Datatype: observable set of [Iri](/python_docstrings/xsd/iri), or `None` when empty.
 
 _subPropertyOf is in the RDFS-namespace, that is [rdfs:subPropertyOf](https://www.w3.org/TR/rdf-schema/#ch_subpropertyof)
 and allows to declare that a certain property is a sub-property of another property (which means that it is
 more specialized). E.g. a *side-node* may be a specialized _subPropertyOf_  a *comment* property. This declaration is
 only defined in RDFS and can be used for queries. E.g. the search for *comment*
-will also return *side-note* properties. The Value of the *subPropertyOf* must be a [Iri](/python_docstrings/xsd/iri) that identifies the
-super-property.
+will also return *side-note* properties. Every parent IRI is retained. Construction and assignment accept a single IRI/QName/string
+for compatibility or an iterable for multiple parents; reads return an observable set.
+Assign `None` or `[]` to clear all parents. In-place set edits are tracked and persist
+with the same owner and stale-write guards as full replacement.
 
 Example:
 ```python

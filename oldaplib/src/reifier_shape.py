@@ -17,6 +17,7 @@ from oldaplib.src.helpers.oldaperror import (OldapErrorAlreadyExists, OldapError
     OldapErrorInUse, OldapErrorNoPermission, OldapErrorNotFound, OldapErrorValue,
     OldapErrorUpdateFailed)
 from oldaplib.src.helpers.serializer import serializer
+from oldaplib.src.helpers.predicate_definition import (read_superproperty, superproperty_update, invalidate_predicate_models)
 from oldaplib.src.model import Model
 from oldaplib.src.project import Project
 from oldaplib.src.propertyclass import PropertyClass
@@ -105,7 +106,7 @@ class ReifierShape(Model, Notify):
             raise OldapErrorValue('System/permission predicates cannot be annotation fields.')
         if prop.datatype is None and prop.toClass is None:
             raise OldapErrorValue('Annotation fields require a datatype or class constraint; nodeKind alone is not supported.')
-        allowed = {'TYPE', 'CLASS', 'NODEKIND', 'DATATYPE', 'NAME', 'DESCRIPTION',
+        allowed = {'SUBPROPERTY_OF', 'TYPE', 'CLASS', 'NODEKIND', 'DATATYPE', 'NAME', 'DESCRIPTION',
                    'LANGUAGE_IN', 'UNIQUE_LANG', 'IN', 'MIN_LENGTH', 'MAX_LENGTH',
                    'PATTERN', 'MIN_EXCLUSIVE', 'MIN_INCLUSIVE', 'MAX_EXCLUSIVE',
                    'MAX_INCLUSIVE', 'MIN_COUNT', 'MAX_COUNT', 'ORDER', 'GROUP', 'EDITOR'}
@@ -127,6 +128,7 @@ class ReifierShape(Model, Notify):
         for prop in getattr(self, '_properties', {}).values():
             prop.clear_changeset()
         self._changeset = {}
+        self._predicate_parents = {key: set(prop.subPropertyOf or []) for key, prop in self._properties.items()}
 
     def _as_dict(self):
         return super()._as_dict() | {'project': self._project.projectShortName,
@@ -140,6 +142,7 @@ class ReifierShape(Model, Notify):
         for name in ('_creator', '_created', '_contributor', '_modified'):
             setattr(copied, name, deepcopy(getattr(self, name), memo))
         copied._changeset = deepcopy(self._changeset, memo)
+        copied._predicate_parents = deepcopy(self._predicate_parents, memo)
         return copied
 
     def create_shacl(self, *, timestamp=None, **_):
@@ -160,6 +163,11 @@ class ReifierShape(Model, Notify):
     def create_owl(self):
         """Declare annotation predicates without inventing OWL class restrictions."""
         return ''.join(prop.create_owl() for prop in self._properties.values())
+
+    def validate_new_superproperties(self):
+        """Check aggregate inserts without replacing an existing predicate parent."""
+        for prop in self._properties.values():
+            prop.validate_new_superproperty()
 
     def validate_predicate_types(self):
         """Prevent annotation writes from giving an existing predicate conflicting OWL kinds."""
@@ -184,7 +192,9 @@ class ReifierShape(Model, Notify):
         self.clear_changeset()
 
     def _structure(self):
-        metadata = {PropClassAttr.NAME, PropClassAttr.DESCRIPTION, PropClassAttr.ORDER,
+        # Hierarchy is shared predicate metadata, not a change to annotation
+        # value constraints; it follows the normal property editor's semantics.
+        metadata = {PropClassAttr.SUBPROPERTY_OF, PropClassAttr.NAME, PropClassAttr.DESCRIPTION, PropClassAttr.ORDER,
                     PropClassAttr.GROUP, PropClassAttr.EDITOR}
         return {key: {attr: value for attr, value in prop._attributes.items() if attr not in metadata}
                 for key, prop in self._properties.items()}
@@ -211,6 +221,7 @@ class ReifierShape(Model, Notify):
                     continue
                 attr = PropClassAttr.from_value(key)
                 attributes[attr.fragment] = value
+            attributes['subPropertyOf'] = read_superproperty(con, item[Xsd_QName('sh:path')])
             fields.append(PropertyClass(con=con, project=project,
                 property_class_iri=item[Xsd_QName('sh:path')], **attributes))
         metadata = {key.fragment: value for key, value in definition.items() if key.prefix == 'dcterms'}
@@ -283,8 +294,25 @@ class ReifierShape(Model, Notify):
                            GRAPH {graph} {{ {iri} (sh:property|sh:in|sh:languageIn|rdf:rest)+ ?source . FILTER(isBlank(?source)) }}
                        }})) }}"""):
                     raise OldapErrorInUse('Reifier shape has shared or externally referenced blank nodes.')
+            parent_updates = []
+            if action != 'delete':
+                for key, prop in self._properties.items():
+                    previous = self._predicate_parents.get(key)
+                    if action == 'create' or key not in self._predicate_parents:
+                        previous = read_superproperty(self._con, key)
+                        if previous and prop.subPropertyOf is None:
+                            prop.subPropertyOf = previous
+                        elif previous and previous != set(prop.subPropertyOf or []):
+                            raise OldapErrorInconsistency('Existing predicate has a different superproperty; reload and edit its definition.')
+                    update = superproperty_update(self._con, self._project.projectShortName,
+                        key, previous, prop.subPropertyOf)
+                    if update:
+                        invalidate_predicate_models(self._con, key, owned_transaction=True)
+                        parent_updates.append(update)
             stamp = Xsd_dateTime.now()
             prefix = self._context.sparql_context
+            for update in parent_updates:
+                self._con.transaction_update(prefix + update)
             if action != 'create':
                 # Only owned blank property/list nodes are removed; referenced
                 # resources and named predicates remain outside this closure.

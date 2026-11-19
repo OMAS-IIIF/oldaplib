@@ -105,7 +105,7 @@ class TestPropertyClass(unittest.TestCase):
                           name=LangString(["Test property@en", "Testprädikat@de"]),
                           description={"A property for testing...@en", "Property für Tests@de"})
         self.assertEqual(p.property_class_iri, Xsd_QName('test:testprop'))
-        self.assertEqual(p.get(PropClassAttr.SUBPROPERTY_OF), Iri('test:comment'))
+        self.assertEqual(p.get(PropClassAttr.SUBPROPERTY_OF), {Iri('test:comment')})
         self.assertEqual(p.get(PropClassAttr.DATATYPE), XsdDatatypes.string)
         self.assertEqual(p.get(PropClassAttr.NAME), LangString(["Test property@en", "Testprädikat@de"]))
         self.assertEqual(p.get(PropClassAttr.DESCRIPTION), LangString("A property for testing...@en", "Property für Tests@de"))
@@ -363,7 +363,7 @@ class TestPropertyClass(unittest.TestCase):
                                 project=self._project,
                                 property_class_iri=Xsd_QName('test:testprop5c'),
                                 ignore_cache=True)
-        self.assertEqual(p5.subPropertyOf, Xsd_QName('schema:comment'))
+        self.assertEqual(p5.subPropertyOf, {Iri('schema:comment')})
 
 
     def test_propertyclass_mod_A(self):
@@ -779,7 +779,7 @@ class TestPropertyClass(unittest.TestCase):
                                 property_class_iri=Xsd_QName('test:testUpdate'),
                                 ignore_cache=True)
         self.assertEqual(p2.property_class_iri, Xsd_QName('test:testUpdate'))
-        self.assertEqual(p2.subPropertyOf, Xsd_QName('test:masterProp2'))
+        self.assertEqual(p2.subPropertyOf, {Iri('test:masterProp2')})
         self.assertEqual(p2[PropClassAttr.DATATYPE], XsdDatatypes.langString)
         self.assertIsNone(p2.get(PropClassAttr.CLASS))
         self.assertEqual(p2[PropClassAttr.NAME], LangString(["Annotations@en", "Annotationen@de"]))  # ✅

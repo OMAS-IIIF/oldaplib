@@ -39,7 +39,7 @@ class PropClassAttr(AttributeClass):
       have attached a language id.
     """
     # order: (QName, mandatory, immutable, datatype, target)
-    SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, Iri, Target.OWL)  # TODO: Convert to set of subPropertyOf's!!
+    SUBPROPERTY_OF = ('rdfs:subPropertyOf', False, False, (ObservableSet, Iri), Target.OWL)
     TYPE = ('rdf:type', False, False, (ObservableSet, OwlPropertyType), Target.OWL)
     REIFIER_SHAPES = ('sh:reifierShape', False, False, (ObservableSet, Iri), Target.SHACL)
     REIFICATION_REQUIRED = ('sh:reificationRequired', False, False, Xsd_boolean, Target.SHACL)

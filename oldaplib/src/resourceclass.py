@@ -822,6 +822,7 @@ class ResourceClass(Model, Notify):
             validate_resource_reifiers(self)
             for prop in self._properties.values():
                 reject_used_policy_change(prop, newly_attached=True)
+                prop.validate_new_superproperty()
         except Exception:
             self._con.transaction_abort()
             raise
@@ -845,6 +846,10 @@ class ResourceClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Creating resource "{self._owlclass_iri}" failed.')
+        from oldaplib.src.helpers.predicate_definition import invalidate_predicate_models
+        for prop in self._properties.values():
+            if prop.subPropertyOf is not None:
+                invalidate_predicate_models(self._con, prop.property_class_iri)
         self.clear_changeset()
         cache = CacheSingletonRedis()
         from oldaplib.src.helpers.reification import invalidate_model_owners
@@ -1209,8 +1214,6 @@ class ResourceClass(Model, Notify):
 
         # Annotation policy changes affect SHACL only; do not send a
         # prefix-only update when there are no corresponding OWL changes.
-        owl_update = self.__update_owl(timestamp=timestamp)
-        sparql2 = context.sparql_context + owl_update if owl_update.strip() else None
         self._con.transaction_start()
         try:
             from oldaplib.src.helpers.reification import validate_resource_reifiers, reject_used_policy_change
@@ -1218,6 +1221,10 @@ class ResourceClass(Model, Notify):
             for prop in self._properties.values():
                 change = self._changeset.get(prop.property_class_iri)
                 reject_used_policy_change(prop, newly_attached=bool(change and change.action in {Action.CREATE, Action.REPLACE}))
+                if change and change.action == Action.CREATE:
+                    prop.validate_new_superproperty()
+            owl_update = self.__update_owl(timestamp=timestamp)
+            sparql2 = context.sparql_context + owl_update if owl_update.strip() else None
         except Exception:
             self._con.transaction_abort()
             raise
@@ -1242,6 +1249,10 @@ class ResourceClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update of {self._owlclass_iri} failed. {modtime_shacl} {timestamp}')
+        from oldaplib.src.helpers.predicate_definition import invalidate_predicate_models
+        for prop in self._properties.values():
+            if PropClassAttr.SUBPROPERTY_OF in prop.changeset:
+                invalidate_predicate_models(self._con, prop.property_class_iri)
         self.clear_changeset()
         self._modified = timestamp
         self._contributor = self._con.userIri

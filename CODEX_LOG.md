@@ -1,3 +1,15 @@
+### Update 2026-11-18 23:31
+- Decisions: Represent superproperties as complete observable IRI sets; retain scalar construction/assignment compatibility and owner-project write guards.
+- Implementation: Normalize parent sets, compare immutable stale-write snapshots, serialize all parents, track in-place changes, support clear/oldapSetAttr and lazily upgrade scalar cached attributes. Added regression using bundled shared:ArchiveUnit and real DCTERMS through inherited DataModel.read; local annotation edits preserve imported parents, foreign hierarchy edits remain forbidden. Updated public docs and set-valued integration expectations.
+- Open: No release/deployment or live database tests. Coordinated API/UI/tools contract updates are required; Python callers now read sets rather than scalar parents.
+- Risks/Assumptions: 90 focused isolated tests pass, seven opt-in tests skipped, diff whitespace check passes. Used sibling API virtualenv because local venv lacks pytest/convertdate. RDFLib emits existing deprecation warnings; service-backed property/resource suites were not run.
+
+### Update 2026-11-18 00:18
+- Decisions: Reuse PropertyClass and a shared predicate-definition helper; retain shape-local constraints and one managed superproperty per predicate.
+- Implementation: Added global parent hydration, guarded owner-project replacements, shared cache eviction and stale-parent protection. Normal property/resource creation and updates use the same rules. Hierarchy-only edits do not alter field constraints or trigger their in-use lock. Field/shape removal retains predicate metadata; ordinary property deletion checks uses across graphs. Aggregate creation rejects conflicting parents. Added isolated roundtrip, shared-use, ordinary-property/resource, rollback, ownership and cache tests plus documentation.
+- Open: No release/deployment; native Jena acceptance was not run (7 opt-in tests skipped). Existing API requests have no client ETag.
+- Risks/Assumptions: 38 focused library regressions pass. Imported multiple parents are rejected explicitly. DataModel updates retain their existing per-object transaction semantics.
+
 ### Update 2026-11-15 00:14
 - Decisions: Completed authorized 1.2.1 publication; no deployment or latest-tag changes.
 - Implementation: Pushed source commits/tags; published and hash-verified PyPI packages and API/tools multiarch images. Recorded immutable digests and source IDs in docs/release-1.2.1-results.json.

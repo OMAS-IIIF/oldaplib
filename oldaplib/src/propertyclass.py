@@ -66,13 +66,20 @@ from oldaplib.src.model import Model
 from oldaplib.src.helpers.attributechange import AttributeChange
 from oldaplib.src.xsd.xsd_string import Xsd_string
 
-PropTypes = Iri | Xsd_QName | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
+PropTypes = ObservableSet | Iri | Xsd_QName | OwlPropertyType | XsdDatatypes | LangString | Xsd_string | Xsd_integer | Xsd_boolean | LanguageIn | XsdSet | Numeric | None
 PropClassAttrContainer = dict[PropClassAttr, PropTypes]
 Attributes = dict[Xsd_QName, PropTypes]
 
 #@strict
 @serializer
 class PropertyClass(Model, Notify):
+    """A predicate's shared OWL definition and local SHACL constraints.
+
+    ``subPropertyOf`` is an observable set of parent IRIs, or None when empty.
+    Constructor and assignment accept a scalar IRI/QName/string for compatibility,
+    or an iterable for multiple parents. Assign None/[] to clear the hierarchy.
+    Parent changes are owned by the predicate project and persisted atomically.
+    """
     _graph: Xsd_NCName
     _projectShortName: Xsd_NCName
     _projectIri: Iri
@@ -149,6 +156,9 @@ class PropertyClass(Model, Notify):
         if toClass and kwargs.get('inSet'):
             kwargs['inSet'] = {Iri(x) for x in kwargs['inSet']}
 
+        if 'subPropertyOf' in kwargs:
+            from oldaplib.src.helpers.predicate_definition import superproperty_set
+            kwargs['subPropertyOf'] = superproperty_set(kwargs['subPropertyOf'])
         self.set_attributes(kwargs, PropClassAttr)
         self._validate_inverse_path()
 
@@ -284,6 +294,23 @@ class PropertyClass(Model, Notify):
             return True, "OK"
 
 
+    def _get_value(self, attr):
+        """Hydrate legacy scalar parent metadata from cached model snapshots lazily."""
+        if attr == PropClassAttr.SUBPROPERTY_OF:
+            parents = self._attributes.get(attr)
+            if parents is not None and not isinstance(parents, ObservableSet):
+                from oldaplib.src.helpers.predicate_definition import superproperty_set
+                self._attributes[attr] = ObservableSet(superproperty_set(parents), datatype=Iri,
+                    notifier=self.notifier, notify_data=attr)
+        return super()._get_value(attr)
+
+    def clear_changeset(self):
+        """Reset the parent-set baseline after reads and successful writes."""
+        super().clear_changeset()
+        parents = self._get_value(PropClassAttr.SUBPROPERTY_OF)
+        if parents is not None:
+            parents.clear_old_value()
+
     def pre_transform(self, attr: AttributeClass, value: Any, validate: bool = False) -> Any:
         """
         INTERNAL USE ONLY! Overrides the method pre_transform from the Model class.
@@ -356,6 +383,11 @@ class PropertyClass(Model, Notify):
         """
         if not isinstance(attr, PropClassAttr):
             raise OldapError(f'Unsupported prop {attr}')
+        if attr == PropClassAttr.SUBPROPERTY_OF:
+            # Normalize before equality checks; scalar input remains supported.
+            from oldaplib.src.helpers.predicate_definition import superproperty_set
+            self._get_value(attr)
+            value = superproperty_set(value) or None
         if attr == PropClassAttr.TYPE:
             if value is None:
                 remaining = self._attributes.get(attr) & {OwlPropertyType.OwlObjectProperty, OwlPropertyType.OwlDataProperty}
@@ -375,7 +407,7 @@ class PropertyClass(Model, Notify):
                 for x in to_add:
                     self._attributes[attr].add(x)
                 return
-        if self._attributes.get(attr) == value:
+        if self._attributes.get(attr) is value or (value is not None and self._attributes.get(attr) == value):
             return
         super()._change_setter(attr, value)
         #
@@ -385,6 +417,9 @@ class PropertyClass(Model, Notify):
 
     def oldapSetAttr(self, attrname: str, attrval: PropTypes):
         propClassAttr = PropClassAttr.from_name(attrname)
+        if propClassAttr == PropClassAttr.SUBPROPERTY_OF:
+            self._change_setter(propClassAttr, attrval)
+            return
         val = propClassAttr.datatype(attrval)
         self._change_setter(propClassAttr, val)
 
@@ -488,7 +523,11 @@ class PropertyClass(Model, Notify):
 
 
     def notifier(self, attr: PropClassAttr) -> None:
-        if attr.datatype in [XsdSet, LanguageIn]:
+        if attr == PropClassAttr.SUBPROPERTY_OF:
+            if attr not in self._changeset:
+                previous = deepcopy(self._attributes[attr].old_value)
+                self._changeset[attr] = AttributeChange(previous, Action.REPLACE)
+        elif attr.datatype in [XsdSet, LanguageIn]:
             # we can *not* modify sets, we have to replace them if an item is added or discarded
             if self._changeset.get(attr) is None:
                 tmp = deepcopy(self._attributes[attr])
@@ -581,10 +620,20 @@ class PropertyClass(Model, Notify):
                         raise OldapErrorNotFound(f'{self._property_class_iri}: Unknown owl:Property type "{obj}"') from e
                     self._attributes[PropClassAttr.TYPE].add(prop_type)
                 case _:
+                    if attr == 'rdfs:subPropertyOf':
+                        continue
                     if attr in propkeys:
                         pcattr = PropClassAttr.from_value(attr)
                         if pcattr.in_owl:
                             self._attributes[pcattr] = pcattr.datatype(obj)
+
+        from oldaplib.src.helpers.predicate_definition import read_superproperty
+        parent = read_superproperty(self._con, self._property_class_iri)
+        if not parent:
+            self._attributes.pop(PropClassAttr.SUBPROPERTY_OF, None)
+        else:
+            self._attributes[PropClassAttr.SUBPROPERTY_OF] = ObservableSet(
+                parent, datatype=Iri, notifier=self.notifier, notify_data=PropClassAttr.SUBPROPERTY_OF)
 
     @classmethod
     def read(cls, con: IConnection,
@@ -719,12 +768,29 @@ class PropertyClass(Model, Notify):
         sparql += ' .\n'
         return sparql
 
+    def validate_new_superproperty(self):
+        """Reuse an existing parent on insertion; never add a conflicting declaration.
+
+        Run in the enclosing write transaction. New uses without an explicit
+        parent adopt the existing predicate metadata, not its SHACL constraints.
+        """
+        from oldaplib.src.helpers.predicate_definition import read_superproperty, superproperty_update, invalidate_predicate_models
+        current = read_superproperty(self._con, self._property_class_iri)
+        if current and self.subPropertyOf is None:
+            self.subPropertyOf = current
+        elif current and current != set(self.subPropertyOf or []):
+            raise OldapErrorInconsistency('Existing predicate has a different superproperty.')
+        if superproperty_update(self._con, self._graph, self._property_class_iri, current, self.subPropertyOf):
+            invalidate_predicate_models(self._con, self._property_class_iri)
+
     def create_owl(self, indent: int = 0, indent_inc: int = 4) -> str:
         blank = ''
         sparql = f'{blank:{indent * indent_inc}}{self._property_class_iri.toRdf} {PropClassAttr.TYPE.toRdf} {self._attributes[PropClassAttr.TYPE].toRdf}'
         for attr, val in self._attributes.items():
             attr: PropClassAttr
-            if not attr.in_owl or attr == PropClassAttr.TYPE or val is None:
+            if not attr.in_owl or attr == PropClassAttr.TYPE or val is None or (attr == PropClassAttr.SUBPROPERTY_OF and not val):
+                continue
+            if attr == PropClassAttr.SUBPROPERTY_OF and str(self._property_class_iri.prefix) != str(self._graph):
                 continue
             sparql += f' ;\n{blank:{(indent + 1) * indent_inc}}{attr.toRdf} {val.toRdf}'
         sparql += ' .\n'
@@ -790,6 +856,7 @@ class PropertyClass(Model, Notify):
             self._con.transaction_abort()
             raise OldapErrorAlreadyExists(f'Property "{self._property_class_iri}" already exists.')
         try:
+            self.validate_new_superproperty()
             self._con.transaction_update(sparql)
         except OldapError as err:
             self._con.transaction_abort()
@@ -804,6 +871,9 @@ class PropertyClass(Model, Notify):
         else:
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f"Update of RDF didn't work!")
+        if self.subPropertyOf is not None:
+            from oldaplib.src.helpers.predicate_definition import invalidate_predicate_models
+            invalidate_predicate_models(self._con, self._property_class_iri)
         self.set_creation_metadata(timestamp)
 
         self.clear_changeset()
@@ -961,6 +1031,14 @@ class PropertyClass(Model, Notify):
         sparql_list = []
         datatype_class_change = False
         for prop, change in self._changeset.items():
+            if prop == PropClassAttr.SUBPROPERTY_OF:
+                from oldaplib.src.helpers.predicate_definition import superproperty_update, invalidate_predicate_models
+                update = superproperty_update(self._con, self._graph, self._property_class_iri,
+                    change.old_value if change.action != Action.CREATE else None, self.subPropertyOf)
+                if update:
+                    sparql_list.append(update)
+                    invalidate_predicate_models(self._con, self._property_class_iri)
+                continue
             if prop in owl_propclass_attributes:
                 sparql = f'#\n# OWL:\n# PropertyClass(2): Process "{owl_prop[prop]}" with Action "{change.action.value}"\n#\n'
                 ele = RdfModifyItem(property=owl_prop[prop],
@@ -1135,8 +1213,8 @@ class PropertyClass(Model, Notify):
                                     timestamp=timestamp)
 
         sparql += " ;\n"
-        sparql += self.update_owl(owlclass_iri=self._inResourceClass)
         try:
+            sparql += self.update_owl(owlclass_iri=self._inResourceClass)
             self._con.transaction_update(sparql)
         except OldapError as e:
             self._con.transaction_abort()
@@ -1154,6 +1232,9 @@ class PropertyClass(Model, Notify):
             self._con.transaction_abort()
             raise OldapErrorUpdateFailed(f'Update RDF of "{self._property_class_iri}" didn\'t work: shacl={modtime_shacl} timestamp={timestamp}')
 
+        if PropClassAttr.SUBPROPERTY_OF in self._changeset:
+            from oldaplib.src.helpers.predicate_definition import invalidate_predicate_models
+            invalidate_predicate_models(self._con, self._property_class_iri)
         self._modified = timestamp
         self._contributor = self._con.userIri
         for prop, change in self._changeset.items():
@@ -1346,6 +1427,7 @@ class PropertyClass(Model, Notify):
         sparql += f'{blank:{indent * indent_inc}}WHERE {{\n'
         sparql += f'{blank:{indent * indent_inc}}BIND({self._property_class_iri} as ?propnode)\n'
         sparql += f'{blank:{(indent + 1) * indent_inc}}?propnode ?p ?v .\n'
+        sparql += f'FILTER NOT EXISTS {{ GRAPH ?useGraph {{ ?shape sh:property ?field . ?field (sh:path|oldap:field) {self._property_class_iri.toRdf} }} }}\n'
         sparql += f'{blank:{indent * indent_inc}}}}'
         sparql_list.append(sparql)
 
@@ -1385,7 +1467,7 @@ class PropertyClass(Model, Notify):
         query = context.sparql_context
         query += textwrap.dedent(f"""
         ASK {{
-            GRAPH test:shacl {{
+            GRAPH ?graph {{
                 ?shape sh:property ?prop .
                 ?prop (sh:path|oldap:field) {self._property_class_iri} .
             }}

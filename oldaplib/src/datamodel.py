@@ -660,9 +660,26 @@ class DataModel(Model):
         instance.clear_changeset()
         return instance
 
-    def _validate_reifier_references(self):
+    def _validate_reifier_references(self, *, creating=False):
         """Validate new local references against this complete model snapshot."""
         from oldaplib.src.helpers.reification import validate_resource_reifiers
+        if creating:
+            # All uses of one predicate share one editable parent. Reject conflicting
+            # aggregate declarations before any graph is written.
+            parents = {}
+            properties = list(self.__propclasses.values())
+            for resource in self.__resclasses.values():
+                properties.extend(resource.properties.values())
+            for shape in self._reifier_shapes.values():
+                properties.extend(shape.properties.values())
+            for prop in properties:
+                if prop.subPropertyOf is not None:
+                    known = parents.setdefault(prop.property_class_iri, prop.subPropertyOf)
+                    if known != prop.subPropertyOf:
+                        raise OldapErrorValue(f'Conflicting superproperties for {prop.property_class_iri}.')
+            for prop in properties:
+                if prop.subPropertyOf is None and prop.property_class_iri in parents:
+                    prop.subPropertyOf = parents[prop.property_class_iri]
         resource_shapes = {Xsd_QName(str(iri) + 'Shape') for iri in self.__resclasses}
         predicate_kinds = {}
         for resource in self.__resclasses.values():
@@ -706,7 +723,7 @@ class DataModel(Model):
         if not result:
             raise OldapErrorNoPermission(message)
 
-        self._validate_reifier_references()
+        self._validate_reifier_references(creating=True)
         timestamp = Xsd_dateTime.now()
         blank = ''
         context = Context(name=self._con.context_name)
@@ -774,8 +791,12 @@ class DataModel(Model):
             for resource in self.__resclasses.values():
                 for prop in resource.properties.values():
                     reject_used_policy_change(prop, newly_attached=True)
+                    prop.validate_new_superproperty()
+            for prop in self.__propclasses.values():
+                prop.validate_new_superproperty()
             for shape in self._reifier_shapes.values():
                 shape.validate_predicate_types()
+                shape.validate_new_superproperties()
             self._con.transaction_update(sparql)
             for propiri, propclass in self.__propclasses.items():
                 propclass.set_creation_metadata(timestamp=timestamp)

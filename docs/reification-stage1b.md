@@ -134,3 +134,35 @@ Run with the existing API development environment and pinned Fuseki 6.2.0 jar:
 
 Next is stage 2: YAML authoring and round trips in oldap-tools. Instance writes
 remain gated until the complete stage 3 lifecycle is implemented and tested.
+
+## Shared superproperty metadata
+
+Annotation fields support optional `subPropertyOf`. The relation belongs to the
+predicate IRI across all shapes and resource uses; SHACL constraints remain local
+and are not inherited. Hierarchy-only edits therefore do not trigger the shape's
+value-constraint in-use lock. Parent metadata is an observable set of IRIs; multiple
+parents from imported vocabularies are retained. Legacy scalar assignments remain
+accepted, while reads expose the full set (or None when empty). Old cached scalar
+attributes are upgraded on access. Set snapshots prevent in-place edits from
+changing the baseline used for stale-write checks.
+
+`helpers/predicate_definition.py` supplies shared reads, guarded replacement and
+cache invalidation to `PropertyClass` and `ReifierShape`. Changes require the
+predicate's owning project; foreign predicates may reuse existing declarations
+but do not copy hierarchy triples into the consuming project's ontology graph.
+Shape reads hydrate this metadata from RDF. Library snapshots retain the previous
+parent set so stale cross-shape changes fail instead of overwriting another writer.
+API requests retain the existing fresh-read contract, without a client ETag.
+
+For an existing field, omission/null in a full replacement clears the parent.
+New fields without a supplied parent adopt the existing predicate parent, if any;
+a conflicting new declaration fails. Removing a field or deleting a shape leaves
+predicate metadata intact. Normal property removal preserves it while another
+SHACL use remains. Aggregate creation rejects conflicting parent declarations.
+Affected model/predicate/resource caches, including dependent shapes and classes,
+are invalidated; owned resource transactions repeat eviction at completion.
+
+Regression tests exercise create/read/change/clear, multiple shapes, stale library
+snapshots, normal standalone/resource property updates and removal, foreign
+ownership, aggregate conflicts and cross-project cache eviction. They use isolated
+RDFLib datasets and mocked caches; native Jena acceptance is separate.

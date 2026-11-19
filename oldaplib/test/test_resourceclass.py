@@ -326,7 +326,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(prop1.type, {OwlPropertyType.OwlDataProperty})
         self.assertEqual(prop1.datatype, XsdDatatypes.langString)
         self.assertEqual(prop1.name, LangString(["Test property@en", "Testprädikat@de"]))
-        self.assertEqual(prop1.subPropertyOf, Xsd_QName("test:comment"))
+        self.assertEqual(prop1.subPropertyOf, {Iri("test:comment")})
         self.assertEqual(prop1.uniqueLang,  Xsd_boolean(True))
         self.assertEqual(prop1.languageIn, LanguageIn(Language.EN, Language.DE, Language.FR, Language.IT))
 
@@ -428,7 +428,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertEqual(p2.maxCount, 1)
         self.assertEqual(p2.minCount, 1)
         self.assertEqual(p2.order, 2)
-        self.assertEqual(p2.subPropertyOf, Iri('dcterms:description'))
+        self.assertEqual(p2.subPropertyOf, {Iri('dcterms:description')})
         self.assertEqual(p2.datatype, XsdDatatypes.langString)
         self.assertEqual(p2.name, LangString(["internalWithSuper@en", "internalWithSuper@de"]))
         self.assertEqual(p2.description, LangString("A property for testing..."))
@@ -729,7 +729,7 @@ class TestResourceClass(unittest.TestCase):
         self.assertIsNone(hp1.maxCount)
         self.assertEqual(hp1.order, 1.0)
         self.assertEqual(hp1.property_class_iri, Xsd_QName("test:testIncrementalProp1", validate=False))
-        self.assertEqual(hp1.subPropertyOf, Xsd_QName("test:comment"))
+        self.assertEqual(hp1.subPropertyOf, {Iri("test:comment")})
         self.assertEqual(hp1.datatype, XsdDatatypes.langString)
 
     # TODO: Start systematic testing here!!!!!!!!!!!!¨
