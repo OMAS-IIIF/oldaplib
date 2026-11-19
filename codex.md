@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Coordinated superproperty release published (2026-11-19): library 1.2.2 and tools 1.2.2 on PyPI; API 1.2.3/tools 1.2.2 AMD64+ARM64 images verified. Python subPropertyOf reads are sets; matching consumers required. 125 installed regressions per architecture and packaged Jena acceptance pass. No deployment or latest changes. Evidence: docs/release-1.2.2.md and receipt.
+
 - Coordinated superproperty release preparation (2026-11-19): library 1.2.2, API 1.2.3 and tools 1.2.2. Python parent reads are now sets; deploy matching consumers. See docs/release-1.2.2.md. Publication authorized, no deployment.
 
 - Shared annotation superproperties: `helpers/predicate_definition.py` handles global parent reads/replacement and dependent cache eviction for ordinary properties and reifier fields. Complete parent sets (legacy scalar inputs accepted), owner-project writes, field-local SHACL constraints; see docs/reification-stage1b.md. Local changes, not released.

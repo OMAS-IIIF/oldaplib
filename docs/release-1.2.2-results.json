@@ -1,0 +1,78 @@
+{
+  "verified_at": "2026-11-19T22:56:46.456990+01:00",
+  "versions": {
+    "oldaplib": "1.2.2",
+    "oldap-api": "1.2.3",
+    "oldap-tools": "1.2.2"
+  },
+  "source_commits": {
+    "oldaplib": "9655c5d41a9b58933f13c1e6888fd542288f6de5",
+    "oldap-api": "888fb948cdee3c5c95a5bfcde95fa4d35b8d1154",
+    "oldap-tools": "dc9d401f5902eaf288cd0dcb616b00f575ab0090"
+  },
+  "pypi": {
+    "oldaplib": [
+      {
+        "file": "oldaplib-1.2.2-py3-none-any.whl",
+        "sha256": "32d8f312175155a2eaadfd800ce29950e1c893fcb1c2539128d1c6afd1fb49c5"
+      },
+      {
+        "file": "oldaplib-1.2.2.tar.gz",
+        "sha256": "8d477c5d2317b3e62a0a791c271a773529a78effa591dff9c17adbec5e536642"
+      }
+    ],
+    "oldap-tools": [
+      {
+        "file": "oldap_tools-1.2.2-py3-none-any.whl",
+        "sha256": "1a04e08c8ca29776285fabe96afc307f75474b018d5713627272575556e5abfd"
+      },
+      {
+        "file": "oldap_tools-1.2.2.tar.gz",
+        "sha256": "58ca20d30aad44fd62076656d981d5aeaf5e000157e2a5e60f6679d26b672049"
+      }
+    ]
+  },
+  "api_pypi": "not published; wheel is a Docker build input",
+  "images": {
+    "oldap-api": {
+      "digest": "sha256:e3f94bc24154029d1a008b033e3679ed4fa4416b6867fd248db7531052a10223",
+      "platform_manifests": [
+        "lrosenth/oldap-api@sha256:7a67dedd101015e893fb463acad4098eb4caab7fa7d4a767636d4cdc8d71b13a",
+        "lrosenth/oldap-api@sha256:ce332ba1750939bc445beb313fc2a121719d3fa40eb410102c128830e0c561e8"
+      ],
+      "reference": "lrosenth/oldap-api:v1.2.3"
+    },
+    "oldap-tools": {
+      "digest": "sha256:d52a0b454d941721334e3e10dbe01c057332f6a3e26bf3c227518ea1d0f9a029",
+      "platform_manifests": [
+        "lrosenth/oldap-tools@sha256:e368daebe30f7e742dc43f767e7b6fff783e45b1afb287b5f5419eaeb8c58544",
+        "lrosenth/oldap-tools@sha256:49fc3aff01465a5d1c523292def4bbdf4ae120395801631f8c9312934d7957a2"
+      ],
+      "reference": "lrosenth/oldap-tools:v1.2.2"
+    }
+  },
+  "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "latest_unchanged": true,
+  "validation": {
+    "library_source_passed": 223,
+    "library_source_skipped": 3,
+    "library_built_wheel_passed": 88,
+    "api_source_passed": 36,
+    "openapi": "valid, including null/scalar/array create inputs",
+    "tools_source_passed": 201,
+    "tools_subtests_passed": 7,
+    "installed_api_library_per_architecture_passed": 125,
+    "packaged_jena": "passed on both architectures",
+    "installed_tools_tgb_yaml": "passed on both architectures",
+    "wheel_parity": {
+      "oldaplib_runtime_files_identical": 156,
+      "oldap_tools_runtime_files_identical": 34
+    }
+  },
+  "compatibility": "Python subPropertyOf reads now return ObservableSet or None. Upgrade library/API/tools together; other Python callers and multiple-parent UIs need matching contracts. This is not a strictly backward-compatible Python patch.",
+  "deployment": "not performed",
+  "private_evidence": "/Users/rosenth/Library/Application Support/OLDAP/releases/20261119-oldaplib"
+}

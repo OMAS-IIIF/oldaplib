@@ -1,3 +1,9 @@
+### Update 2026-11-19 22:56
+- Decisions: Completed authorized coordinated publication; no deployment or frontend release. Keep Python getter compatibility change explicit.
+- Implementation: Pushed final tags/source; published and SHA-256 verified library/tools packages and accepted API/tools multiarch images. Added docs/release-1.2.2-results.json with exact source/image provenance.
+- Open: Deployment and matching frontend promotion remain separate. Other Python callers must handle set-valued parent reads.
+- Risks/Assumptions: 223 library source tests, 88 built-wheel tests, 36 API tests, 201 tools tests plus seven subtests passed; 125 installed regressions per architecture and packaged Jena checks passed. Three optional source checks skipped; live legacy service suites excluded. Latest tags unchanged.
+
 ### Update 2026-11-19 22:44
 - Decisions: User selected coordinated library/API/tools publication for set-valued superproperties; no deployment. Document Python getter compatibility break explicitly.
 - Implementation: Prepared release notes and consumer minimum versions. Library release targets distinguish RC finalization and isolate distributions by version; corrected stale LangString expectation. API serializer fixture now uses real local system/shared RDF and mocked caches; Create null contract matches runtime.
