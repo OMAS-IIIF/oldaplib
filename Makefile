@@ -1,4 +1,7 @@
-.PHONY: help docs test bump-patch-level bump-minor-level bump-major-level build publish coverage getontos loadontos
+.PHONY: help docs test bump-patch-level bump-minor-level bump-major-level finalize-release build publish coverage getontos loadontos
+
+# Isolate artifacts by version so publishing cannot pick up older distributions.
+DIST_DIR ?= dist/$(shell poetry version -s)
 
 help:
 	@echo "Usage: make [target] ..."
@@ -8,7 +11,8 @@ help:
 	@echo "  help     		  Show this help message"
 	@echo "  test     		  Run all tests"
 	@echo "  test-secure      Run all tests with GraphDB in secure mode"
-	@echo "  bump-patch-level Increment patch level of version number"
+	@echo "  bump-patch-level Start the next patch release candidate (rc1)"
+	@echo "  finalize-release Promote the current release candidate to final (local commit/tag)"
 	@echo "  bump-minor-level Increment minor level of version number"
 	@echo "  bump-major-level Increment major level of version number"
 	@echo "  build    		  Build the distribution package"
@@ -47,11 +51,14 @@ bump-major-level:
 	poetry run bump-my-version bump major
 	git push
 
+finalize-release:
+	poetry run bump-my-version bump release
+
 build:
-	poetry build
+	poetry build --output "$(DIST_DIR)"
 
 publish:
-	poetry publish
+	poetry publish --dist-dir "$(DIST_DIR)"
 
 coverage:
 	OLDAP_TS_SERVER=http://localhost:7200 \

@@ -346,7 +346,7 @@ INSERT {
     ?prop sh:name """français"""@fr .
 }
 WHERE {
-    ?prop sh:path oldaplib:prop .
+    ?prop (sh:path|oldap:field) oldaplib:prop .
     BIND(oldaplib:propShape as ?property) .
     ?property dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
@@ -358,7 +358,7 @@ INSERT {
     ?prop sh:name """undefined"""@zu .
 }
 WHERE {
-    ?prop sh:path oldaplib:prop .
+    ?prop (sh:path|oldap:field) oldaplib:prop .
     BIND(oldaplib:propShape as ?property) .
     ?property dcterms:modified ?modified .
     FILTER(?modified = "2023-11-04T12:00:00+00:00"^^xsd:dateTime)
@@ -369,7 +369,7 @@ DELETE {
     ?prop sh:name """english"""@en .
 }
 WHERE {
-    ?prop sh:path oldaplib:prop .
+    ?prop (sh:path|oldap:field) oldaplib:prop .
     BIND(oldaplib:propShape as ?property) .
     ?prop sh:name """english"""@en .
     ?property dcterms:modified ?modified .

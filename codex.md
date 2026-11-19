@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Coordinated superproperty release preparation (2026-11-19): library 1.2.2, API 1.2.3 and tools 1.2.2. Python parent reads are now sets; deploy matching consumers. See docs/release-1.2.2.md. Publication authorized, no deployment.
+
 - Shared annotation superproperties: `helpers/predicate_definition.py` handles global parent reads/replacement and dependent cache eviction for ordinary properties and reifier fields. Complete parent sets (legacy scalar inputs accepted), owner-project writes, field-local SHACL constraints; see docs/reification-stage1b.md. Local changes, not released.
 
 - Release 1.2.0 live on home (2026-11-14): Reification is merged/tagged/pushed; oldaplib is on PyPI and API/tools AMD64+ARM64 images are published. Home API/library and tools selection use 1.2.0; nine additive ontology triples verified. Only API/identity restarted; Jena 1.1.0 and production unchanged. Use setup releases/home-1.2.0.json for subsequent home updates. Evidence/rollback: docs/release-1.2.0.md and receipt.

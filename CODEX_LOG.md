@@ -1,3 +1,9 @@
+### Update 2026-11-19 22:44
+- Decisions: User selected coordinated library/API/tools publication for set-valued superproperties; no deployment. Document Python getter compatibility break explicitly.
+- Implementation: Prepared release notes and consumer minimum versions. Library release targets distinguish RC finalization and isolate distributions by version; corrected stale LangString expectation. API serializer fixture now uses real local system/shared RDF and mocked caches; Create null contract matches runtime.
+- Open: Finish package/image validation, publish and record immutable receipts.
+- Risks/Assumptions: Existing service-backed legacy tests must not target live databases. Other clients need matching multiple-parent handling before use.
+
 ### Update 2026-11-18 23:31
 - Decisions: Represent superproperties as complete observable IRI sets; retain scalar construction/assignment compatibility and owner-project write guards.
 - Implementation: Normalize parent sets, compare immutable stale-write snapshots, serialize all parents, track in-place changes, support clear/oldapSetAttr and lazily upgrade scalar cached attributes. Added regression using bundled shared:ArchiveUnit and real DCTERMS through inherited DataModel.read; local annotation edits preserve imported parents, foreign hierarchy edits remain forbidden. Updated public docs and set-valued integration expectations.
