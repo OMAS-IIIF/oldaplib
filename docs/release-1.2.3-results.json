@@ -1,0 +1,177 @@
+{
+  "verified_at": "2026-11-20T00:21:48.354834+01:00",
+  "versions": {
+    "oldaplib": "1.2.3",
+    "oldap-api": "1.2.4",
+    "oldap-tools": "1.2.3"
+  },
+  "source_commits": {
+    "oldaplib": "8cd4389fc3f889ee397ee86aa53fc3f4d249ae40",
+    "oldap-api": "eebcc05087b1b22360b494c3c312f771e6fc00cb",
+    "oldap-tools": "3530b649458b07c73d5b5cf336f1fd479b15017d"
+  },
+  "pypi": {
+    "oldaplib": [
+      {
+        "file": "oldaplib-1.2.3-py3-none-any.whl",
+        "sha256": "bbff122a85e92024acd81a21a0ad857885a2ed6cf23c3172a1a7d7af7eb40f82"
+      },
+      {
+        "file": "oldaplib-1.2.3.tar.gz",
+        "sha256": "383e0fa8452c1f769bb9407956af4df4320407cc8957b211a8eb95c526cf8f2b"
+      }
+    ],
+    "oldap-tools": [
+      {
+        "file": "oldap_tools-1.2.3-py3-none-any.whl",
+        "sha256": "1eef239178087054ce8dea32f29a765a9ec1a88c16b110828bedbe9c49757396"
+      },
+      {
+        "file": "oldap_tools-1.2.3.tar.gz",
+        "sha256": "184adb6cc73379cd57d1380413c674ebc2c39fb19a952dd6bc90757b105a8e61"
+      }
+    ]
+  },
+  "images": {
+    "oldap-api": {
+      "digest": "sha256:0c0078fdc6cef054deb7b9e5d3f75e6d568281d6e3b565ec080cc2cc44114949",
+      "platform_manifests": [
+        "lrosenth/oldap-api@sha256:32f79644dcb3ed264ab8dd5d85258763f45727c34acca75acdd10a2e6f63f7f8",
+        "lrosenth/oldap-api@sha256:3918ad71e7bf1323803815eb93c5e0b48b364bf094fe26d14c23e89bbe4946b6"
+      ],
+      "reference": "lrosenth/oldap-api:v1.2.4"
+    },
+    "oldap-tools": {
+      "digest": "sha256:4e2a4e80e7a9adeee737d6af2875fc8eda2a438ed94cea137d6416f15bddf378",
+      "platform_manifests": [
+        "lrosenth/oldap-tools@sha256:ae251fef736d9107eedc60e288ce622526de4388cbe58e3c0feebb9741163129",
+        "lrosenth/oldap-tools@sha256:4e01e427efd98d6e5e784c79ce64119eda0a34dfedd99313677d591d5e3caec4"
+      ],
+      "reference": "lrosenth/oldap-tools:v1.2.3"
+    }
+  },
+  "validation": {
+    "library_wheel_tests": 68,
+    "library_subtests": 2,
+    "optional_skipped": 7,
+    "api_tests": 36,
+    "tools_tests": 201,
+    "tools_subtests": 7,
+    "installed_tests_per_arch": 126,
+    "installed_subtests_per_arch": 2,
+    "architectures": [
+      "amd64",
+      "arm64"
+    ],
+    "packaged_jena": "passed both architectures",
+    "tools_tgb_validation": "passed both architectures"
+  },
+  "deployment": {
+    "target": "api.oldap.org",
+    "changed_containers": [
+      "oldap-api",
+      "compose-oldap-jena-identity-1"
+    ],
+    "unchanged_containers": [
+      "oldap-app",
+      "fasnachts-page",
+      "compose-oldap-jena-1",
+      "compose-salsah-2-1",
+      "caddy",
+      "redis"
+    ],
+    "tools": "not installed on production; image published only",
+    "health": "v1.2.4, Jena reachable",
+    "fasnacht_https": 200,
+    "live_checks": {
+      "api": "1.2.4",
+      "library": "1.2.3",
+      "checks": [
+        {
+          "reader": "public",
+          "direct_media": 20,
+          "direct_seconds": 0.154,
+          "entries": [
+            {
+              "media": 255,
+              "unassigned": 255,
+              "seconds": 0.148
+            },
+            {
+              "media": 1,
+              "unassigned": 1,
+              "seconds": 0.167
+            },
+            {
+              "media": 6,
+              "unassigned": 6,
+              "seconds": 0.133
+            }
+          ],
+          "fulltext": [
+            {
+              "field": "archiveMediaObjectTitle",
+              "term": "Laterne",
+              "sample_hits": 5,
+              "count": 21,
+              "seconds": 0.034
+            },
+            {
+              "field": "archiveMediaObjectText",
+              "term": "Fasnacht",
+              "sample_hits": 5,
+              "count": 48,
+              "seconds": 0.03
+            }
+          ]
+        },
+        {
+          "reader": "configured-account",
+          "direct_media": 20,
+          "direct_seconds": 0.164,
+          "entries": [
+            {
+              "media": 255,
+              "unassigned": 255,
+              "seconds": 0.17
+            },
+            {
+              "media": 1,
+              "unassigned": 1,
+              "seconds": 0.207
+            },
+            {
+              "media": 7,
+              "unassigned": 6,
+              "seconds": 0.16
+            }
+          ],
+          "fulltext": [
+            {
+              "field": "archiveMediaObjectTitle",
+              "term": "Laterne",
+              "sample_hits": 5,
+              "count": 21,
+              "seconds": 0.041
+            },
+            {
+              "field": "archiveMediaObjectText",
+              "term": "Fasnacht",
+              "sample_hits": 5,
+              "count": 48,
+              "seconds": 0.045
+            }
+          ]
+        }
+      ]
+    },
+    "tgb_replay_operations": 0,
+    "tgb_reifier_readback": "passed",
+    "final_plan": "no changes",
+    "rollback_directory": "/opt/oldap/compose/routine-update-20261119T232035954206Z",
+    "rollback_selection": "releases/production-1.2.4-rollback.json",
+    "business_data_writes": false,
+    "home_changed": false
+  },
+  "private_evidence": "/Users/rosenth/Library/Application Support/OLDAP/releases/20261120-patches"
+}

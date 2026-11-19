@@ -1,3 +1,9 @@
+### Update 2026-11-20 00:21
+- Decisions: Published coordinated oldaplib/tools 1.2.3 and API 1.2.4; deployed accepted API/identity to production only. No migration or home update.
+- Implementation: Git source/tags pushed; PyPI hashes verified; AMD64/ARM64 images published by immutable digest. Recorded release/deployment evidence in docs/release-1.2.3-results.json.
+- Open: None for this release. Tools is not installed on production; its image is available for explicit use.
+- Risks/Assumptions: 68 wheel tests, 36 API tests, 201 tools tests and 126 installed tests per architecture pass, plus subtests and packaged Jena checks. Live archive/fulltext/TGB checks pass; final deployment plan has no changes. No business-data writes.
+
 ### Update 2026-11-20 00:06
 - Decisions: Preserve pending property lifecycle actions when nested edits notify ResourceClass; no version bump, release or deployment.
 - Implementation: The notifier no longer replaces CREATE/REPLACE/DELETE or their original values with MODIFY. Added isolated RDF roundtrip regression for attaching schema:name with one or multiple existing foreign parents, unchanged foreign metadata and subsequent local edits. Updated shared-superproperty documentation.
