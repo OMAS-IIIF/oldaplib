@@ -1,6 +1,6 @@
 """Run synthetic RDF 1.2 and transaction probes against an owned Fuseki process.
 
-Requires a verified Fuseki 6.2.0 distribution and Java 21+. Creates a fresh
+Requires a verified Fuseki 6.3.0 distribution and Java 21+. Creates a fresh
 persistent dataset under --output, binds loopback only, and terminates its own
 server on completion/failure. Never connects to OLDAP/Redis or an existing server.
 Writes results.json and process logs; artifacts are retained for inspection.
@@ -144,7 +144,7 @@ def main() -> None:
         check("Bounded HTTP composition probe", len(results["composition_checks"]) == 13)
         (output / "http-dataset").mkdir()
         start()
-        check("Pinned server version", "Apache Jena Fuseki 6.2.0" in (output / "fuseki.log").read_text())
+        check("Pinned server version", "Apache Jena Fuseki 6.3.0" in (output / "fuseki.log").read_text())
 
         # Base relation is explicitly asserted; the annotation has a stable identity.
         grants = """GRAPH ex:data {

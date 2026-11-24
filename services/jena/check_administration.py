@@ -114,7 +114,7 @@ adminOrigin={origin}
         for path in ['/', '/$/server', '/oldap/query', '/$/datasets']:
             check('Private administrator credential: ' + path, requests.get(admin + path).status_code == 401)
         server = requests.get(admin + '/$/server', headers=auth).json()
-        check('Native server description', server['version'] == '6.2.0' and server['datasets'][0]['ds.name'] == '/oldap')
+        check('Native server description', server['version'] == '6.3.0' and server['datasets'][0]['ds.name'] == '/oldap')
         check('Dataset lifecycle protected', requests.delete(admin + '/$/datasets/oldap', headers=auth).status_code == 403)
         check('Cross-origin writes refused', requests.post(admin + '/oldap/update', headers={**auth, 'Origin':'https://evil.example'}, data='CLEAR ALL').status_code == 403)
         update('INSERT DATA { GRAPH <urn:admin:data> { <urn:admin:item> <urn:value> 1 } }')

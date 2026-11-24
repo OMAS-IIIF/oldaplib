@@ -1,0 +1,1046 @@
+{
+  "date": "2026-11-25",
+  "status": "passed",
+  "scope": "Local security upgrade and isolated native regression acceptance; no release, deployment, global Java switch or live dataset access.",
+  "artifact_root": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125",
+  "fuseki": {
+    "version": "6.3.0",
+    "download": "https://dlcdn.apache.org/jena/binaries/apache-jena-fuseki-6.3.0.tar.gz",
+    "checksum_source": "https://downloads.apache.org/jena/binaries/apache-jena-fuseki-6.3.0.tar.gz.sha512",
+    "archive_sha512": "18bb611a667d70842243b423fecd36c247e43d495d12889908e38711b57bea547d07641bd8b6dcacba6e40c019e6fce736adb3240e63799676bfba31c3e3bc7f",
+    "vendor_checksum_verified": true,
+    "jar_sha256": "67f8b4f6ee0013ee46a8d8cc1a056513ecbb624aee545113f45538c7c1aacc96"
+  },
+  "jdk": {
+    "version": "25.0.5.1+2-LTS",
+    "architecture": "aarch64",
+    "path": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/jdk-25.0.5.1+2/Contents/Home",
+    "download": "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5.1%2B2/OpenJDK25U-jdk_aarch64_mac_hotspot_25.0.5.1_2.tar.gz",
+    "sha256": "248353ea41be39d5d2c1c67c7ce0ae4d1668966aacd0c5308464bc1be42f677b",
+    "vendor_checksum_verified": true,
+    "version_output": "openjdk version \"25.0.5.1\" 2026-11-17 LTS\nOpenJDK Runtime Environment Temurin-25.0.5.1+2 (build 25.0.5.1+2-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.5.1+2 (build 25.0.5.1+2-LTS, mixed mode, sharing)\n"
+  },
+  "build": {
+    "version": "1.2.3",
+    "backup_tool_sha256": "ed116b48c4ef6fe3597464414089dc3d76ee6fb87cb773412b412ba53e3b6ce1",
+    "fuseki_version": "6.3.0",
+    "fuseki_sha256": "67f8b4f6ee0013ee46a8d8cc1a056513ecbb624aee545113f45538c7c1aacc96",
+    "javac": "javac 25.0.5.1",
+    "sources": {
+      "tools/migration/JenaSessionEngine.java": "4e2e472f5e159970719686722aa2d3abda68c83eaca7ba79b167ecfeddc3342e",
+      "tools/migration/JenaSessionServlet.java": "d696abfab2cfa14cc8bc77e49647b2753e14a61726357926c43831eeab84fb4e",
+      "tools/migration/ProtectedApplicationDataset.java": "5c37b71d462572726ea27850408dec0e24d03db40399eb91f27cc44228e879a7",
+      "tools/migration/JenaManagedText.java": "faf0d462d06a3e6310e4aade9266ade2c7a4cc5b8e520dc2b4b50d8faede138d",
+      "tools/migration/JenaProjectTransfer.java": "94e75399dd2d13b039210fd85dd318d9c3e7a70fa91e9bc95a32fa4a3469269e",
+      "tools/migration/OldapTextAnalyzer.java": "ff082ed7e7ae2e1a1f6d6410f7218fbabab7e517e3cd45f8ced9a39350fe1c85",
+      "tools/migration/JenaTextFixture.java": "db9879b9c182e2910b6ae701bfa5080f8de5390d91f2c814dde0584ea0cad47a",
+      "services/jena/src/JenaService.java": "66835d4fe267218b37b566e9487d7811e2e574e6fcb2ea45241bb24285cd6b29",
+      "services/jena/src/JenaAdministration.java": "cc9b90cee3bbab913a27b4b7bb95124e34e903b1fb50865b54bb7e92dd218f56",
+      "services/jena/src/JenaCompaction.java": "afec974219e2b068de52d551610ecc13d450b5c6cf0233f351d4427b9b96ee99",
+      "services/jena/src/JenaInitialImport.java": "953664092e6192be41928b9c14208599bbbdbc3513a6f16bc725b4e6da90c601",
+      "tools/migration/ConvertLegacyRdfStar.java": "06f6d1ba245cdc2cb6aaba19f6bb3dcff566e0428c260409c952929c0796dde7"
+    },
+    "service_sha256": "bc73b0cc51a38af60607c1671c0344b03f982c269a997b8c9fd9d40cdb917077"
+  },
+  "tests": [
+    {
+      "name": "persistent service, 300 commits",
+      "status": "passed",
+      "python": "../oldap-api/.venv/bin/python",
+      "pythonpath": ".:../oldap-api",
+      "evidence_path": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/service-check/results.json",
+      "checks": [
+        "Closed stdin does not stop the service",
+        "No raw SPARQL route",
+        "Transport credential required",
+        "Unavailable identity verification fails closed",
+        "300 sequential commits succeed",
+        "Probe fault flags and diagnostic headers are inert",
+        "Committed identifier and receipt remain actor-bound",
+        "Abort consumes identifier without committing data",
+        "Expiry releases writer but consumes identifier",
+        "Graceful restart preserves all admissions and committed data",
+        "Restart does not invent a commit receipt",
+        "Hard crash preserves reservation and rolls back pending data",
+        "Committed receipt survives hard crash",
+        "Admission and receipt metadata stay invisible",
+        "Application cannot clear protected admission metadata",
+        "Managed fulltext administration is enabled",
+        "Production ignores fulltext fault injection",
+        "Managed index and folding analyzer serve committed text",
+        "Fulltext configuration and searchable data survive hard restart",
+        "Fulltext administration requires its separate key",
+        "Credential bootstrap remains available",
+        "Missing storage requires explicit initialization"
+      ]
+    },
+    {
+      "name": "native administration and scheduled compaction",
+      "status": "passed",
+      "python": "../oldap-api/.venv/bin/python",
+      "pythonpath": ".:../oldap-api",
+      "evidence_path": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/admin-check/results.json",
+      "checks": [
+        "Native Apache UI",
+        "Private administrator credential: /",
+        "Private administrator credential: /$/server",
+        "Private administrator credential: /oldap/query",
+        "Private administrator credential: /$/datasets",
+        "Native server description",
+        "Dataset lifecycle protected",
+        "Cross-origin writes refused",
+        "Admin update visible through API",
+        "Console cannot see uncommitted API writes",
+        "Native writer waits for API transaction",
+        "API commit visible through console",
+        "Native Graph Store upload",
+        "RDF 1.2 query",
+        "Receipt graph hidden",
+        "Receipt graph write refused",
+        "Native writes update managed text index",
+        "Console follows index replacement",
+        "Periodic check completed native compaction",
+        "Old generation retired after native switch",
+        "Managed fulltext survives scheduled compaction",
+        "API receipt survives scheduled compaction",
+        "Managed writes after compaction stay indexed",
+        "Native writes survive restart",
+        "API receipts survive restart",
+        "Interrupted compaction fences service restart"
+      ]
+    },
+    {
+      "name": "five-component backup and restore",
+      "status": "passed",
+      "python": "../oldap-api/.venv/bin/python",
+      "pythonpath": ".:../oldap-api",
+      "evidence_path": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/backup-check/results.json",
+      "checks": [
+        "Closed stdin does not stop the service",
+        "No raw SPARQL route",
+        "Transport credential required",
+        "Unavailable identity verification fails closed",
+        "5 sequential commits succeed",
+        "Probe fault flags and diagnostic headers are inert",
+        "Committed identifier and receipt remain actor-bound",
+        "Abort consumes identifier without committing data",
+        "Expiry releases writer but consumes identifier",
+        "Graceful restart preserves all admissions and committed data",
+        "Restart does not invent a commit receipt",
+        "Hard crash preserves reservation and rolls back pending data",
+        "Committed receipt survives hard crash",
+        "Admission and receipt metadata stay invisible",
+        "Application cannot clear protected admission metadata",
+        "Managed fulltext administration is enabled",
+        "Production ignores fulltext fault injection",
+        "Managed index and folding analyzer serve committed text",
+        "Fulltext configuration and searchable data survive hard restart",
+        "Fulltext administration requires its separate key",
+        "Credential bootstrap remains available",
+        "Source fixture login includes actual admin and role grants",
+        "Source Redis retains the owned pending-operation identity",
+        "Backup refuses the live Jena storage lock",
+        "Backup includes all five deployment components",
+        "Derived Lucene indexes are omitted but configuration retained",
+        "Corruption prevents any restore publication",
+        "Restore allocates a new quarantined generation",
+        "Original media, derivative and policy bytes match",
+        "Redis AOF restore preserves pending state and closed writer barrier",
+        "New dataset generation does not discover the old journal",
+        "All application and administrative RDF matches after restore",
+        "Restored credentials and role grants authenticate unchanged",
+        "Restored account still rejects a wrong password",
+        "Commit receipt survives full restore",
+        "Aborted admission also survives full restore",
+        "Post-backup commit is not invented at the recovery point",
+        "Fulltext index rebuild restores configured folded search",
+        "Restore refuses an existing target",
+        "Missing storage requires explicit initialization"
+      ]
+    },
+    {
+      "name": "loopback administration",
+      "status": "passed",
+      "python": "../oldap-api/.venv/bin/python",
+      "pythonpath": ".:../oldap-api",
+      "evidence_path": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/admin-loopback-check/results.json",
+      "checks": [
+        "HTTP requires explicit loopback",
+        "Loopback HTTP rejects nonlocal origins",
+        "Native Apache UI",
+        "Private administrator credential: /",
+        "Private administrator credential: /$/server",
+        "Private administrator credential: /oldap/query",
+        "Private administrator credential: /$/datasets",
+        "Native server description",
+        "Dataset lifecycle protected",
+        "Cross-origin writes refused",
+        "Admin update visible through API",
+        "Console cannot see uncommitted API writes",
+        "Native writer waits for API transaction",
+        "API commit visible through console",
+        "Native Graph Store upload",
+        "RDF 1.2 query",
+        "Receipt graph hidden",
+        "Receipt graph write refused",
+        "Native writes update managed text index",
+        "Console follows index replacement",
+        "Native writes survive restart",
+        "API receipts survive restart"
+      ]
+    },
+    {
+      "name": "native reifier shape CRUD and barriers",
+      "status": "passed",
+      "python": ".venv/bin/python",
+      "checks": [
+        "Native library create/read",
+        "Native library update/read",
+        "Native library delete/read",
+        "Native model policy blocks instance mutation",
+        "Different use of isAt remains writable",
+        "Existing business reifiers block deletion without model links",
+        "Protected permission reifiers do not trigger business barrier"
+      ]
+    },
+    {
+      "name": "RDF 1.2/reification capabilities",
+      "status": "passed",
+      "python": ".venv/bin/python",
+      "report": {
+        "jenaRejectsMissingAnnotationField": false,
+        "jenaRejectsMissingReifiers": false,
+        "assertionChecks": 8,
+        "nativeTripleBindingType": "triple",
+        "queryProcessorPreservesTripleBinding": false,
+        "flatBindingsDecoded": 3,
+        "pyshaclRejectsMissingReifiers": false,
+        "pyshaclExplicitTargetRejectsMissingField": true,
+        "pyshaclExplicitTargetAcceptsValidField": true,
+        "pythonAssertionChecks": 5,
+        "oldapValidationChecks": 4,
+        "versions": {
+          "rdflib": "7.6.0",
+          "pyshacl": "0.31.0",
+          "fuseki": "6.3.0"
+        },
+        "fusekiSha256": "67f8b4f6ee0013ee46a8d8cc1a056513ecbb624aee545113f45538c7c1aacc96",
+        "fixtureSha256": "8db49d7ab0667559467a283efabb02d2931002413080301cc9a4abdc53e1ad5a",
+        "sourceSha256": {
+          "tools/reification/probe_capabilities.py": "8fdfc41a35089a24d41007ebb1597ee9aea52677db3a9f7dc88d5e4a8080d647",
+          "tools/reification/ReificationCapabilityProbe.java": "6b60a66132f8ac77d88cbd76a1ad855cb7fa8def5e57721fb499211146edad98",
+          "tools/migration/JenaProjectTransfer.java": "94e75399dd2d13b039210fd85dd318d9c3e7a70fa91e9bc95a32fa4a3469269e"
+        },
+        "scope": "Offline synthetic data; current transfer source; no HTTP, Redis, or live instance writes"
+      }
+    },
+    {
+      "name": "initial import",
+      "status": "passed",
+      "python": ".venv/bin/python",
+      "command": "services/jena/check_initial_import.py --java /Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/jdk-25.0.5.1+2/Contents/Home/bin/java --release /Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/service",
+      "coverage": "Persisted RDF, grant structure, shared blank nodes, timestamps; refusal of existing target, wrong checksum, legacy syntax, side-channel, receipts, malformed RDF and unapproved boolean normalization."
+    },
+    {
+      "name": "native annotation lifecycle, search and final review",
+      "status": "passed",
+      "passed": 42,
+      "skipped": 3,
+      "skip_reason": "Explicit performance/benchmark receipts not requested",
+      "duration_seconds": 61.48,
+      "python": "../oldap-api/.venv/bin/python",
+      "pythonpath": ".:../oldap-api",
+      "modules": [
+        "oldaplib/test/test_assertion_annotation.py",
+        "oldaplib/test/test_annotation_search.py",
+        "oldaplib/test/test_reification_final_review.py"
+      ],
+      "junit_path": "/Users/rosenth/Library/Application Support/OLDAP-Jena/security-update-20261125/native-annotation-tests.xml",
+      "junit_sha256": "a5d259955d766b44a4654f2aefc56f8cb60818ac0569f31ec5876dda2d45f88b",
+      "warnings": "70 existing RDFLib deprecation warnings"
+    }
+  ],
+  "probe_correction": {
+    "file": "tools/reification/probe_model.py",
+    "description": "Declare RDF 1.2 capability on NativeConnection to match JenaConnection; otherwise barrier query uses legacy quoted-triple syntax instead of the native fixture triple terms.",
+    "baseline": "Original probe fails identically on old Fuseki 6.2.0 and new 6.3.0; corrected probe passes on 6.3.0. No production-library behavior changed."
+  },
+  "dependency_audit": {
+    "queries": [
+      {
+        "package": {
+          "name": "org.apache.jena:jena-fuseki-server",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-fuseki-main",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-fuseki-core",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-rdfconnection",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.commons:commons-fileupload2-jakarta-servlet6",
+          "ecosystem": "Maven"
+        },
+        "version": "2.0.0-M5"
+      },
+      {
+        "package": {
+          "name": "org.apache.commons:commons-fileupload2-core",
+          "ecosystem": "Maven"
+        },
+        "version": "2.0.0-M5"
+      },
+      {
+        "package": {
+          "name": "commons-io:commons-io",
+          "ecosystem": "Maven"
+        },
+        "version": "2.22.0"
+      },
+      {
+        "package": {
+          "name": "jakarta.servlet:jakarta.servlet-api",
+          "ecosystem": "Maven"
+        },
+        "version": "6.1.0"
+      },
+      {
+        "package": {
+          "name": "org.hdrhistogram:HdrHistogram",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.2"
+      },
+      {
+        "package": {
+          "name": "io.prometheus:prometheus-metrics-core",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "io.prometheus:prometheus-metrics-model",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "io.prometheus:prometheus-metrics-config",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "io.prometheus:prometheus-metrics-tracer-common",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "io.prometheus:prometheus-metrics-exposition-formats",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "io.prometheus:prometheus-metrics-exposition-textformats",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty.ee11:jetty-ee11-servlet",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-server",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-session",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty.ee11:jetty-ee11-servlets",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-http",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-io",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-util",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-security",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.eclipse.jetty:jetty-xml",
+          "ecosystem": "Maven"
+        },
+        "version": "12.1.14"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-core",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-lang",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-cache",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-crypto-hash",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-crypto-core",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro.crypto:shiro-hashes-argon2",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro.crypto:shiro-hashes-bcrypt",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-crypto-cipher",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-config-core",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-config-ogdl",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "commons-beanutils:commons-beanutils",
+          "ecosystem": "Maven"
+        },
+        "version": "1.11.0"
+      },
+      {
+        "package": {
+          "name": "commons-collections:commons-collections",
+          "ecosystem": "Maven"
+        },
+        "version": "3.2.2"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-event",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.shiro:shiro-web",
+          "ecosystem": "Maven"
+        },
+        "version": "2.2.1"
+      },
+      {
+        "package": {
+          "name": "org.owasp.encoder:encoder",
+          "ecosystem": "Maven"
+        },
+        "version": "1.4.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-fuseki-ui",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-text",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-arq",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "com.google.code.gson:gson",
+          "ecosystem": "Maven"
+        },
+        "version": "2.15.0"
+      },
+      {
+        "package": {
+          "name": "com.google.errorprone:error_prone_annotations",
+          "ecosystem": "Maven"
+        },
+        "version": "2.50.0"
+      },
+      {
+        "package": {
+          "name": "org.slf4j:jcl-over-slf4j",
+          "ecosystem": "Maven"
+        },
+        "version": "2.0.20"
+      },
+      {
+        "package": {
+          "name": "com.apicatalog:titanium-json-ld",
+          "ecosystem": "Maven"
+        },
+        "version": "1.7.0"
+      },
+      {
+        "package": {
+          "name": "com.apicatalog:titanium-jcs",
+          "ecosystem": "Maven"
+        },
+        "version": "1.1.1"
+      },
+      {
+        "package": {
+          "name": "com.apicatalog:titanium-rdf-api",
+          "ecosystem": "Maven"
+        },
+        "version": "1.0.0"
+      },
+      {
+        "package": {
+          "name": "com.apicatalog:titanium-rdf-n-quads",
+          "ecosystem": "Maven"
+        },
+        "version": "1.0.2"
+      },
+      {
+        "package": {
+          "name": "org.glassfish:jakarta.json",
+          "ecosystem": "Maven"
+        },
+        "version": "2.0.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.commons:commons-lang3",
+          "ecosystem": "Maven"
+        },
+        "version": "3.22.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-tdb1",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-tdb2",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-dboe-storage",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-dboe-trans-data",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-dboe-transaction",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-dboe-base",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-dboe-index",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-fuseki-access",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-cmds",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-core",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-base",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.commons:commons-csv",
+          "ecosystem": "Maven"
+        },
+        "version": "1.14.1"
+      },
+      {
+        "package": {
+          "name": "commons-codec:commons-codec",
+          "ecosystem": "Maven"
+        },
+        "version": "1.23.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.commons:commons-compress",
+          "ecosystem": "Maven"
+        },
+        "version": "1.28.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.commons:commons-collections4",
+          "ecosystem": "Maven"
+        },
+        "version": "4.6.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-rdfpatch",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-shacl",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-shex",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-iri3986",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-langtag",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "commons-cli:commons-cli",
+          "ecosystem": "Maven"
+        },
+        "version": "1.11.0"
+      },
+      {
+        "package": {
+          "name": "org.slf4j:slf4j-api",
+          "ecosystem": "Maven"
+        },
+        "version": "2.0.18"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-fuseki-mod-geosparql",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "org.apache.jena:jena-geosparql",
+          "ecosystem": "Maven"
+        },
+        "version": "6.3.0"
+      },
+      {
+        "package": {
+          "name": "jakarta.xml.bind:jakarta.xml.bind-api",
+          "ecosystem": "Maven"
+        },
+        "version": "4.0.2"
+      },
+      {
+        "package": {
+          "name": "jakarta.activation:jakarta.activation-api",
+          "ecosystem": "Maven"
+        },
+        "version": "2.1.3"
+      },
+      {
+        "package": {
+          "name": "org.opengis:geoapi",
+          "ecosystem": "Maven"
+        },
+        "version": "3.0.2"
+      },
+      {
+        "package": {
+          "name": "org.slf4j:jul-to-slf4j",
+          "ecosystem": "Maven"
+        },
+        "version": "2.0.20"
+      },
+      {
+        "package": {
+          "name": "org.locationtech.jts:jts-core",
+          "ecosystem": "Maven"
+        },
+        "version": "1.20.0"
+      },
+      {
+        "package": {
+          "name": "org.locationtech.jts.io:jts-io-common",
+          "ecosystem": "Maven"
+        },
+        "version": "1.20.0"
+      },
+      {
+        "package": {
+          "name": "com.googlecode.json-simple:json-simple",
+          "ecosystem": "Maven"
+        },
+        "version": "1.1.1"
+      },
+      {
+        "package": {
+          "name": "com.esotericsoftware.kryo:kryo5",
+          "ecosystem": "Maven"
+        },
+        "version": "5.7.1"
+      },
+      {
+        "package": {
+          "name": "com.esotericsoftware:kryo",
+          "ecosystem": "Maven"
+        },
+        "version": "5.7.1"
+      },
+      {
+        "package": {
+          "name": "com.esotericsoftware:reflectasm",
+          "ecosystem": "Maven"
+        },
+        "version": "1.11.9"
+      },
+      {
+        "package": {
+          "name": "com.esotericsoftware:minlog",
+          "ecosystem": "Maven"
+        },
+        "version": "1.3.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.logging.log4j:log4j-slf4j2-impl",
+          "ecosystem": "Maven"
+        },
+        "version": "2.26.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.logging.log4j:log4j-api",
+          "ecosystem": "Maven"
+        },
+        "version": "2.26.1"
+      },
+      {
+        "package": {
+          "name": "org.apache.logging.log4j:log4j-core",
+          "ecosystem": "Maven"
+        },
+        "version": "2.26.1"
+      }
+    ],
+    "response": {
+      "results": [
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {
+          "vulns": [
+            {
+              "id": "GHSA-m8g6-vrr2-x7ff",
+              "modified": "2026-11-03T21:45:42.054835Z"
+            }
+          ]
+        },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {
+          "vulns": [
+            {
+              "id": "GHSA-m8g6-vrr2-x7ff",
+              "modified": "2026-11-03T21:45:42.054835Z"
+            }
+          ]
+        },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+      ]
+    }
+  },
+  "remaining_findings": [
+    {
+      "package": "org.apache.shiro:shiro-core / shiro-web",
+      "version": "2.2.1",
+      "advisory": "GHSA-m8g6-vrr2-x7ff",
+      "cve": "CVE-2026-56130",
+      "condition": "RememberMe enabled",
+      "assessment": "OLDAP embedded FusekiServer uses header authentication and origin checks; no RememberMe setup found. The scanner finding remains in the upstream distribution; replacing Shiro independently is not part of this update.",
+      "source": "https://shiro.apache.org/security-reports"
+    }
+  ],
+  "upstream_sources": [
+    "https://jena.apache.org/security/advisories.html",
+    "https://jetty.org/security.html",
+    "https://api.adoptium.net/v3/assets/latest/25/hotspot?architecture=aarch64&image_type=jdk&os=mac&vendor=eclipse"
+  ],
+  "limitations": [
+    "OSV lacks some current manufacturer advisories; vendor advisory versions were checked separately.",
+    "No exhaustive inventory of components without embedded Maven metadata.",
+    "Native service/admin/backup harnesses require existing sibling API imports and ran in its virtualenv with current library sources. Reifier/import probes ran in the updated library virtualenv.",
+    "JDK was installed side by side and selected explicitly for build/tests; existing launch configurations and global Java selection are unchanged.",
+    "No production runtime, container base image or operating-system update."
+  ],
+  "cleanup": "All probe subprocesses stopped by harness finalizers; owned diagnostic datasets remain under artifact_root for evidence. No shared service was stopped or reconfigured.",
+  "verification_source_sha256": {
+    "services/jena/build.py": "7f08823fc7a6903a8a16ca1dbae546ad6892d6a2d59a38341d978d7bb5b85be9",
+    "services/jena/check_service.py": "b48137cd55af97d4835bf933218d68d5d99a5fe8a102e689843c03d414932098",
+    "services/jena/check_administration.py": "b137043d0ae878fe14d54f82e14df69c5d5b7bd6e338e6cec4ad4645d218c4a1",
+    "services/jena/check_backup.py": "2fd712173347f2b7fec3fdfb0881ed4e849e092030c81a19ae3f74a93487c525",
+    "services/jena/check_initial_import.py": "eb284c44b58d6117a22887a53a756b7d5e823b3ee0ab1f98887310ece9c36477",
+    "tools/reification/probe_model.py": "c3a401efab24026360433830415a4145163e2889ed7dd679cf831d72ef2ba151",
+    "tools/reification/probe_capabilities.py": "8fdfc41a35089a24d41007ebb1597ee9aea52677db3a9f7dc88d5e4a8080d647",
+    "oldaplib/test/test_assertion_annotation.py": "000ac25e4f24312fdcc5bc1ff31581aecf4374d4c249762dc955c16a4ef90650",
+    "oldaplib/test/test_annotation_search.py": "071b5d294381eeb7154c5a09f2119c5c61a39a1a1f3add878978f645bd1086f8",
+    "oldaplib/test/test_reification_final_review.py": "ced5cb942ba0c6f6251c0c5bcb4b00a20e2014af49fc1d986382594902c4818e"
+  },
+  "native_fixture_configuration": {
+    "jar": "OLDAP_TEST_FUSEKI_JAR",
+    "jdk": "OLDAP_TEST_JAVA_HOME, falling back to JAVA_HOME",
+    "jar_pin_source": "services.jena.build.FUSEKI_SHA256",
+    "behavior": "No hardcoded Homebrew JVM; explicit opt-in with missing Java home fails with setup instructions."
+  },
+  "cleanup_verified_no_owned_java_processes": true,
+  "independent_review": "Manufacturer archive checksums fetched independently and matched downloads; archive/extracted/distribution JARs match the pinned SHA256; build/source hashes and actual JVM version verified. No remaining actionable findings. Updated annotation fixture reviewed; regression results supplied by execution worker."
+}

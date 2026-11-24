@@ -33,6 +33,10 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 
 class NativeConnection(_RecordingConnection):
     """Minimal test connection forwarding real query/update text to Jena."""
+    # Match JenaConnection's RDF 1.2 capability: legacy quoted triples denote
+    # reifiers rather than the triple terms used by this probe's native data.
+    _resource_permissions_rdf12 = True
+
     def __init__(self, process):
         super().__init__()
         self.process = process
@@ -71,8 +75,8 @@ class NativeConnection(_RecordingConnection):
 def run(java_home, fuseki_jar, output):
     """Run on newly owned storage, preserving a compact successful-check report."""
     digest = hashlib.sha256(fuseki_jar.read_bytes()).hexdigest()
-    if digest != '2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee':
-        raise ValueError('Expected pinned Fuseki 6.2.0 dependency')
+    if digest != '67f8b4f6ee0013ee46a8d8cc1a056513ecbb624aee545113f45538c7c1aacc96':
+        raise ValueError('Expected pinned Fuseki 6.3.0 dependency')
     output.mkdir(parents=True, exist_ok=False)
     subprocess.run([str(java_home / 'bin/javac'), '-cp', str(fuseki_jar), '-d', str(output),
                     str(ROOT / 'tools/reification/JenaModelProbe.java')], check=True)

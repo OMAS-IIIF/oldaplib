@@ -1,3 +1,15 @@
+### Update 2026-11-25 00:56
+- Decisions: User authorized the stable 1.2.4 patch release, GitHub push and Poetry publication; no consumer release or deployment.
+- Implementation: Bumped package/runtime/Java wrapper metadata from 1.2.3 to 1.2.4 and added security-maintenance release notes. Preserve the validated runtime dependency resolution and isolated version-specific distribution directory.
+- Open: Push verified source/tag, publish to PyPI and record exact remote artifact hashes.
+- Risks/Assumptions: Python APIs and data schema are unchanged. Raising dependency minimums can upgrade downstream environments; Java security fixes require a separately rebuilt/deployed service and patched JVM. Final 1.2.4 wheel passes 82 isolated tests plus metadata/geometry checks; Java 1.2.4 build and independent artifact review pass. Previous security acceptance remains applicable apart from the version metadata change.
+
+### Update 2026-11-25 00:45
+- Decisions: Apply local dependency security updates without release, deployment or switching shared services; retain unrelated runtime pins and the current 1.2.3 package version.
+- Implementation: Pin Fuseki 6.3.0/Jetty 12.1.14 with verified SHA-256, validate with isolated Temurin 25.0.5.1+2, and align native probe versions. Raise PyJWT/Requests minimums; update Material/PyMdown/setuptools and compatible mkdocstrings. Lock pytest for existing regressions, synchronize dev/docs environment, update local pip to 26.3, and document safe test selection.
+- Open: No local implementation work remains; publication/deployment remain separate. Evidence: docs/security-python-update-20261125.json and docs/security-java-update-20261125.json.
+- Risks/Assumptions: 82 source and 82 installed-wheel unit tests plus 21 focused pytest tests pass; wheel metadata, geometry smoke checks, docs/build and dependency consistency pass. PyPI/OSV report zero matches for 94 Python versions. Native service/admin/compaction/backup/import/reification checks and 42 annotation/search tests pass (three benchmark skips). Independent review verified manufacturer checksums and build/source hashes; the pre-existing test adapter RDF 1.2 mismatch and an outdated native fixture pin were corrected. Shiro RememberMe remains a conditional bundled advisory; production runtimes and platform matrix are not verified. Documentation content warnings remain.
+
 ### Update 2026-11-20 00:21
 - Decisions: Published coordinated oldaplib/tools 1.2.3 and API 1.2.4; deployed accepted API/identity to production only. No migration or home update.
 - Implementation: Git source/tags pushed; PyPI hashes verified; AMD64/ARM64 images published by immutable digest. Recorded release/deployment evidence in docs/release-1.2.3-results.json.

@@ -1,6 +1,8 @@
 """Native RDF 1.2 lifecycle acceptance on disposable Jena storage.
 
-Set OLDAP_TEST_FUSEKI_JAR; this module never connects to a running service.
+Set OLDAP_TEST_FUSEKI_JAR and OLDAP_TEST_JAVA_HOME (or JAVA_HOME) to the
+reviewed Fuseki distribution and patched JDK 25. This module never connects
+to a running service.
 Library CRUD, actual permission queries and history execute unmocked SPARQL.
 """
 from contextlib import ExitStack
@@ -15,6 +17,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rdflib import URIRef
 
+from services.jena.build import FUSEKI_SHA256
 from tools.reification.probe_model import NativeConnection, ROOT
 from oldaplib.src.datamodel import DataModel
 from oldaplib.src.dtypes.namespaceiri import NamespaceIRI
@@ -52,8 +55,11 @@ def native(tmp_path):
     jar = os.environ.get('OLDAP_TEST_FUSEKI_JAR')
     if not jar:
         pytest.skip('Set OLDAP_TEST_FUSEKI_JAR for native annotation lifecycle acceptance.')
-    assert hashlib.sha256(Path(jar).read_bytes()).hexdigest() == '2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee'
-    java = Path('/opt/homebrew/opt/openjdk@25/bin')
+    assert hashlib.sha256(Path(jar).read_bytes()).hexdigest() == FUSEKI_SHA256
+    java_home = os.environ.get('OLDAP_TEST_JAVA_HOME') or os.environ.get('JAVA_HOME')
+    if not java_home:
+        pytest.fail('Set OLDAP_TEST_JAVA_HOME or JAVA_HOME to a patched JDK 25.')
+    java = Path(java_home) / 'bin'
     subprocess.run([str(java/'javac'), '-cp', jar, '-d', str(tmp_path), str(ROOT/'tools/reification/JenaModelProbe.java')], check=True)
     process = subprocess.Popen([str(java/'java'), '-cp', str(tmp_path)+':'+jar, 'JenaModelProbe', str(tmp_path/'tdb')],
                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)

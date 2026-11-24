@@ -1,5 +1,9 @@
 # OLDAPlib Project Context
 
+- Security patch release preparation (2026-11-25): package/runtime/Java wrapper version 1.2.4; GitHub/PyPI publication authorized. See `docs/release-1.2.4.md`. Consumer images and deployment remain separate.
+
+- Security dependency baseline (2026-11-25): local builds pin Fuseki 6.3.0 (Jetty 12.1.14) and were validated with isolated Temurin 25.0.5.1+2. Python runtime minimums require PyJWT 2.15.1 and Requests 2.34.2; docs/dev security updates and pytest are locked. Use `poetry sync --with dev,docs` for the development environment and select isolated tests explicitly. Package/runtime release version remains 1.2.3; no publication, active-service switch or deployment. Shiro 2.2.1 remains bundled with a conditional RememberMe advisory; that feature is not established in OLDAP authentication. Evidence and verification limits: `docs/security-python-update-20261125.json` and `docs/security-java-update-20261125.json`.
+
 - Coordinated superproperty release published (2026-11-19): library 1.2.2 and tools 1.2.2 on PyPI; API 1.2.3/tools 1.2.2 AMD64+ARM64 images verified. Python subPropertyOf reads are sets; matching consumers required. 125 installed regressions per architecture and packaged Jena acceptance pass. No deployment or latest changes. Evidence: docs/release-1.2.2.md and receipt.
 
 - Coordinated superproperty release preparation (2026-11-19): library 1.2.2, API 1.2.3 and tools 1.2.2. Python parent reads are now sets; deploy matching consumers. See docs/release-1.2.2.md. Publication authorized, no deployment.

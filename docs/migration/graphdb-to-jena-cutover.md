@@ -356,12 +356,12 @@ probe-only aborted IDs that were never persisted cannot be recovered retroactive
 Each BEGIN adds one small durable storage commit; write throughput requires the
 later production workload test. Application queries/updates cannot access this graph.
 
-**Build (offline, JDK 25 and reviewed Fuseki 6.2.0 distribution):**
+**Build (offline, patched JDK 25 and reviewed Fuseki 6.3.0 distribution):**
 
 ```sh
 python3 services/jena/build.py \
   --java-home /absolute/path/to/jdk-25 \
-  --fuseki-home /absolute/path/to/apache-jena-fuseki-6.2.0 \
+  --fuseki-home /absolute/path/to/apache-jena-fuseki-6.3.0 \
   --output /absolute/path/to/new-release-directory
 ```
 
@@ -370,6 +370,8 @@ copies Apache license/notice files and writes `build.json` with source/dependenc
 and artifact hashes. Output must not exist. The release has no editable Python
 or local source-tree dependency. Identical reviewed sources/JDK/dependency produce
 the same service jar; dependency upgrades require deliberate pin/revalidation.
+The November 2026 security baseline uses Temurin 25.0.5.1+2; updating the local
+build dependencies does not update an already deployed service or its JVM.
 `JenaTextFixture` remains a compile dependency of the legacy engine constructor,
 but the production entry point explicitly selects managed text and cannot enable
 fixture mode. All `PROBE_*` environment flags are ignored by that entry point.

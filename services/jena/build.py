@@ -13,8 +13,8 @@ import subprocess
 import tempfile
 import zipfile
 
-FUSEKI_SHA256 = '2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee'
-VERSION = '1.2.3'
+FUSEKI_SHA256 = '67f8b4f6ee0013ee46a8d8cc1a056513ecbb624aee545113f45538c7c1aacc96'
+VERSION = '1.2.4'
 SHARED = ('JenaSessionEngine', 'JenaSessionServlet', 'ProtectedApplicationDataset',
           'JenaManagedText', 'JenaProjectTransfer', 'OldapTextAnalyzer', 'JenaTextFixture')
 
@@ -29,7 +29,7 @@ def build(java_home, fuseki_home, output):
     dependency = fuseki_home / 'fuseki-server.jar'
     digest = hashlib.sha256(dependency.read_bytes()).hexdigest()
     if digest != FUSEKI_SHA256:
-        raise ValueError('Expected the reviewed Apache Jena Fuseki 6.2.0 jar')
+        raise ValueError('Expected the reviewed Apache Jena Fuseki 6.3.0 jar')
     sources = [root / 'tools/migration' / (name + '.java') for name in SHARED]
     sources.append(Path(__file__).parent / 'src/JenaService.java')
     sources.append(Path(__file__).parent / 'src/JenaAdministration.java')
@@ -67,7 +67,7 @@ base=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 exec "$JAVA_HOME/bin/java" "-Xmx${heap}m" -cp "$base/lib/*" JenaService "$@"
 ''')
         launcher.chmod(0o755)
-        manifest = {'version': VERSION, 'backup_tool_sha256': hashlib.sha256(operator.read_bytes()).hexdigest(), 'fuseki_version': '6.2.0', 'fuseki_sha256': digest,
+        manifest = {'version': VERSION, 'backup_tool_sha256': hashlib.sha256(operator.read_bytes()).hexdigest(), 'fuseki_version': '6.3.0', 'fuseki_sha256': digest,
                     'javac': subprocess.check_output([str(java_home / 'bin/javac'), '-version'], text=True).strip(),
                     'sources': {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in sources},
                     'service_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}

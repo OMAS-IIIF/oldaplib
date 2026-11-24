@@ -77,8 +77,8 @@ def run(java_home: Path, service_lib: Path, output: Path) -> dict:
         subprocess.CalledProcessError: Compilation or native checks fail.
     """
     jar_hash = hashlib.sha256((service_lib / "fuseki-server.jar").read_bytes()).hexdigest()
-    if jar_hash != "2c92c598e65ab69d99820052e05f4277ed1d77980a8845f87545ad35b71a76ee":
-        raise ValueError("Expected reviewed Fuseki 6.2.0 jar")
+    if jar_hash != "67f8b4f6ee0013ee46a8d8cc1a056513ecbb624aee545113f45538c7c1aacc96":
+        raise ValueError("Expected reviewed Fuseki 6.3.0 jar")
     output.mkdir(parents=True, exist_ok=False)
     classes = output / "classes"
     classes.mkdir()
@@ -124,7 +124,7 @@ def run(java_home: Path, service_lib: Path, output: Path) -> dict:
     report["pythonAssertionChecks"] = 5
     check_oldap_validation()
     report["oldapValidationChecks"] = 4
-    report["versions"] = {"rdflib": rdflib.__version__, "pyshacl": pyshacl.__version__, "fuseki": "6.2.0"}
+    report["versions"] = {"rdflib": rdflib.__version__, "pyshacl": pyshacl.__version__, "fuseki": "6.3.0"}
     report["fusekiSha256"] = jar_hash
     report["fixtureSha256"] = hashlib.sha256(fixture.read_bytes()).hexdigest()
     report["sourceSha256"] = {
