@@ -1,3 +1,9 @@
+### Update 2026-11-25 00:57
+- Decisions: Completed the authorized oldaplib 1.2.4 GitHub/PyPI release; no deployment or consumer/image publication.
+- Implementation: Pushed release commit 856e6518d82e3c5ee26c78199bc9dc803c6878f3 and annotated tag v1.2.4; published the exact tested wheel/sdist using Poetry. Downloaded both PyPI artifacts and verified their SHA-256 against local builds and index metadata; saved docs/release-1.2.4-results.json.
+- Open: None for this library publication. Existing API/tools installations and the Java/JVM service require separately authorized rebuild/deployment to adopt updates.
+- Risks/Assumptions: Final wheel passes 82 isolated tests plus metadata/geometry checks; independent package review and Java wrapper build pass. Conditional Shiro advisory and prior security-test limitations remain documented.
+
 ### Update 2026-11-25 00:56
 - Decisions: User authorized the stable 1.2.4 patch release, GitHub push and Poetry publication; no consumer release or deployment.
 - Implementation: Bumped package/runtime/Java wrapper metadata from 1.2.3 to 1.2.4 and added security-maintenance release notes. Preserve the validated runtime dependency resolution and isolated version-specific distribution directory.

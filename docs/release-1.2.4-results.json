@@ -1,0 +1,35 @@
+{
+  "verified_at": "2026-11-25T00:57:21.310333+01:00",
+  "version": "1.2.4",
+  "source_commit": "856e6518d82e3c5ee26c78199bc9dc803c6878f3",
+  "git_tag": "v1.2.4",
+  "github": "https://github.com/OMAS-IIIF/oldaplib/tree/v1.2.4",
+  "pypi": [
+    {
+      "file": "oldaplib-1.2.4-py3-none-any.whl",
+      "sha256": "e89805026d306b281823a8aed51a2dafb8d6ec69a297b107bee045048c808889",
+      "download_verified": true,
+      "url": "https://files.pythonhosted.org/packages/91/7d/1683dfa02fc92e4289c5f0bf4cf434e7fbfe8ab59c72ae270a2eb0521ab5/oldaplib-1.2.4-py3-none-any.whl"
+    },
+    {
+      "file": "oldaplib-1.2.4.tar.gz",
+      "sha256": "1e566915522daaf4df22672e0171b4ec7e7ba443e9ea9e20044b517d6e6b1e53",
+      "download_verified": true,
+      "url": "https://files.pythonhosted.org/packages/e0/ce/447c47c70a9858cb4f04dbab9e726c6a0e249c737f60a65c29fa2fc5a6d3/oldaplib-1.2.4.tar.gz"
+    }
+  ],
+  "verification": {
+    "installed_wheel_tests": 82,
+    "installed_wheel_result": "passed; network blocked",
+    "wheel_metadata_and_geometry": "passed",
+    "poetry_check_lock": "passed",
+    "independent_package_review": "passed",
+    "java_wrapper_build": "1.2.4 built successfully with Fuseki6.3.0/Temurin25.0.5.1+2",
+    "security_baseline_evidence": [
+      "security-python-update-20261125.json",
+      "security-java-update-20261125.json"
+    ]
+  },
+  "scope": "Library GitHub source/tag and PyPI wheel/sdist only. No API/tools/image publication, server deployment or global JVM switch.",
+  "remaining": "Conditional bundled Shiro RememberMe advisory; consumer/Java deployment separately required."
+}

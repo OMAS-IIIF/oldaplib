@@ -26,3 +26,6 @@ Documentation builds successfully with content warnings. See
 
 Release-specific artifact hashes, installed-package verification and publication
 results are recorded in `release-1.2.4-results.json`.
+
+Published on 2026-11-25: GitHub source/tag and both PyPI distributions verified
+against the tested local artifacts. No consumer image or service deployment.
