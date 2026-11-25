@@ -11,3 +11,6 @@ The isolated Redis/cache/recovery/transaction suite passes with both 7.4.1 and
 are recorded in `release-1.2.5-results.json` after publication.
 
 Consumer images and live deployment remain separate from this Python release.
+
+Published on 2026-11-25: GitHub source/tag and both PyPI distributions verified
+against the tested local artifacts. No service deployment.

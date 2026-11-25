@@ -1,6 +1,6 @@
 # OLDAPlib Project Context
 
-- Redis client release 1.2.5 (2026-11-25): dependency range >=7.4.1,<9.0.0, lock 8.2.0; isolated client matrix and installed-wheel acceptance pass. See docs/redis-client-compatibility.md and docs/release-1.2.5.md. Publication authorized; deployment remains separate.
+- Redis client release 1.2.5 (2026-11-25): dependency range >=7.4.1,<9.0.0, lock 8.2.0; isolated client matrix and installed-wheel acceptance pass. See docs/redis-client-compatibility.md and docs/release-1.2.5.md. Source/tag and both PyPI artifacts published and hash-verified; deployment remains separate.
 
 - Security patch 1.2.4 published (2026-11-25): source/tag pushed to GitHub and wheel/sdist published to PyPI with download-hash verification. Final installed-wheel tests and Java wrapper build pass. See `docs/release-1.2.4.md` and `docs/release-1.2.4-results.json`. Consumer images, Java/JVM rollout and deployment remain separate.
 

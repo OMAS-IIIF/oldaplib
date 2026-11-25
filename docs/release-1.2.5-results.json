@@ -1,0 +1,26 @@
+{
+  "verified_at": "2026-11-25T01:15:11.629504+01:00",
+  "version": "1.2.5",
+  "source_commit": "ee6ab90dcff7e1ce6e7a92c64f779288d3b2a74a",
+  "git_tag": "v1.2.5",
+  "pypi": [
+    {
+      "file": "oldaplib-1.2.5-py3-none-any.whl",
+      "sha256": "e22093f4c5e9e729be20410b5a3b69c224bac292a6b72f9ad3a612f7734bc08b",
+      "url": "https://files.pythonhosted.org/packages/b0/b2/1a3e732ff368f543d9ab690e6032896478fe15384ab1f0e2132eafdd5b24/oldaplib-1.2.5-py3-none-any.whl",
+      "download_verified": true
+    },
+    {
+      "file": "oldaplib-1.2.5.tar.gz",
+      "sha256": "993fac8e475c70d752b1b105d5e4b8df6ef24a8f6aec98733825cee9c6553b87",
+      "url": "https://files.pythonhosted.org/packages/1d/be/dfc5ca2c20baf40080391744d72b854dc54428f939ce93a372deb92350b3/oldaplib-1.2.5.tar.gz",
+      "download_verified": true
+    }
+  ],
+  "verification": {
+    "installed_wheel": "73 tests and 9 subtests pass with Redis 8.2.0",
+    "client_matrix": "7.4.1 and 8.2.0 each pass 73 tests and 9 subtests",
+    "lock_and_build": "passed"
+  },
+  "scope": "Library GitHub/PyPI release; no service deployment. API integration follows separately."
+}

@@ -1,3 +1,9 @@
+### Update 2026-11-25 01:15
+- Decisions: Complete authorized oldaplib 1.2.5 publication; preserve existing deployments.
+- Implementation: Pushed release commit ee6ab90 and annotated v1.2.5; Poetry published wheel/sdist. Downloaded PyPI artifacts match local SHA-256 hashes; receipt: docs/release-1.2.5-results.json.
+- Open: API consumer integration is in progress in oldap-api; no library publication work remains.
+- Risks/Assumptions: Installed-wheel tests and client matrix pass; platform/default-change limitations remain in the compatibility document. No service or JVM changes.
+
 ### Update 2026-11-25 01:14
 - Decisions: User authorized stable library patch publication and subsequent API integration; no service/image deployment.
 - Implementation: Prepare 1.2.5 package/runtime/Java wrapper version metadata, Redis compatibility range and release notes; preserve all unrelated lock entries.
