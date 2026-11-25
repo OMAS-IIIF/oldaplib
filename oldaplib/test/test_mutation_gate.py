@@ -105,6 +105,37 @@ class MutationGateTest(unittest.TestCase):
                 ):
                     CacheSingletonRedis().clear()
 
+    def test_cache_roundtrip_on_separate_database(self):
+        """Exercise cache serialization and eviction with the installed Redis client."""
+        from oldaplib.src.cachesingleton import CacheSingletonRedis
+        from oldaplib.src.xsd.xsd_ncname import Xsd_NCName
+
+        with patch.dict(
+            os.environ,
+            {
+                "OLDAP_REDIS_URL": f"unix://{self.socket}?db=2",
+                "OLDAP_STAGING_LOCK_REDIS_URL": f"unix://{self.socket}?db=0",
+                "OLDAP_ARCHIVE_POLICY_FILE": "/operator/policy.json",
+            },
+        ):
+            cache = CacheSingletonRedis()
+            key, alias = Xsd_NCName("primary"), Xsd_NCName("alias")
+            value = {"label": "Grüezi", "count": 42, "enabled": True}
+            with mutation_gate(client=self.client, wait_seconds=0):
+                try:
+                    cache.set(key, value, key2=alias)
+                    self.assertEqual(cache.get(key), value)
+                    self.assertEqual(cache.get(alias), value)
+                    self.assertTrue(cache.exists(key))
+                    cache.delete(key)
+                    self.assertFalse(cache.exists(key))
+                    self.assertIsNone(cache.get(key))
+                    self.assertEqual(cache.get(alias), value)
+                finally:
+                    cache.clear()
+                self.assertIsNone(cache.get(alias))
+                self.assertIsNotNone(inspect_gate(self.client))
+
     def test_ownership_has_no_expiry_and_normal_exit_releases(self):
         with mutation_gate(client=self.client, wait_seconds=0):
             self.assertEqual(self.client.pttl(GATE_KEY), -1)

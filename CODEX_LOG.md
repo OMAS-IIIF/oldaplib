@@ -1,3 +1,15 @@
+### Update 2026-11-25 01:14
+- Decisions: User authorized stable library patch publication and subsequent API integration; no service/image deployment.
+- Implementation: Prepare 1.2.5 package/runtime/Java wrapper version metadata, Redis compatibility range and release notes; preserve all unrelated lock entries.
+- Open: Push source/tag, publish with Poetry, verify PyPI hashes, then update API dependency/lock. Final wheel passes 73 tests plus 9 subtests with Redis 8.2.0; lock check and wheel/sdist builds pass.
+- Risks/Assumptions: Redis client default changes and platform limits are documented in docs/redis-client-compatibility.md; published 1.2.4 remains immutable.
+
+### Update 2026-11-25 01:12
+- Decisions: Replace the historical Redis client exact pin with >=7.4.1,<9.0.0; allow compatible 7.x consumers and current 8.x while excluding an unreviewed future major. No published artifact or service changes.
+- Implementation: Targeted lock update selects redis 8.2.0 only. Add real cache serialization/alias/deletion/clear regression on the existing disposable AOF Redis fixture, retaining writer ownership in a separate database. Document client-default changes and acceptance in docs/redis-client-compatibility.md.
+- Open: Publish a new library version before PyPI consumers can adopt this range; published 1.2.4 still pins redis 7.4.0. API dependency/lock updates belong to the ongoing API update.
+- Risks/Assumptions: Python 3.14.8 / Redis server 8.6.3: 73 tests plus 9 subtests pass for each client 7.4.1 and 8.2.0. PyPI/OSV return no advisories for either version. Poetry lock check, wheel build and dependency metadata pass. Other server/Python/platform combinations and connection-failure latency are not verified; shared environments remain untouched.
+
 ### Update 2026-11-25 00:57
 - Decisions: Completed the authorized oldaplib 1.2.4 GitHub/PyPI release; no deployment or consumer/image publication.
 - Implementation: Pushed release commit 856e6518d82e3c5ee26c78199bc9dc803c6878f3 and annotated tag v1.2.4; published the exact tested wheel/sdist using Poetry. Downloaded both PyPI artifacts and verified their SHA-256 against local builds and index metadata; saved docs/release-1.2.4-results.json.

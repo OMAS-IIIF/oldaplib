@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Redis client release 1.2.5 (2026-11-25): dependency range >=7.4.1,<9.0.0, lock 8.2.0; isolated client matrix and installed-wheel acceptance pass. See docs/redis-client-compatibility.md and docs/release-1.2.5.md. Publication authorized; deployment remains separate.
+
 - Security patch 1.2.4 published (2026-11-25): source/tag pushed to GitHub and wheel/sdist published to PyPI with download-hash verification. Final installed-wheel tests and Java wrapper build pass. See `docs/release-1.2.4.md` and `docs/release-1.2.4-results.json`. Consumer images, Java/JVM rollout and deployment remain separate.
 
 - Security dependency baseline (2026-11-25): local builds pin Fuseki 6.3.0 (Jetty 12.1.14) and were validated with isolated Temurin 25.0.5.1+2. Python runtime minimums require PyJWT 2.15.1 and Requests 2.34.2; docs/dev security updates and pytest are locked. Use `poetry sync --with dev,docs` for the development environment and select isolated tests explicitly. Package/runtime release version remains 1.2.3; no publication, active-service switch or deployment. Shiro 2.2.1 remains bundled with a conditional RememberMe advisory; that feature is not established in OLDAP authentication. Evidence and verification limits: `docs/security-python-update-20261125.json` and `docs/security-java-update-20261125.json`.
