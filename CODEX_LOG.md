@@ -1,3 +1,9 @@
+### Update 2026-11-27 13:59
+- Decisions: Complete the authorized 1.2.6 library release.
+- Implementation: Pushed main and tag v1.2.6. Downloaded both PyPI distributions and matched their SHA-256 hashes to the local builds. See docs/release-1.2.6-results.json.
+- Open: Roll out the Jena service and update consuming workers separately.
+- Risks/Assumptions: Package publication alone does not activate the service changes.
+
 ### Update 2026-11-27 13:57
 - Decisions: Release the staging inventory and transaction status fixes together in stable patch 1.2.6.
 - Implementation: Align Python package, runtime and Jena build versions and record rollout order in the release notes.

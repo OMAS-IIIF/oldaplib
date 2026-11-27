@@ -1,0 +1,24 @@
+{
+  "verified_at": "2026-11-27T13:59:01.489675+01:00",
+  "version": "1.2.6",
+  "source_commit": "8ccb628d8cfda944ea50d5937a9d2f4e48b03c8e",
+  "git_tag": "v1.2.6",
+  "pypi": [
+    {
+      "file": "oldaplib-1.2.6-py3-none-any.whl",
+      "sha256": "80aa4dea69fa3a5a971378fa6e6711cfcf866ed8fa67ca8822065f72a0556554",
+      "url": "https://files.pythonhosted.org/packages/36/bb/457dd0ada734e7fa2cceeb67806ae3f3af98790e96b203cff784f0789d2b/oldaplib-1.2.6-py3-none-any.whl",
+      "download_verified": true
+    },
+    {
+      "file": "oldaplib-1.2.6.tar.gz",
+      "sha256": "01953e344eb437acffb7e637e46f68775e112f9ebec470fa851dac638de78893",
+      "url": "https://files.pythonhosted.org/packages/4f/7e/eb3b350577052592f85724d6d7ca8898358f9160ded92d28ff51eeef6f2c/oldaplib-1.2.6.tar.gz",
+      "download_verified": true
+    }
+  ],
+  "verification": {
+    "installed_wheel": "106 tests and 17 subtests passed",
+    "lock_and_build": "Poetry lock check, wheel, sdist and Jena service build passed"
+  }
+}

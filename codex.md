@@ -1,5 +1,7 @@
 # OLDAPlib Project Context
 
+- Stable release 1.2.6 is on PyPI. The matching Jena service and Python consumers require separate deployment. See the [release notes](docs/release-1.2.6.md) and [verified distributions](docs/release-1.2.6-results.json).
+
 - Jena reconciles missing transaction-end replies with actor-bound status. Confirmed commit or rollback closes the archive writer's transaction journal. See the [persistent service transaction guarantee](docs/migration/graphdb-to-jena-cutover.md#persistent-private-backend-service-implemented-2026-11-02).
 
 - Staging folder inventory uses permission-filtered reads with optimistic revision checks. These reads bypass the archive writer gate. See [Private repository lifecycle](docs/private_repository_lifecycle.md).
