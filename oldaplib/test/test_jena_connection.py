@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from oldaplib.src.jena_connection import JenaConnection, JenaSettings
-from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorConfiguration
+from oldaplib.src.helpers.oldaperror import OldapError, OldapErrorConfiguration, OldapErrorUpdateFailed
 
 
 def connection():
@@ -44,6 +44,17 @@ def test_unknown_commit_retains_session_and_never_replays():
     assert not con.in_transaction()
 
 
+def test_interruption_during_commit_blocks_cleanup_abort():
+    con = connection()
+    con._send = Mock(side_effect=KeyboardInterrupt())
+    with pytest.raises(KeyboardInterrupt):
+        con.transaction_commit()
+    with pytest.raises(OldapErrorConfiguration):
+        con.transaction_abort()
+    con._send.assert_called_once_with('COMMIT')
+    assert con.in_transaction() and con._uncertain
+
+
 def test_nested_start_does_not_send_or_abandon_transaction():
     con = connection()
     original = con._transaction_url
@@ -75,15 +86,46 @@ def test_bootstrap_does_not_follow_redirect_or_leak_body():
     assert 'Authorization' not in post.call_args.kwargs['headers']
 
 
-def test_lost_abort_reply_preserves_uncertain_ownership():
+@pytest.mark.parametrize('operation, outcome', [('COMMIT', 'aborted'), ('ABORT', 'committed')])
+def test_confirmed_opposite_outcome_closes_gate_transaction_and_reports_failure(operation, outcome):
     con = connection()
-    con._send = Mock(side_effect=OldapErrorConfiguration('lost'))
-    with pytest.raises(OldapErrorConfiguration):
+    url = con._transaction_url
+    con._send = Mock(side_effect=[OldapErrorConfiguration('lost'), outcome])
+    end = con.transaction_commit if operation == 'COMMIT' else con.transaction_abort
+    with patch('oldaplib.src.mutation_gate.transaction_closed') as closed, \
+            patch('oldaplib.src.mutation_gate.mark_gate_uncertain') as uncertain:
+        with pytest.raises(OldapErrorUpdateFailed, match=outcome):
+            end()
+    closed.assert_called_once_with(url)
+    uncertain.assert_not_called()
+    assert not con.in_transaction() and not con._uncertain
+    assert [call.args[0] for call in con._send.call_args_list] == [operation, 'STATUS']
+
+
+@pytest.mark.parametrize('abort_reply', [OldapErrorConfiguration('lost'), 'inactive'])
+def test_confirmed_abort_after_ambiguous_response_releases_ownership(abort_reply):
+    con = connection()
+    url = con._transaction_url
+    con._send = Mock(side_effect=[abort_reply, 'aborted'])
+    with patch('oldaplib.src.mutation_gate.transaction_closed') as closed:
         con.transaction_abort()
+    closed.assert_called_once_with(url)
+    assert not con.in_transaction() and not con._uncertain
+    assert [call.args[0] for call in con._send.call_args_list] == ['ABORT', 'STATUS']
+
+
+@pytest.mark.parametrize('status_reply', ['unknown', 'active', OldapErrorConfiguration('unavailable')])
+def test_lost_abort_reply_preserves_unresolved_ownership(status_reply):
+    con = connection()
+    con._send = Mock(side_effect=[OldapErrorConfiguration('lost'), status_reply])
+    with patch('oldaplib.src.mutation_gate.mark_gate_uncertain') as uncertain:
+        with pytest.raises(OldapErrorConfiguration):
+            con.transaction_abort()
+        uncertain.assert_called_once_with()
     assert con.in_transaction() and con._uncertain
     with pytest.raises(OldapErrorConfiguration):
         con.transaction_update('INSERT DATA {}')
-    assert con._send.call_count == 1
+    assert [call.args[0] for call in con._send.call_args_list] == ['ABORT', 'STATUS']
 
 
 @pytest.mark.parametrize('active', [False, True])

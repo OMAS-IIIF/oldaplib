@@ -15,7 +15,7 @@ from oldaplib.src.helpers.oldaperror import (
     OldapErrorNoPermission,
     OldapErrorValue,
 )
-from oldaplib.src.resource_transaction import resource_transaction, resource_query
+from oldaplib.src.resource_transaction import resource_query
 from oldaplib.src.staging_folder_tree import StagingFolderTree
 from oldaplib.src.xsd.iri import Iri
 from oldaplib.src.xsd.xsd_anyuri import Xsd_anyURI
@@ -85,11 +85,11 @@ class ArchiveInventory:
             raise OldapErrorValue("Invalid inventory cursor.") from error
 
     def page(self, folder_iri, *, limit=50, cursor=None):
-        """Return the closed v1 inventory response inside a stable read boundary.
+        """Return a signed inventory page using ordinary permission-filtered reads.
 
         Cursors bind caller/project/folder/revision/last key. Fresh permissions are
         checked on every page; reference capabilities never authorize media writes.
-        A stale folder produces STALE_FOLDER rather than mixing two snapshots.
+        Changed folder state or page membership during hydration raises STALE_FOLDER.
         """
         if type(limit) is not int or not 1 <= limit <= 100:
             raise OldapErrorValue("Inventory limit must be between 1 and 100.")
@@ -100,105 +100,120 @@ class ArchiveInventory:
         ):
             raise OldapErrorValue("Inventory requires an absolute folder IRI.")
         decoded = self._decode(cursor) if cursor is not None else None
-        with resource_transaction(self._con):
-            policy = self.repository._policy()
-            folder = self.repository.factory.read(Iri(Xsd_anyURI(folder_iri)))
-            if not is_a(folder, "shared:StagingFolder"):
-                raise OldapErrorValue("Inventory requires a private folder.")
-            policy.require_data(folder, DataPermission.DATA_VIEW)
-            identity = {
-                "actor": canonical_iri(policy.context, self._con.userIri),
-                "project": str(self.repository.project.projectShortName),
-                "folder": canonical_iri(policy.context, folder.iri),
-            }
-            context_digest = hashlib.sha256(
-                json.dumps(identity, sort_keys=True).encode()
-            ).hexdigest()
-            if decoded is not None and decoded["context"] != context_digest:
-                raise OldapErrorValue(
-                    "Inventory cursor belongs to a different context."
+        policy = self.repository._policy()
+        iri = Iri(Xsd_anyURI(folder_iri))
+        folder = self._visible_folder(policy, iri)
+        identity = {
+            "actor": canonical_iri(policy.context, self._con.userIri),
+            "project": str(self.repository.project.projectShortName),
+            "folder": canonical_iri(policy.context, folder.iri),
+        }
+        context_digest = hashlib.sha256(
+            json.dumps(identity, sort_keys=True).encode()
+        ).hexdigest()
+        if decoded is not None and decoded["context"] != context_digest:
+            raise OldapErrorValue(
+                "Inventory cursor belongs to a different context."
+            )
+        revision = self.repository.folder_revision(folder, policy)
+        if decoded is not None and decoded["revision"] != revision:
+            raise _conflict(
+                "STALE_FOLDER", "The folder changed; reload its inventory."
+            )
+        tree = StagingFolderTree(self._con, self.repository.project)
+        path = tree.path_to_root(iri)
+        # The folder can change between the initial visibility and revision reads.
+        # Use the instance read inside the revision checks for all membership facts.
+        folder = path[-1]
+        last_key = decoded["last"] if decoded else None
+        rows = self._rows(policy, folder, limit + 1, last_key)
+        selected = rows[:limit]
+        in_trash = any(
+            tree._portable_name_key(tree._name(node)) == "trash" for node in path
+        )
+        folder_update = policy.is_admin() or folder.get_data_permission(
+            DataPermission.DATA_UPDATE
+        )
+        entries = []
+        for row in selected:
+            try:
+                medium = self.repository.factory.read(
+                    Iri(Xsd_anyURI(row["media"]["value"]))
                 )
-            revision = self.repository.folder_revision(folder, policy)
-            if decoded is not None and decoded["revision"] != revision:
-                raise _conflict(
-                    "STALE_FOLDER", "The folder changed; reload its inventory."
-                )
-            rows = self._rows(
-                policy, folder, limit + 1, decoded["last"] if decoded else None
+                policy.require_data(medium, DataPermission.DATA_VIEW)
+            except (OldapErrorNotFound, OldapErrorNoPermission):
+                continue
+            reference = row["kind"]["value"] == "archiveReference"
+            if reference and not policy.is_catalogued(medium):
+                continue
+            if not reference and not is_a(medium, "shared:StagingMediaObject"):
+                continue
+            title_values = values(medium, "schema:name") or values(
+                medium, "shared:originalName"
             )
-            selected = rows[:limit]
-            tree = StagingFolderTree(self._con, self.repository.project)
-            path = tree.path_to_root(folder.iri)
-            in_trash = any(
-                tree._portable_name_key(tree._name(node)) == "trash" for node in path
+            title = sorted(str(v) for v in title_values)[0] if title_values else ""
+            can_update = not reference and (
+                policy.is_admin()
+                or medium.get_data_permission(DataPermission.DATA_UPDATE)
             )
-            folder_update = policy.is_admin() or folder.get_data_permission(
-                DataPermission.DATA_UPDATE
+            can_delete = not reference and (
+                policy.is_admin()
+                or medium.get_data_permission(DataPermission.DATA_DELETE)
             )
-            entries = []
-            for row in selected:
-                try:
-                    medium = self.repository.factory.read(
-                        Iri(Xsd_anyURI(row["media"]["value"]))
+            entries.append(
+                {
+                    "kind": row["kind"]["value"],
+                    "mediaIri": row["media"]["value"],
+                    "title": title[:1000],
+                    "canDownloadOriginal": str(
+                        single(medium, "shared:mediaAccessMode")
                     )
-                    policy.require_data(medium, DataPermission.DATA_VIEW)
-                except (OldapErrorNotFound, OldapErrorNoPermission):
-                    continue
-                reference = row["kind"]["value"] == "archiveReference"
-                if reference and not policy.is_catalogued(medium):
-                    continue
-                if not reference and not is_a(medium, "shared:StagingMediaObject"):
-                    continue
-                title_values = values(medium, "schema:name") or values(
-                    medium, "shared:originalName"
-                )
-                title = sorted(str(v) for v in title_values)[0] if title_values else ""
-                can_update = not reference and (
-                    policy.is_admin()
-                    or medium.get_data_permission(DataPermission.DATA_UPDATE)
-                )
-                can_delete = not reference and (
-                    policy.is_admin()
-                    or medium.get_data_permission(DataPermission.DATA_DELETE)
-                )
-                entries.append(
-                    {
-                        "kind": row["kind"]["value"],
-                        "mediaIri": row["media"]["value"],
-                        "title": title[:1000],
-                        "canDownloadOriginal": str(
-                            single(medium, "shared:mediaAccessMode")
-                        )
-                        == "local"
-                        and bool(values(medium, "shared:assetId"))
-                        and bool(values(medium, "shared:path")),
-                        "canEditMetadata": bool(can_update),
-                        "canMove": bool(
-                            folder_update and not in_trash and (reference or can_update)
-                        ),
-                        "canDeleteMedia": bool(can_delete),
-                    }
-                )
-            next_cursor = None
-            if len(rows) > limit:
-                last = selected[-1]
-                next_cursor = self._encode(
-                    {
-                        "context": context_digest,
-                        "revision": revision,
-                        "last": [
-                            last["kind"]["value"],
-                            hashlib.sha256(last["media"]["value"].encode()).hexdigest(),
-                        ],
-                    }
-                )
-            return {
-                "folderIri": identity["folder"],
-                "revision": revision,
-                "entries": entries,
-                "nextCursor": next_cursor,
-                "warnings": [],
-            }
+                    == "local"
+                    and bool(values(medium, "shared:assetId"))
+                    and bool(values(medium, "shared:path")),
+                    "canEditMetadata": bool(can_update),
+                    "canMove": bool(
+                        folder_update and not in_trash and (reference or can_update)
+                    ),
+                    "canDeleteMedia": bool(can_delete),
+                }
+            )
+        # A role or media grant can change independently of the folder revision.
+        # Include the lookahead row when checking the signed continuation position.
+        current_folder = self._visible_folder(policy, iri)
+        if (
+            self._rows(policy, current_folder, limit + 1, last_key) != rows
+            or self.repository.folder_revision(current_folder, policy) != revision
+        ):
+            raise _conflict("STALE_FOLDER", "The folder changed; reload its inventory.")
+        next_cursor = None
+        if len(rows) > limit:
+            last = selected[-1]
+            next_cursor = self._encode(
+                {
+                    "context": context_digest,
+                    "revision": revision,
+                    "last": [
+                        last["kind"]["value"],
+                        hashlib.sha256(last["media"]["value"].encode()).hexdigest(),
+                    ],
+                }
+            )
+        return {
+            "folderIri": identity["folder"],
+            "revision": revision,
+            "entries": entries,
+            "nextCursor": next_cursor,
+            "warnings": [],
+        }
+
+    def _visible_folder(self, policy, iri):
+        """Read the folder with the current caller's access before exposing its state."""
+        folder = self.repository.factory.read(iri)
+        if not is_a(folder, "shared:StagingFolder"):
+            raise OldapErrorValue("Inventory requires a private folder.")
+        policy.require_data(folder, DataPermission.DATA_VIEW)
+        return folder
 
     def _rows(self, policy, folder, limit, last):
         """Page visible identities in SPARQL before reading any media metadata."""

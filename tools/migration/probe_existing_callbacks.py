@@ -33,6 +33,8 @@ from oldaplib.src.xsd.xsd_qname import Xsd_QName
 class BridgeConnection(IConnection):
     """Minimal test connection; preserve existing transaction method signatures."""
 
+    _resource_permissions_rdf12 = True
+
     def __init__(self, java, jar, directory, log, *, reopen=False):
         super().__init__(context_name='JENA_CALLBACK_PROBE')
         self._userdata = SimpleNamespace(userIri=Iri('https://example.org/callback/actor'))
@@ -125,6 +127,7 @@ class Medium:
     """Only the model/write body is a fixture; decorator and hook are real."""
     name = Xsd_QName('shared:StagingMediaObject')
     iri = Iri('https://example.org/callback/media')
+    _graph = 'probe'
 
     def __init__(self, connection):
         self._con = connection
@@ -135,10 +138,11 @@ class Medium:
     @resource_operation
     def move(self, parent, *, before_commit=None):
         """Stage a fixture move; the real decorator invokes before_commit."""
-        self._con.transaction_update(f'''DELETE {{ GRAPH <urn:callback:data> {{
+        context = Context(name=self._con.context_name)
+        self._con.transaction_update(context.sparql_context + f'''DELETE {{ GRAPH probe:data {{
             <{self.iri}> <urn:callback:parent> ?old }} }}
-            INSERT {{ GRAPH <urn:callback:data> {{ <{self.iri}> <urn:callback:parent> <{parent}> }} }}
-            WHERE {{ OPTIONAL {{ GRAPH <urn:callback:data> {{ <{self.iri}> <urn:callback:parent> ?old }} }} }}''')
+            INSERT {{ GRAPH probe:data {{ <{self.iri}> <urn:callback:parent> <{parent}> }} }}
+            WHERE {{ OPTIONAL {{ GRAPH probe:data {{ <{self.iri}> <urn:callback:parent> ?old }} }} }}''')
 
 
 def run(java, jar, output, *, connection_factory=BridgeConnection):
@@ -152,6 +156,7 @@ def run(java, jar, output, *, connection_factory=BridgeConnection):
     log = (output / 'bridge.log').open('a')
     con = connection_factory(java, jar, output / 'dataset', log)
     context = Context(name=con.context_name)
+    context['probe'] = 'https://example.org/callback/'
     policy = SimpleNamespace(enabled=True, context=context, connection=con,
                              project=SimpleNamespace(projectShortName='probe'))
     now = datetime.now(UTC)

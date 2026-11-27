@@ -184,7 +184,7 @@ def rehearse(*, output, distribution, peer, config, start, stop, send, text_hits
             raise AssertionError('Wrong password accepted after restore')
         check('Commit receipt survives full restore', send('STATUS', committed).text == 'committed')
         send('BEGIN', aborted, expected=409)
-        check('Aborted admission also survives full restore', send('STATUS', aborted).text == 'unknown')
+        check('Aborted admission also survives full restore', send('STATUS', aborted).text == 'aborted')
         check('Post-backup commit is not invented at the recovery point', send('STATUS', later).text == 'unknown'
               and not send('READ', body='ASK { GRAPH <urn:service:test> { <urn:after-backup> ?p ?o } }').json()['boolean'])
         check('Fulltext index rebuild restores configured folded search', text_hits() == {'urn:text'})

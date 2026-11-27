@@ -1,5 +1,9 @@
 # OLDAPlib Project Context
 
+- Jena reconciles missing transaction-end replies with actor-bound status. Confirmed commit or rollback closes the archive writer's transaction journal. See the [persistent service transaction guarantee](docs/migration/graphdb-to-jena-cutover.md#persistent-private-backend-service-implemented-2026-11-02).
+
+- Staging folder inventory uses permission-filtered reads with optimistic revision checks. These reads bypass the archive writer gate. See [Private repository lifecycle](docs/private_repository_lifecycle.md).
+
 - Redis client release 1.2.5 (2026-11-25): dependency range >=7.4.1,<9.0.0, lock 8.2.0; isolated client matrix and installed-wheel acceptance pass. See docs/redis-client-compatibility.md and docs/release-1.2.5.md. Source/tag and both PyPI artifacts published and hash-verified; deployment remains separate.
 
 - Security patch 1.2.4 published (2026-11-25): source/tag pushed to GitHub and wheel/sdist published to PyPI with download-hash verification. Final installed-wheel tests and Java wrapper build pass. See `docs/release-1.2.4.md` and `docs/release-1.2.4-results.json`. Consumer images, Java/JVM rollout and deployment remain separate.

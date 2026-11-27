@@ -79,9 +79,13 @@ Existing folder-tree and generic search contracts remain unchanged.
   through existing media endpoints. External links are not advertised as local
   original downloads. Capability flags are hints, never a permission grant.
 
-Inventory uses the existing coordinated transaction boundary to obtain consistent
-revision, membership and metadata reads. As with writes, an unavailable or retained
-writer gate fails closed. All domain writers must participate in the same gate.
+Inventory uses ordinary permission-filtered reads, so a busy or retained writer
+gate does not hold up folder browsing. Each page checks the folder revision before
+and after loading the media, including on the first and last page. It also rechecks
+folder access and the visible page of identities before returning. Changed folder
+state or visible membership raises `STALE_FOLDER`; lost access denies the request.
+Media content and capability hints reflect their individual reads. All archive
+mutations still participate in the existing coordinated write boundary.
 
 ## Read-path correction required by transfer
 

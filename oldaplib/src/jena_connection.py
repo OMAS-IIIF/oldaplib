@@ -21,7 +21,7 @@ from oldaplib.src.enums.sparql_result_format import SparqlResultFormat
 from oldaplib.src.helpers.context import Context
 from oldaplib.src.helpers.jena_user_query import jena_user_query
 from oldaplib.src.helpers.oldaperror import (
-    OldapError, OldapErrorAlreadyExists, OldapErrorConfiguration, OldapErrorValue,
+    OldapError, OldapErrorAlreadyExists, OldapErrorConfiguration, OldapErrorUpdateFailed, OldapErrorValue,
 )
 from oldaplib.src.mutation_gate import transaction_opened, transaction_closed, track_transaction_end
 
@@ -205,38 +205,44 @@ class JenaConnection(Connection):
         if not self.in_transaction() or self._uncertain:
             raise OldapErrorConfiguration('No usable Jena transaction; inspect any uncertain receipt.')
 
-    @track_transaction_end
     def transaction_commit(self):
-        """Commit once; resolve lost replies using the durable receipt only."""
+        """Commit once, reporting failure if Jena confirms that the session aborted."""
         if not self.in_transaction():
             raise OldapError('No Jena transaction started.')
-        if not self._uncertain:
-            try:
-                if self._send('COMMIT') == 'committed':
-                    self._transaction_url = None
-                    return
-            except OldapError:
-                pass
-        self._uncertain = True
-        # Only a durable actor-bound receipt proves success after a lost reply.
-        if self._send('STATUS') == 'committed':
-            self._uncertain = False
-            self._transaction_url = None
-            return
-        raise OldapErrorConfiguration(f'Jena commit outcome unknown for {self._session_id}; do not replay.')
+        if self._end_session('COMMIT', 'committed') == 'aborted':
+            raise OldapErrorUpdateFailed('Jena aborted the transaction before commit.')
 
-    @track_transaction_end
     def transaction_abort(self):
         """Abort a known active session; never claim rollback after uncertain commit."""
         if self._uncertain:
             raise OldapErrorConfiguration('Cannot claim rollback of an uncertain Jena transaction.')
-        if self.in_transaction():
+        if self.in_transaction() and self._end_session('ABORT', 'aborted') == 'committed':
+            raise OldapErrorUpdateFailed('Jena already committed the transaction; rollback failed.')
+
+    @track_transaction_end
+    def _end_session(self, operation: str, expected: str) -> str:
+        """Return a confirmed final outcome; on ambiguity, retain ownership.
+
+        Send the end command at most once. A lost or unexpected reply (including
+        an inactive ABORT) needs a status read for the same authenticated session.
+        The gate journals closure before the caller reports an opposite outcome.
+        """
+        outcome = None
+        if not self._uncertain:
+            # An interruption during transmission must not let outer cleanup send ABORT.
+            self._uncertain = True
             try:
-                self._send('ABORT')
+                outcome = self._send(operation)
             except OldapError:
-                self._uncertain = True
-                raise
-            self._transaction_url = None
+                pass
+        if outcome != expected:
+            outcome = self._send('STATUS')
+            if outcome not in ('committed', 'aborted'):
+                raise OldapErrorConfiguration(f'Jena {operation} outcome unknown for {self._session_id}; do not replay.')
+        self._uncertain = False
+        self._transaction_url = None
+        self._session_id = None
+        return outcome
 
     def update_query(self, query):
         """Run one standalone update atomically; never join a caller-owned transaction."""

@@ -65,8 +65,10 @@ view from the previous milestone still applies to application statements;
 commit receipts use the private backing dataset in the same transaction.
 
 Commit-reply fault injection is test-only: the servlet returns 503 immediately
-before or after commit. A post-commit failure is resolved by STATUS; without a
-receipt the outcome stays unknown. The previous transport additionally tests
+before or after commit. A post-commit failure is resolved by STATUS. Before
+commit, STATUS can report an active session; an ended, reserved session without
+a commit receipt reports an abort. See the [service transaction guarantee](graphdb-to-jena-cutover.md#persistent-private-backend-service-implemented-2026-11-02).
+The previous transport additionally tests
 actual connection closure with no response. Authentication failure during a
 session does not itself commit or abort the writes: a valid actor can abort,
 or the existing session deadline eventually cleans up the abandoned transaction.

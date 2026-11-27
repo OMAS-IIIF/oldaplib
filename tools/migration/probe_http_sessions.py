@@ -145,7 +145,8 @@ def run(java, jar, output, *, connection_factory=HttpProbeConnection):
               and refused('ABORT', 403, token=TOKENS[1]))
         check('Competing writer is rejected without disrupting owner',
               refused('BEGIN', 409, session=uuid4()) and con.transaction_query(ask)['boolean'])
-        check('Missing receipt remains unknown while transaction is active', con.send('STATUS') == 'unknown')
+        check('Owner can distinguish an active transaction from an unknown ID',
+              con.send('STATUS') == 'active' and con.send('STATUS', session=uuid4()) == 'unknown')
         con.lose_commit_reply = True
         con.transaction_commit()
         check('Lost commit reply reconciles from atomic receipt', not con.active and con.send('STATUS') == 'committed' and con.query(ask)['boolean'])
@@ -182,7 +183,7 @@ def run(java, jar, output, *, connection_factory=HttpProbeConnection):
             check('Missing commit receipt raises uncertainty without automatic replay',
                   'outcome unknown' in str(error) and con.active
                   and con.operations.count('COMMIT') == commit_calls + 1
-                  and con.send('STATUS') == 'unknown'
+                  and con.send('STATUS') == 'active'
                   and not con.query('ASK { GRAPH <urn:http:test> { <urn:uncertain> ?p ?o } }')['boolean'])
         else:
             raise AssertionError('Unconfirmed commit reported success')
@@ -207,9 +208,9 @@ def run(java, jar, output, *, connection_factory=HttpProbeConnection):
         con.process.stdin.close()
         con.process.stdout.close()
         con = connection_factory(java, jar, output / 'dataset', log, reopen=True)
-        check('Server kill loses pending writes without inventing an abort receipt',
+        check('Server kill rolls back an admitted transaction',
               not con.query('ASK { GRAPH <urn:http:test> { <urn:crash> ?p ?o } }')['boolean']
-              and con.send('STATUS', session=crashed) == 'unknown')
+              and con.send('STATUS', session=crashed) == 'aborted')
         con.close()
 
         # A short absolute lifetime tests an abandoned HTTP client without

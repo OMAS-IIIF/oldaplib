@@ -1,3 +1,21 @@
+### Update 2026-11-27 13:57
+- Decisions: Release the staging inventory and transaction status fixes together in stable patch 1.2.6.
+- Implementation: Align Python package, runtime and Jena build versions and record rollout order in the release notes.
+- Open: Publish the tagged source and verify the PyPI distributions.
+- Risks/Assumptions: Deploy the matching Jena service before updating API workers to use the new abort status.
+
+### Update 2026-11-27 12:41
+- Decisions: Resolve ambiguous transaction endings once, on the original request. Release writer ownership only after a confirmed end.
+- Implementation: Jena serializes actor-bound STATUS with the writer and distinguishes active, committed, aborted and unknown IDs using existing protected records. The Python client journals confirmed closure before returning success or reporting failure. Added transport, crash and restore regression coverage.
+- Open: Package and deploy Jena first, followed by oldaplib consumers.
+- Risks/Assumptions: Requires the same dataset generation. An unavailable status, ambiguous outcome or crashed client may still need operator recovery. 106 Python tests and 17 subtests passed. Isolated HTTP DELETE tests with real Jena and Redis verified rollback, commit, released ownership and a subsequent write.
+
+### Update 2026-11-27 12:28
+- Decisions: Keep staging inventory reads independent of the archive writer gate. Preserve the existing signed cursor and writer coordination.
+- Implementation: Recheck folder revision, visible identities and folder access before returning any page. Document the consistency boundary and add concurrent-change, access-revocation and held-gate regressions.
+- Open: Package and deploy the change with the consuming API.
+- Risks/Assumptions: Media metadata and action hints reflect individual reads. Isolated verification passed 75 tests and 15 subtests. A disposable Jena/API/Redis fixture passed 22 checks, including four authorized inventory GETs under a held gate.
+
 ### Update 2026-11-25 01:15
 - Decisions: Complete authorized oldaplib 1.2.5 publication; preserve existing deployments.
 - Implementation: Pushed release commit ee6ab90 and annotated v1.2.5; Poetry published wheel/sdist. Downloaded PyPI artifacts match local SHA-256 hashes; receipt: docs/release-1.2.5-results.json.

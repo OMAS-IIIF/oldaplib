@@ -347,9 +347,19 @@ source-launch interface remains available for existing acceptance runners.
 **Transaction guarantee:** BEGIN first commits a small `reservedBy` admission record
 in the existing protected receipt graph, then opens the application transaction.
 A failure/expiry/abort still consumes that UUID. COMMIT stores the separate `owner`
-receipt atomically with application changes, as before. Only that commit receipt
-proves success; a reservation alone returns STATUS `unknown`. There is no automatic
-mutation replay, time-based pruning or ever-growing in-memory identifier set.
+receipt atomically with application changes. STATUS runs on the same owner thread
+as BEGIN, COMMIT and ABORT. It returns `active` for the current session,
+`committed` for a commit receipt, `aborted` for an inactive reserved ID without
+a commit receipt, and `unknown` for an unrecognized ID. All recognized IDs are
+actor-bound. These outcomes apply to the same dataset generation.
+
+After a missing or unexpected COMMIT or ABORT reply, the Python connection
+checks STATUS once while it still owns the writer gate. A confirmed end closes
+the journaled transaction; a confirmed abort of an attempted commit fails the
+write. An active, unknown or unavailable status leaves ownership in place for
+operator recovery. No mutation is replayed. For rollout, upgrade Jena first,
+then the Python clients. Older Jena services cannot confirm an aborted session
+via STATUS. There is no time-based pruning or ever-growing in-memory identifier set.
 Admission records and receipts grow on disk and must be included in backup; do not
 clear them as cache. Legacy committed receipts also prevent reuse. Historical
 probe-only aborted IDs that were never persisted cannot be recovered retroactively.

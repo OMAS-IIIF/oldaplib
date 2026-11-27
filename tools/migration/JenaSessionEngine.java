@@ -126,14 +126,27 @@ public class JenaSessionEngine implements AutoCloseable {
         }
     }
 
-    /** Read committed receipt without joining the owner's pending writes. */
-    String committedOwner(UUID id) {
-        dataset.begin(ReadWrite.READ);
+    /**
+     * Inspect status on the transaction owner's thread, serialized with admission,
+     * expiry and commit. An inactive ID can never be admitted again once reserved.
+     * A different active writer cannot change this ID's protected metadata.
+     */
+    String status(UUID id, String identity) {
+        if (id.equals(session)) {
+            if (!identity.equals(actor)) throw new Refusal(403, "Session belongs to another actor");
+            return "active";
+        }
+        boolean ownRead = session == null;
+        if (ownRead) dataset.begin(ReadWrite.READ);
         try {
-            Statement statement = dataset.getNamedModel(RECEIPTS).getProperty(
-                ResourceFactory.createResource("urn:uuid:" + id), OWNER);
-            return statement == null ? null : statement.getString();
-        } finally { dataset.end(); }
+            Model metadata = dataset.getNamedModel(RECEIPTS);
+            Resource resource = ResourceFactory.createResource("urn:uuid:" + id);
+            Statement committed = metadata.getProperty(resource, OWNER);
+            Statement ownerRecord = committed != null ? committed : metadata.getProperty(resource, RESERVED);
+            if (ownerRecord == null) return "unknown";
+            if (!identity.equals(ownerRecord.getString())) throw new Refusal(403, "Receipt belongs to another actor");
+            return committed != null ? "committed" : "aborted";
+        } finally { if (ownRead) dataset.end(); }
     }
 
     /**
@@ -161,6 +174,7 @@ public class JenaSessionEngine implements AutoCloseable {
     String execute(String operation, UUID id, String identity, String body) {
         available();
         expire();
+        if (operation.equals("STATUS")) return status(id, identity);
         if (operation.equals("BEGIN")) {
             if (session != null) throw new Refusal(409, "Writer busy");
             // Reserve independently before beginning application writes. Even an
@@ -209,16 +223,10 @@ public class JenaSessionEngine implements AutoCloseable {
     /** Dispatch an authenticated request without letting a handler own a write. */
     String dispatch(String operation, UUID id, String identity, String body) throws Exception {
         available(); // Refuse new work promptly while the owner compacts storage.
-        if (Set.of("STATUS", "READ", "FULLTEXT_READ", "READ_GRAPHS").contains(operation)) {
+        if (Set.of("READ", "FULLTEXT_READ", "READ_GRAPHS").contains(operation)) {
             if (!maintenance.readLock().tryLock()) throw new Refusal(503, "Fulltext rebuild in progress");
             try {
                 available();
-                if (operation.equals("STATUS")) {
-                    String receiptOwner = committedOwner(id);
-                    if (receiptOwner != null && !receiptOwner.equals(identity))
-                        throw new Refusal(403, "Receipt belongs to another actor");
-                    return receiptOwner == null ? "unknown" : "committed";
-                }
                 String sparql = body;
                 if (operation.equals("FULLTEXT_READ")) {
                     if (managedText == null) throw new Refusal(503, "Managed fulltext is not enabled");
